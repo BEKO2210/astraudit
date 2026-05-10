@@ -178,9 +178,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
           customValue={
             <div>
               <div className="text-base font-semibold text-white">
-                {insights.issuePrRatio !== null
-                  ? `${insights.issuePrRatio}× more issues than PRs`
-                  : "Ratio unavailable"}
+                {insights.openQueueLabel}
               </div>
               <div className={`mt-1 text-[11px] font-medium ${triage.color}`}>
                 {triage.label}

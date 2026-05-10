@@ -99,6 +99,15 @@ export interface DerivedInsights {
   languageGap: number;
   triageHealth: TriageHealth;
   issuePrRatio: number | null;
+  /**
+   * One-line description of the open queue's shape — used by the
+   * InsightsPanel "Open queue" card. Replaces the older
+   * `${ratio}× more issues than PRs` rendering for the cases where
+   * the ratio is meaningless (zero issues, zero PRs, or one of the
+   * counts unavailable). The engine computes this so the panel
+   * stays purely presentational.
+   */
+  openQueueLabel: string;
   readme: ReadmeMetrics;
   commits: CommitActivity;
   releases: ReleaseActivity;
@@ -462,20 +471,71 @@ function analyzeWorkflows(ci: CiSignals): WorkflowProfile {
   };
 }
 
-function bucketTriage(openIssues: number, openPRs: number | null, stars: number): TriageHealth {
-  if (openPRs === null && openIssues === 0) return "unknown";
+/**
+ * Plain-language description of the open issue + PR queue. Used by
+ * the "Open queue" insight card. Replaces the older
+ * `${ratio}× more issues than PRs` rendering, which was meaningless
+ * for the no-issues / no-PRs / one-side-unknown cases (and produced
+ * the maintainer-reported "0× more issues than PRs · backlog has
+ * built up" contradiction).
+ */
+function describeOpenQueue(
+  openIssues: number,
+  openPRs: number | null,
+  ratio: number | null,
+): string {
+  if (ratio !== null) return `${ratio}× more issues than PRs`;
+  if (openIssues === 0 && (openPRs === null || openPRs === 0)) {
+    return "Empty queue";
+  }
   if (openPRs === null) {
+    return `${openIssues.toLocaleString("en-US")} open issue${openIssues === 1 ? "" : "s"}`;
+  }
+  if (openIssues === 0) {
+    return `${openPRs} open PR${openPRs === 1 ? "" : "s"}, no issues`;
+  }
+  // openPRs is 0 here (otherwise ratio would be non-null).
+  return `${openIssues.toLocaleString("en-US")} open issue${openIssues === 1 ? "" : "s"}, no PRs`;
+}
+
+function bucketTriage(openIssues: number, openPRs: number | null, stars: number): TriageHealth {
+  // Phase 6.x bugfix — the previous version bucketed purely on
+  // `(issues + prs) / stars`, so a tiny repo with 0 issues + 4 open
+  // PRs + 0 stars came out as "backlog" with the contradictory
+  // copy "A real backlog has built up — 0 open issues and 4 PRs".
+  // The fix has two ground truths:
+  //   1. A backlog needs ACTUAL ISSUES — open PRs alone are normal
+  //      maintenance flow, not a queue health problem.
+  //   2. Below an absolute floor the bucket has to stay healthy
+  //      regardless of stars-relative ratio. A repo with 5 open
+  //      issues is fine no matter how few stars it has.
+  if (openIssues === 0 && (openPRs === null || openPRs === 0)) return "healthy";
+  if (openPRs === null) {
+    // Single-axis: just issues
     if (openIssues > 1000) return "heavy";
     if (openIssues > 250) return "backlog";
     if (openIssues > 50) return "moderate";
     return "healthy";
   }
+  // Both axes available — but PRs alone never trigger a backlog.
+  if (openIssues === 0) return "healthy";
+  // Hard absolute thresholds first (these dominate, so a 1,500-issue
+  // repo is "heavy" even with millions of stars).
+  if (openIssues > 1000) return "heavy";
+  if (openIssues > 250) return "backlog";
+  // Stars-relative ratio with an absolute-count floor so a small
+  // repo with a handful of items doesn't get bucketed as "heavy".
   const total = openIssues + openPRs;
-  const ratio = stars > 0 ? total / stars : total / 100;
-  if (ratio < 0.005) return "healthy";
-  if (ratio < 0.02) return "moderate";
-  if (ratio < 0.05) return "backlog";
-  return "heavy";
+  if (stars > 0) {
+    const ratio = total / stars;
+    if (ratio >= 0.05 && total >= 30) return "heavy";
+    if (ratio >= 0.02 && total >= 10) return "backlog";
+    if (ratio >= 0.005 && total >= 5) return "moderate";
+    return "healthy";
+  }
+  // Stars unknown — fall back to absolute-only thresholds.
+  if (openIssues > 50) return "moderate";
+  return "healthy";
 }
 
 function describeAudience(stars: number, ageDays: number | null): string {
@@ -569,9 +629,18 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     bundle.issues.openPRCount,
     meta.stars,
   );
+  // Phase 6.x bugfix — `0 / 5` is a valid number but renders as
+  // "0× more issues than PRs" in the InsightsPanel, which is
+  // meaningless. The ratio is only useful when both sides are > 0;
+  // the panel's fallback copy now describes the queue shape
+  // directly when this is null.
   const issuePrRatio =
-    bundle.issues.openPRCount && bundle.issues.openPRCount > 0
-      ? Math.round((bundle.issues.openIssueCount / bundle.issues.openPRCount) * 10) / 10
+    bundle.issues.openIssueCount > 0 &&
+    bundle.issues.openPRCount &&
+    bundle.issues.openPRCount > 0
+      ? Math.round(
+          (bundle.issues.openIssueCount / bundle.issues.openPRCount) * 10,
+        ) / 10
       : null;
 
   const readmeContent = bundle.readme?.content ?? null;
@@ -639,6 +708,11 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     languageGap: Math.round(languageGap * 1000) / 10,
     triageHealth,
     issuePrRatio,
+    openQueueLabel: describeOpenQueue(
+      bundle.issues.openIssueCount,
+      bundle.issues.openPRCount,
+      issuePrRatio,
+    ),
     readme: readmeMetrics,
     commits,
     releases,
