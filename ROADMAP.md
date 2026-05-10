@@ -1850,9 +1850,77 @@ Phase 3 → 44/577 at the end.
 
 ## Phase 4 — Polish & long-term sustainability
 
-### 4.1 · Visual regression tests
-Playwright + a free GitHub Actions workflow that screenshots a known
-audit (e.g. our own repo) on each PR. Differences flagged for review.
+### 4.1 · Visual regression tests ✅ shipped
+**Why:** Astraudit's UI relies on a dense semantic-token system —
+one inverted variable can ripple silently across both themes, the
+print stylesheet, the bottom-sheet variant, and the legal pages. A
+free, OSS-friendly visual regression suite makes those breaks
+impossible to miss in code review.
+
+**Pre-build research (2026-05-10):**
+- Playwright Docs · *Continuous Integration*: canonical GH Actions
+  setup is `actions/setup-node@v4` + `npm ci` +
+  `npx playwright install --with-deps` + `npx playwright test`,
+  with the HTML report uploaded as a build artefact on failure.
+  https://playwright.dev/docs/ci-intro
+- Visual snapshots are notoriously OS-dependent (font rendering,
+  anti-aliasing). Standard practice: pin the test environment to a
+  single OS + browser binary version, only commit baselines
+  generated there, allow a small `maxDiffPixelRatio` (~0.5 %) for
+  AA jitter. We follow that exactly — Chromium-only, ubuntu-latest
+  CI, baselines generated on the same OS image, 0.5 % tolerance.
+- Mask volatile UI (`new Date().getFullYear()` in the footer, the
+  auth-token-prefix pill, theme toggle label) so cosmetic churn
+  can't fail a snapshot.
+
+**Implementation:**
+- `@playwright/test@^1.59` added as a devDependency. `npx playwright
+  install chromium` is invoked from the new CI workflow with binary
+  caching keyed on `package-lock.json`.
+- New `playwright.config.ts`:
+   · `testDir: "tests/visual"`,
+     `snapshotPathTemplate` colocates baselines next to specs.
+   · Single Chromium project (cross-browser snapshots are too noisy
+     for a project this small).
+   · `webServer` runs `npm run build && npm run preview --port 4173
+     --strictPort` so screenshots reflect what GitHub Pages
+     actually serves.
+   · `expect.toHaveScreenshot` defaults: `maxDiffPixelRatio: 0.005`,
+     `animations: "disabled"`, `caret: "hide"`.
+   · Context defaults: `reducedMotion: "reduce"` (forces the
+     motion-safe variants out of the picture), pinned 1280×800
+     viewport, `dark` colorScheme, `Europe/Berlin` timezone,
+     `en-US` locale.
+- New specs:
+   · `tests/visual/home.spec.ts` — home page in dark + light
+     (light is set via `localStorage.astraudit:theme:v1=light` in
+     an `addInitScript`). Footer + theme toggle + settings pill
+     are masked.
+   · `tests/visual/legal.spec.ts` — Impressum + Datenschutzerklärung
+     full-page screenshots with the footer masked.
+- New `.github/workflows/visual.yml` — runs on PRs and main pushes.
+  Caches Playwright browsers, runs `npx playwright test`, uploads
+  the HTML report + traces on failure (or success — `always()`).
+- `package.json` scripts: `npm run test:visual` runs the suite,
+  `npm run test:visual:update` regenerates baselines.
+- `.gitignore` adds `playwright-report/`, `test-results/`,
+  `.playwright/`. Baseline PNGs under
+  `tests/visual/__snapshots__/` are tracked.
+
+**Coverage:** four baselines committed (home dark + light,
+Impressum, Datenschutz). The audit dashboard isn't snapshotted yet
+because deterministic dashboard rendering needs GitHub-API route
+mocking — deferred to a follow-up so this phase ships with a stable
+baseline.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 44 files / 577 tests still green
+  (vitest only picks up `*.test.{ts,tsx}`; Playwright specs are
+  `*.spec.ts`).
+- `npx playwright test` — 4 specs / 4 snapshots pass against the
+  freshly-generated baselines.
+- `npm run build` — 624 KB JS, no warnings.
 
 ### 4.2 · Lighthouse + axe gates
 CI fails if Lighthouse score drops below 90 or axe reports new
