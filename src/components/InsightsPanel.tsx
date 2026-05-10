@@ -39,6 +39,10 @@ import {
   formatNodeFreshness,
   type ParsedManifest,
 } from "../lib/audit/packageManifest";
+import {
+  formatCadence,
+  type ParsedChangelog,
+} from "../lib/audit/changelogParser";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -269,6 +273,22 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
             }
           />
         ) : null}
+        {insights.changelog ? (
+          <Card
+            icon={Calendar}
+            label="CHANGELOG cadence"
+            value={buildChangelogValue(insights.changelog)}
+            sub={buildChangelogSub(insights.changelog)}
+            accent={
+              insights.changelog.cadence === "frequent" ||
+              insights.changelog.cadence === "regular"
+                ? "text-aurora-mint"
+                : insights.changelog.cadence === "dormant"
+                  ? "text-risk-medium"
+                  : undefined
+            }
+          />
+        ) : null}
         <Card
           icon={ShieldCheck}
           label="Trust signal score"
@@ -360,6 +380,43 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the CHANGELOG card's primary value: cadence label + the
+ * mean delta between releases (or "single release" when only one is
+ * present). Phase 3.6.
+ */
+function buildChangelogValue(c: ParsedChangelog): string {
+  const cadence = formatCadence(c.cadence);
+  if (c.releases.length < 2 || c.averageDaysBetween === null) {
+    return `${cadence} · ${c.releases.length} release${c.releases.length === 1 ? "" : "s"}`;
+  }
+  return `${cadence} · ~${c.averageDaysBetween.toFixed(1)} days between releases`;
+}
+
+/**
+ * Format the CHANGELOG card's subline: total release count, latest
+ * release date + days-since, median delta when applicable, and an
+ * Unreleased-section hint. Phase 3.6.
+ */
+function buildChangelogSub(c: ParsedChangelog): string {
+  const parts: string[] = [];
+  parts.push(
+    `${c.releases.length} dated release${c.releases.length === 1 ? "" : "s"}`,
+  );
+  if (c.latestDate && c.daysSinceLatest !== null) {
+    parts.push(
+      c.daysSinceLatest === 0
+        ? `latest today (${c.latestDate})`
+        : `latest ${c.daysSinceLatest} day${c.daysSinceLatest === 1 ? "" : "s"} ago (${c.latestDate})`,
+    );
+  }
+  if (c.medianDaysBetween !== null) {
+    parts.push(`median ${c.medianDaysBetween}d`);
+  }
+  if (c.hasUnreleasedSection) parts.push("Unreleased section pending");
+  return parts.join(" · ");
 }
 
 /**

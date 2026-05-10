@@ -1494,9 +1494,77 @@ that's been EOL for over a year.
 - `npx vitest run` — 37 files / 425 tests green (was 36 / 384).
 - `npm run build` — 595 KB JS, no warnings.
 
-### 3.6 · Parse CHANGELOG release pace
-Mean delta between Markdown release headings → adds a real cadence
-metric independent of GitHub Releases.
+### 3.6 · Parse CHANGELOG release pace ✅ shipped
+**Why:** Astraudit already pulls a release cadence from the GitHub
+Releases API (`releases.averageDaysBetween`), but many projects ship
+a CHANGELOG without ever cutting a Release on GitHub. The API view
+says "no releases" while the file shows years of structured cadence.
+Computing release pace directly from the markdown gives us a real
+signal even on those repos, and the gap between the two sources is a
+useful drift indicator on projects that do both.
+
+**Pre-build research (2026-05-10):**
+- Keep a Changelog 1.1.0 — canonical heading is
+  `## [1.0.0] - 2017-06-20` with ISO-8601 dates. The
+  `[Unreleased]` section at the top is the only special case.
+  https://keepachangelog.com/en/1.1.0/
+- Real-world heading variants observed:
+   · `## [1.0.0] - 2024-01-15` (Keep a Changelog)
+   · `## 1.0.0 (2024-01-15)`   (Conventional Changelog default)
+   · `## v1.0.0 - 2024-01-15`
+   · `## 1.0.0 - 2024-01-15`
+   · `## 1.0.0 / 2024-01-15`
+   · `# 1.0.0 (2024-01-15)`    (rare h1)
+- The parser accepts every shape that contains *both* a version-like
+  token and an ISO-8601 date on the same heading line. We
+  deliberately do NOT support non-ISO date forms (e.g. `Jan 15,
+  2024`) — too rare to justify the false-positive risk.
+
+**Implementation:**
+- New `src/lib/audit/changelogParser.ts`. Single forward pass:
+   1. Walk every `# / ## / ###` heading line.
+   2. Strip markdown link syntax so `[1.0.0](url)` → `1.0.0`.
+   3. Skip headings that match `[Unreleased]` and remember the flag.
+   4. Match an ISO-8601 date *and* a version token on the same line.
+   5. Validate the date structurally — `2024-13-99` is rejected via
+      a UTC round-trip check.
+   6. De-dupe identical (version, date) pairs.
+- Releases sort oldest → newest; deltas are computed in days using
+  pure UTC arithmetic (no timezone surprises).
+- `bucketCadence` maps mean-delta thresholds to
+  `frequent` (≤ 14d) / `regular` (≤ 60d) / `occasional` (≤ 180d) /
+  `rare` (≤ 365d) / `dormant`. Long-stale projects (latest > 540d
+  ago) collapse to `dormant` regardless of historical cadence.
+  Single-release files classify by recency, not delta.
+- `now` is injectable so tests pin the days-since-latest computation
+  deterministically.
+- `insightEngine.ts` reads the CHANGELOG content from
+  `classified.importantFileMap` (covering `.md`, `.markdown`, the
+  bare `CHANGELOG`, and the lowercase variant) and surfaces
+  `changelog: ParsedChangelog | null` on `DerivedInsights`.
+- `InsightsPanel.tsx` adds a Calendar-icon "CHANGELOG cadence" card.
+  Value: cadence label + mean delta (or `N releases` for sparse
+  files). Subline: total release count, latest date with
+  days-since, median delta, Unreleased-pending hint. Card accent
+  shifts to `aurora-mint` for frequent/regular and `risk-medium` for
+  dormant.
+
+**Tests:** `tests/lib/audit/changelogParser.test.ts` (23 cases):
+- 9 heading-recognition cases (Keep-a-Changelog, Conventional
+  Changelog, v-prefix + dash, slash separator, h1/h2/h3,
+  markdown-link strip, dedupe, Unreleased-only file, invalid-date
+  rejection, null/empty input).
+- 3 cadence-math cases (mean + median, injected-now
+  daysSinceLatest, single-release null deltas).
+- 5 cadence-bucket cases (frequent floor, regular vs occasional,
+  long-stale forced to dormant, single-recent → occasional,
+  single-old → dormant).
+- 5 UI label cases.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 38 files / 448 tests green (was 37 / 425).
+- `npm run build` — 596 KB JS, no warnings.
 
 ### 3.7 · Topic-driven contextual rules
 If repo topic is `cli`, expect a `bin` entry in `package.json`. If

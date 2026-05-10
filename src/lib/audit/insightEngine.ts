@@ -10,6 +10,7 @@ import type { ParsedCodeowners } from "./codeownersParser";
 import type { ParsedSecurityPolicy } from "./securityPolicyParser";
 import type { DependencySignals } from "./dependencyDetector";
 import type { ParsedManifest } from "./packageManifest";
+import { parseChangelog, type ParsedChangelog } from "./changelogParser";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -124,6 +125,13 @@ export interface DerivedInsights {
    * unparseable. Phase 3.5.
    */
   manifest: ParsedManifest | null;
+  /**
+   * Parsed CHANGELOG release pace — releases (oldest→newest), mean +
+   * median delta, days-since-latest, and a cadence bucket. Independent
+   * of GitHub Releases (the API source on `releases` above). Null when
+   * no CHANGELOG with dated headings is present. Phase 3.6.
+   */
+  changelog: ParsedChangelog | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -553,6 +561,20 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
   const readmeMetrics = analyzeReadmeMetrics(readme, readmeContent);
   const commits = analyzeCommits(bundle.recentCommits);
   const releases = analyzeReleases(bundle.releases);
+
+  // CHANGELOG cadence is computed file-side (independent of the
+  // GitHub Releases API surfaced on `releases` above). Some projects
+  // ship a CHANGELOG without ever cutting a Release, and the gap
+  // between the two is itself a useful signal.
+  const changelogFile =
+    classified.importantFileMap.get("CHANGELOG.md") ??
+    classified.importantFileMap.get("CHANGELOG.markdown") ??
+    classified.importantFileMap.get("CHANGELOG") ??
+    classified.importantFileMap.get("changelog.md") ??
+    null;
+  const changelog = changelogFile?.content
+    ? parseChangelog(changelogFile.content)
+    : null;
   const workflows = analyzeWorkflows(ci);
   workflows.hasDependabot = !!classified.hasFile(
     ".github/dependabot.yml",
@@ -608,6 +630,7 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     codeowners: security.codeownersConfig,
     securityPolicy: security.securityPolicy,
     manifest: deps.manifest,
+    changelog,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
