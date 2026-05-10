@@ -33,6 +33,7 @@ import { RegistryPanel } from "./RegistryPanel";
 import { CopyButton } from "./CopyButton";
 import { OnboardingPanel } from "./OnboardingPanel";
 import { PrintButton } from "./PrintButton";
+import { ExportMenu } from "./ExportMenu";
 import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
@@ -176,6 +177,7 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
                   label="Copy verdict"
                   withText
                 />
+                <ExportMenu result={result} />
                 <PrintButton />
               </div>
             </div>
