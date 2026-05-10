@@ -136,8 +136,10 @@ If you fork this under a different name, update `vite.config.ts` accordingly.
 
 ## Roadmap
 
-- Optional inline display of `package.json` scripts.
-- Markdown rendering for README excerpts.
-- Per-language deep-dives (e.g. Python pyproject hints, Go module hygiene).
-- Sharable, URL-encoded audit results (still client-side only).
-- More aggressive stack detection for non-Node ecosystems.
+The full roadmap lives in [`ROADMAP.md`](./ROADMAP.md). It is organized
+into four phases (quick wins → UX upgrades → smarter detection →
+polish) plus a strict **anti-roadmap** that records the things
+Astraudit will never do — backend, serverless, AI APIs, OAuth, private
+repos, code execution. Every roadmap item is checked against the
+four operating constraints (browser-only, free, public-only,
+rule-based) before it is accepted.
