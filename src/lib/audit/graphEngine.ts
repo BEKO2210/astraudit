@@ -281,15 +281,16 @@ export function buildGraph(ctx: GraphContext): GraphPayload {
     { x: 240, y: 300 },
   );
 
+  const tsconfig = classified.hasFile("tsconfig.json", "tsconfig.base.json");
   addNode(
     "config",
     "Config",
-    classified.importantFolders.includes("config") || classified.blobPaths.has("tsconfig.json")
+    classified.importantFolders.includes("config") || !!tsconfig
       ? "info"
       : "unknown",
     "Configuration signals.",
     [
-      `tsconfig.json: ${classified.blobPaths.has("tsconfig.json") ? "yes" : "no"}`,
+      `tsconfig.json: ${tsconfig ? "yes" : "no"}`,
       `config/ folder: ${classified.importantFolders.includes("config") ? "yes" : "no"}`,
     ],
     null,

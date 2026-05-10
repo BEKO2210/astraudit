@@ -9,11 +9,12 @@ import { analyzeMaintenance } from "./maintenanceDetector";
 import { analyzeCi } from "./ciDetector";
 import { analyzeDx } from "./dxDetector";
 import { buildCategoryScores, buildVerdict, gradeFromScore, totalScore } from "./scoreEngine";
-import { buildRepoStory } from "./storyEngine";
 import { buildRecommendations } from "./recommendationEngine";
 import { buildGraph } from "./graphEngine";
 import { buildFindings } from "./riskEngine";
 import { severityRank } from "../utils/severity";
+import { deriveInsights } from "./insightEngine";
+import { buildHeadlineVerdict, buildOnboarding, buildRichStory } from "./copyEngine";
 
 const STEP_LABELS: Record<AuditProgressStep, string> = {
   metadata: "Reading repository metadata",
@@ -110,14 +111,18 @@ export function runAudit(
 
   emit("recommendations");
   const recommendations = buildRecommendations({ categories, findings });
-  const story = buildRepoStory({
+  const insights = deriveInsights({
     bundle,
-    stack,
     classified,
-    categories,
-    maintenance,
     readme,
+    ci,
+    stack,
+    maintenance,
   });
+  const copyCtx = { bundle, insights, stack, classified, categories };
+  const story = buildRichStory(copyCtx);
+  const onboarding = buildOnboarding(copyCtx);
+  const headline = buildHeadlineVerdict(copyCtx);
 
   emit("done");
 
@@ -127,6 +132,7 @@ export function runAudit(
     maxScore: categories.reduce((sum, c) => sum + c.max, 0),
     grade,
     verdict,
+    headline,
     categories,
     findings,
     story,
@@ -142,6 +148,8 @@ export function runAudit(
       suspiciousFiles: classified.suspiciousFiles,
     },
     recommendations,
+    insights,
+    onboarding,
     generatedAt: new Date().toISOString(),
   };
 }

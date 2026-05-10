@@ -83,25 +83,29 @@ function detectMonorepo(
   classified: ClassifiedFiles,
   pkg: PackageJson | null,
 ): string | null {
-  if (classified.blobPaths.has("turbo.json")) return "Turborepo";
-  if (classified.blobPaths.has("nx.json")) return "Nx";
-  if (classified.blobPaths.has("pnpm-workspace.yaml")) return "pnpm workspaces";
-  if (classified.blobPaths.has("lerna.json")) return "Lerna";
+  const has = classified.hasFile;
+  if (has("turbo.json")) return "Turborepo";
+  if (has("nx.json")) return "Nx";
+  if (has("pnpm-workspace.yaml", "pnpm-workspace.yml")) return "pnpm workspaces";
+  if (has("lerna.json")) return "Lerna";
   if (pkg && pkg.workspaces) return "npm/yarn workspaces";
-  if (classified.blobPaths.has("rush.json")) return "Rush";
+  if (has("rush.json")) return "Rush";
+  if (has("moon.yml")) return "Moon";
   return null;
 }
 
 function detectPackageManager(classified: ClassifiedFiles): string | null {
-  if (classified.blobPaths.has("pnpm-lock.yaml")) return "pnpm";
-  if (classified.blobPaths.has("yarn.lock")) return "yarn";
-  if (classified.blobPaths.has("bun.lockb")) return "bun";
-  if (classified.blobPaths.has("package-lock.json")) return "npm";
-  if (classified.blobPaths.has("Cargo.lock")) return "cargo";
-  if (classified.blobPaths.has("poetry.lock")) return "poetry";
-  if (classified.blobPaths.has("Pipfile.lock")) return "pipenv";
-  if (classified.blobPaths.has("go.sum")) return "go modules";
-  if (classified.blobPaths.has("composer.lock")) return "composer";
+  const has = classified.hasFile;
+  if (has("pnpm-lock.yaml")) return "pnpm";
+  if (has("yarn.lock")) return "yarn";
+  if (has("bun.lockb", "bun.lock")) return "bun";
+  if (has("package-lock.json")) return "npm";
+  if (has("Cargo.lock")) return "cargo";
+  if (has("poetry.lock")) return "poetry";
+  if (has("Pipfile.lock")) return "pipenv";
+  if (has("go.sum")) return "go modules";
+  if (has("composer.lock")) return "composer";
+  if (has("Gemfile.lock")) return "bundler";
   return null;
 }
 
@@ -110,9 +114,9 @@ function detectRuntime(
   pkg: PackageJson | null,
   primaryLang: string | null,
 ): string | null {
-  const blob = classified.blobPaths;
-  if (blob.has("deno.json")) return "Deno";
-  if (blob.has("bun.lockb")) return "Bun";
+  const has = classified.hasFile;
+  if (has("deno.json", "deno.jsonc")) return "Deno";
+  if (has("bun.lockb", "bun.lock")) return "Bun";
 
   const lang = primaryLang ? primaryLang.toLowerCase() : null;
   const hasNodeManifest = !!pkg;
@@ -131,13 +135,12 @@ function detectRuntime(
   // dominantly JavaScript/TypeScript — otherwise auxiliary build tooling
   // (e.g. pyproject.toml in a JS repo) would falsely set the runtime.
   if (!isJsProject) {
-    if (blob.has("Cargo.toml")) return "Rust";
-    if (blob.has("go.mod")) return "Go";
-    if (blob.has("Gemfile")) return "Ruby";
-    if (blob.has("composer.json")) return "PHP";
-    if (blob.has("pom.xml") || blob.has("build.gradle")) return "JVM";
-    if (blob.has("pyproject.toml") || blob.has("requirements.txt"))
-      return "Python";
+    if (has("Cargo.toml")) return "Rust";
+    if (has("go.mod")) return "Go";
+    if (has("Gemfile")) return "Ruby";
+    if (has("composer.json")) return "PHP";
+    if (has("pom.xml", "build.gradle", "build.gradle.kts")) return "JVM";
+    if (has("pyproject.toml", "requirements.txt", "setup.py")) return "Python";
   }
 
   if (hasNodeManifest || isJsProject) return "Node.js";
@@ -148,7 +151,9 @@ export function detectStack(
   classified: ClassifiedFiles,
   languages: LanguagesMap,
 ): StackSignals {
-  const pkgFile = classified.importantFileMap.get("package.json");
+  const pkgFile =
+    classified.importantFileMap.get("package.json") ??
+    classified.importantFileMap.get("package.json".toLowerCase());
   const pkg = pkgFile?.content ? tryParseJson<PackageJson>(pkgFile.content) : null;
 
   const allDeps: Record<string, string> = {
@@ -171,10 +176,15 @@ export function detectStack(
     }))
     .sort((a, b) => b.bytes - a.bytes);
 
-  const containerized =
-    classified.blobPaths.has("Dockerfile") ||
-    classified.blobPaths.has("docker-compose.yml") ||
-    classified.blobPaths.has("docker-compose.yaml");
+  const containerized = !!classified.hasFile(
+    "Dockerfile",
+    "dockerfile",
+    "Containerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "compose.yml",
+    "compose.yaml",
+  );
 
   const dependencyCounts = pkg
     ? {
@@ -192,17 +202,19 @@ export function detectStack(
 
   const hasLockfile =
     !!packageManager &&
-    [
+    !!classified.hasFile(
       "package-lock.json",
       "pnpm-lock.yaml",
       "yarn.lock",
       "bun.lockb",
+      "bun.lock",
       "Cargo.lock",
       "poetry.lock",
       "Pipfile.lock",
       "go.sum",
       "composer.lock",
-    ].some((f) => classified.blobPaths.has(f));
+      "Gemfile.lock",
+    );
 
   return {
     language,
