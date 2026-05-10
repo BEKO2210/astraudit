@@ -69,12 +69,16 @@ export function DocPage({
           {backLabel}
         </a>
         {nav.length > 0 ? (
-          <nav className="flex flex-wrap items-center gap-3">
+          <nav className="flex flex-wrap items-center gap-2">
             {nav.map((link) => (
               <a
                 key={link.slug}
                 href={`${base}#/${link.slug}`}
-                className="text-xs font-medium text-aurora-cyan hover:underline"
+                // Phase 5.2 — inline-flex + py-1 + min-h gets the
+                // tap target above WCAG 2.5.8's 24×24 floor. These
+                // are real navigation links (not inline prose), so
+                // they earn the explicit hit area.
+                className="inline-flex min-h-[1.625rem] items-center rounded-md px-2 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/10 hover:underline"
               >
                 {link.label}
               </a>

@@ -262,9 +262,18 @@ function Row({
         type="button"
         onClick={onRemove}
         aria-label="Remove from history"
-        className="rounded-md p-1 text-slate-500 opacity-0 transition group-hover:opacity-100 hover:bg-risk-critical/10 hover:text-risk-critical focus:opacity-100"
+        // Phase 5.2:
+        //   - p-1 + h-3.5 was 22×22 px hit area (under WCAG 2.5.8's
+        //     24×24 floor). Bumped to p-1.5 + h-4 = 28×28.
+        //   - `opacity-0 group-hover:opacity-100` made the button
+        //     literally invisible to non-hovering users — keyboard
+        //     users could Tab focus to it but only saw it via the
+        //     `focus:opacity-100` recovery, which is jarring. Now
+        //     it's always at 60 % opacity and fades to 100 % on
+        //     hover/focus, so the affordance is always discoverable.
+        className="shrink-0 rounded-md p-1.5 text-slate-500 opacity-60 transition group-hover:opacity-100 hover:bg-risk-critical/10 hover:text-risk-critical focus-visible:opacity-100"
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-4 w-4" />
       </button>
     </div>
   );

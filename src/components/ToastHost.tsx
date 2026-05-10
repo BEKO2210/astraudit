@@ -182,9 +182,11 @@ function ToastItem({ toast }: { toast: Toast }) {
         type="button"
         onClick={() => dismissToast(toast.id)}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
+        // Phase 5.2 — was p-1 + h-3 = 20×20 px (under WCAG 2.5.8's
+        // 24×24 floor). Bumped to p-1.5 + h-3.5 = 26×26.
+        className="shrink-0 rounded-md p-1.5 text-slate-500 transition hover:bg-white/5 hover:text-white"
       >
-        <X className="h-3 w-3" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
