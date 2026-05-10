@@ -1,10 +1,21 @@
 import { isInNoiseFolder, type ClassifiedFiles } from "./fileClassifier";
 import { parseDependabotConfig, type ParsedDependabot } from "./dependabotParser";
+import {
+  computeCoverage,
+  parseCodeowners,
+  type ParsedCodeowners,
+} from "./codeownersParser";
 
 export interface SecuritySignals {
   hasLicense: boolean;
   hasSecurityPolicy: boolean;
   hasCodeowners: boolean;
+  /**
+   * Parsed CODEOWNERS file with rules, distinct owners, ownership
+   * shape, and coverage % over the repo blobs. Null when the file is
+   * absent or empty. Phase 3.3.
+   */
+  codeownersConfig: ParsedCodeowners | null;
   hasDependabot: boolean;
   /**
    * Parsed Dependabot config — null when the file is absent, isn't
@@ -71,6 +82,23 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
     ".gitlab/CODEOWNERS",
   );
 
+  // Parse CODEOWNERS when present. Coverage % is computed against the
+  // repo's blob list — it's a useful signal but only meaningful when
+  // the rule set is non-empty, so we degrade gracefully on
+  // unparseable / empty files.
+  let codeownersConfig: ParsedCodeowners | null = null;
+  if (codeownersHit) {
+    const file =
+      classified.importantFileMap.get(codeownersHit) ??
+      classified.importantFileMap.get(codeownersHit.toLowerCase());
+    if (file?.content) {
+      codeownersConfig = parseCodeowners(file.content);
+      if (codeownersConfig) {
+        computeCoverage(codeownersConfig, classified.blobPaths);
+      }
+    }
+  }
+
   const dependabotHit = has(
     ".github/dependabot.yml",
     ".github/dependabot.yaml",
@@ -126,6 +154,7 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
     hasLicense: !!licenseHit || !!licenseFolderHit,
     hasSecurityPolicy: !!securityHit,
     hasCodeowners: !!codeownersHit,
+    codeownersConfig,
     hasDependabot: !!dependabotHit,
     dependabotConfig,
     hasCodeQL: codeqlHit,

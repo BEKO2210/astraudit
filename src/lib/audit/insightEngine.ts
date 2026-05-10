@@ -6,6 +6,7 @@ import type { StackSignals } from "../../types/audit";
 import type { MaintenanceSignals } from "./maintenanceDetector";
 import type { SecuritySignals } from "./securityDetector";
 import type { ParsedDependabot } from "./dependabotParser";
+import type { ParsedCodeowners } from "./codeownersParser";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -103,6 +104,12 @@ export interface DerivedInsights {
    * `workflows.hasDependabot` remains the boolean signal. Phase 3.2.
    */
   dependabot: ParsedDependabot | null;
+  /**
+   * Parsed CODEOWNERS file with rules, distinct owners, ownership
+   * shape, and coverage % over repo blobs. Null when the file is
+   * absent or empty. Phase 3.3.
+   */
+  codeowners: ParsedCodeowners | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -583,6 +590,7 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     releases,
     workflows,
     dependabot: security.dependabotConfig,
+    codeowners: security.codeownersConfig,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,

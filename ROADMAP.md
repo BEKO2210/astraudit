@@ -1280,9 +1280,80 @@ behaviour cases (grouping with dedupe, mixed cadence detection).
 - `npx vitest run` — 33 files / 319 tests green (was 32 / 296).
 - `npm run build` — 579 KB JS / 62 KB CSS, no warnings.
 
-### 3.3 · Parse CODEOWNERS for ownership density
-Distinct owners count and the % of paths covered. Surface when only a
-handful of paths are owned.
+### 3.3 · Parse CODEOWNERS for ownership density ✅ shipped
+**Why:** Astraudit already detects the *presence* of a CODEOWNERS
+file, but presence and ownership health are different signals: a
+five-line "everything goes through @founder" config and a 40-line
+team-owned config look identical to a yes/no flag. Adopters care
+about bus-factor, coverage, and whether the file exists in name
+only.
+
+**Pre-build research (2026-05-10):**
+- GitHub Docs · *About code owners* — confirmed line format
+  (`pattern owner1 owner2 …`), three valid owner types (`@user`,
+  `@org/team`, `user@example.com`), full-line + inline `#` comments,
+  gitignore-style globs (`*` not crossing slashes, `**` crossing
+  them, `/` prefix anchoring to root, trailing `/` for directory
+  match), case-sensitive matching, and **last-matching-pattern wins**
+  precedence. Negation, character ranges, and `\#` escaping are
+  explicitly NOT supported. https://docs.github.com/articles/about-code-owners
+- GitLab CODEOWNERS reference extends GitHub's format with named
+  sections (`[Section]`, `[Section][5]` for required-approver count,
+  `^[Section]` for optional sections), role-based owners (`@@developer`),
+  and negation (`!pattern`). Many real-world repos run hybrid configs,
+  so the parser tolerates section headers (skips them, records the
+  count) instead of rejecting the file.
+  https://docs.gitlab.com/ee/user/project/codeowners/reference.html
+- Implementation choice: **bundle a tiny CODEOWNERS-tuned glob
+  matcher** rather than pull `minimatch` (~80 KB) for one feature.
+  The matcher supports the documented subset (`*`, `**`, anchoring,
+  trailing `/`, `?`) and is < 50 LOC.
+
+**Implementation:**
+- New `src/lib/audit/codeownersParser.ts`. Three pieces:
+   1. `parseCodeowners(content)` walks the file once. Each non-empty,
+      non-comment, non-section-header line splits into pattern + owner
+      tokens; `classifyOwner` buckets each token into
+      `user | team | email | role | unknown`. We aggregate distinct
+      owners (sorted alphabetically), `ownerCounts` per kind, and the
+      most-frequent owner.
+   2. `patternToRegex(pattern)` converts a CODEOWNERS pattern into a
+      regex honouring the documented subset. Plain patterns without a
+      slash (e.g. `*.js`) are matched as basenames at any depth — the
+      gitignore convention GitHub inherits.
+   3. `computeCoverage(parsed, blobPaths)` walks each blob path,
+      tests it against the *pre-compiled* rule regexes from the bottom
+      up (last-match-wins precedence), and computes the coverage %.
+      Empty-owner rules count as explicit *unassignments* per the
+      GitLab convention, so a `/docs/` line with no owner correctly
+      *reduces* coverage rather than inflating it.
+- `securityDetector.ts` calls the parser when the file is present
+  (looking up content from `classified.importantFileMap`) and adds
+  `codeownersConfig: ParsedCodeowners | null` to `SecuritySignals`.
+  Coverage is computed against `classified.blobPaths` straight away.
+- `insightEngine.ts` exposes `codeowners: ParsedCodeowners | null` on
+  `DerivedInsights`.
+- `InsightsPanel.tsx` adds a Users-icon "Code ownership" card. Value
+  line: ownership shape + distinct owner count
+  (e.g. `balanced ownership · 7 owners`). Subline: rule count, owner
+  mix (teams + users + emails), coverage % over blobs, and any GitLab
+  section count. Card is omitted entirely when no rules were parsed.
+
+**Tests:** `tests/lib/audit/codeownersParser.test.ts` (21 cases):
+- 8 happy-path cases (typical multi-rule file, every owner kind
+  classified, fallback flag detection, top-owner identification,
+  GitLab section counting, inline-comment stripping, owner dedupe +
+  alphabetical sort, null-input handling).
+- 6 coverage / glob cases (`*.js` basename anywhere, `/docs/` dir
+  recursion, `/build/logs/*` non-crossing-slash anchoring,
+  `apps/**/*.ts` deep matching, last-match-wins precedence with
+  explicit unassign, empty-blob-list 0%).
+- 7 ownershipShape boundary cases.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 34 files / 340 tests green (was 33 / 319).
+- `npm run build` — 580 KB JS, no warnings.
 
 ### 3.4 · Parse SECURITY.md for a contact channel
 Detect whether the policy gives a real reporting target (email,

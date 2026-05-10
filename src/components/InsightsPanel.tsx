@@ -26,6 +26,10 @@ import {
   type DependabotUpdate,
   type ParsedDependabot,
 } from "../lib/audit/dependabotParser";
+import {
+  ownershipShape,
+  type ParsedCodeowners,
+} from "../lib/audit/codeownersParser";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -224,6 +228,14 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
             sub={buildDependabotSub(insights.dependabot)}
           />
         ) : null}
+        {insights.codeowners && insights.codeowners.rules.length > 0 ? (
+          <Card
+            icon={Users}
+            label="Code ownership"
+            value={buildCodeownersValue(insights.codeowners)}
+            sub={buildCodeownersSub(insights.codeowners)}
+          />
+        ) : null}
         <Card
           icon={ShieldCheck}
           label="Trust signal score"
@@ -315,6 +327,54 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the CODEOWNERS card's primary value: ownership shape +
+ * distinct owner count. Phase 3.3.
+ */
+function buildCodeownersValue(c: ParsedCodeowners): string {
+  const shape = ownershipShape(c);
+  const shapeLabel: Record<typeof shape, string> = {
+    empty: "no rules",
+    "single-owner": "single owner",
+    narrow: "narrow ownership",
+    balanced: "balanced ownership",
+    broad: "broad ownership",
+  };
+  return `${shapeLabel[shape]} · ${c.owners.length} owner${c.owners.length === 1 ? "" : "s"}`;
+}
+
+/**
+ * Format the CODEOWNERS card's subline: rule count, owner-type mix,
+ * coverage %, and a hint when GitLab section headers were skipped.
+ * Phase 3.3.
+ */
+function buildCodeownersSub(c: ParsedCodeowners): string {
+  const parts: string[] = [];
+  parts.push(
+    `${c.rules.length} rule${c.rules.length === 1 ? "" : "s"}`,
+  );
+  const mix: string[] = [];
+  if (c.ownerCounts.team > 0) {
+    mix.push(`${c.ownerCounts.team} team${c.ownerCounts.team === 1 ? "" : "s"}`);
+  }
+  if (c.ownerCounts.user > 0) {
+    mix.push(`${c.ownerCounts.user} user${c.ownerCounts.user === 1 ? "" : "s"}`);
+  }
+  if (c.ownerCounts.email > 0) {
+    mix.push(`${c.ownerCounts.email} email${c.ownerCounts.email === 1 ? "" : "s"}`);
+  }
+  if (mix.length) parts.push(mix.join(" + "));
+  if (c.coveragePercent !== null && c.blobsConsidered > 0) {
+    parts.push(`covers ~${c.coveragePercent.toFixed(1)}%`);
+  }
+  if (c.gitlabSectionCount > 0) {
+    parts.push(
+      `${c.gitlabSectionCount} GitLab section${c.gitlabSectionCount === 1 ? "" : "s"}`,
+    );
+  }
+  return parts.join(" · ");
 }
 
 /**
