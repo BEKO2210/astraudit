@@ -4,6 +4,10 @@ import type { ReadmeSignals } from "./documentationDetector";
 import type { CiSignals } from "./ciDetector";
 import type { StackSignals } from "../../types/audit";
 import type { MaintenanceSignals } from "./maintenanceDetector";
+import type { SecuritySignals } from "./securityDetector";
+import type { ParsedDependabot } from "./dependabotParser";
+import type { ParsedCodeowners } from "./codeownersParser";
+import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
 export type StarsBucket = "tiny" | "small" | "medium" | "large" | "huge" | "mega";
@@ -26,6 +30,13 @@ export interface ReadmeMetrics {
   badges: number;
   tables: number;
   sections: string[];
+  /**
+   * Flesch-Kincaid Grade Level + Flesch Reading Ease, computed on the
+   * prose extracted from the README (code, tables, badges, links
+   * stripped). null when the README is too short / non-prose to
+   * produce a stable score (see readability.ts → MIN_WORDS_FOR_SCORE).
+   */
+  readability: Readability | null;
 }
 
 export interface CommitActivity {
@@ -87,6 +98,18 @@ export interface DerivedInsights {
   commits: CommitActivity;
   releases: ReleaseActivity;
   workflows: WorkflowProfile;
+  /**
+   * Parsed Dependabot config — null when the file is absent or
+   * unparseable. The UI uses this to show ecosystems + cadence;
+   * `workflows.hasDependabot` remains the boolean signal. Phase 3.2.
+   */
+  dependabot: ParsedDependabot | null;
+  /**
+   * Parsed CODEOWNERS file with rules, distinct owners, ownership
+   * shape, and coverage % over repo blobs. Null when the file is
+   * absent or empty. Phase 3.3.
+   */
+  codeowners: ParsedCodeowners | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -346,6 +369,7 @@ function analyzeReadmeMetrics(signals: ReadmeSignals, content: string | null): R
       badges: 0,
       tables: 0,
       sections: [],
+      readability: null,
     };
   }
   const text = content ?? "";
@@ -380,6 +404,7 @@ function analyzeReadmeMetrics(signals: ReadmeSignals, content: string | null): R
     badges,
     tables,
     sections,
+    readability: computeReadability(text),
   };
 }
 
@@ -466,10 +491,11 @@ interface InsightsContext {
   ci: CiSignals;
   stack: StackSignals;
   maintenance: MaintenanceSignals;
+  security: SecuritySignals;
 }
 
 export function deriveInsights(ctx: InsightsContext): DerivedInsights {
-  const { bundle, classified, readme, ci, stack, maintenance } = ctx;
+  const { bundle, classified, readme, ci, stack, maintenance, security } = ctx;
   const meta = bundle.metadata;
 
   const ageDays =
@@ -563,6 +589,8 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     commits,
     releases,
     workflows,
+    dependabot: security.dependabotConfig,
+    codeowners: security.codeownersConfig,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
