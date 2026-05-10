@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Astraudit OG card</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        font-family: "Inter", system-ui, sans-serif;
+        color: #f8fafc;
+        background: #05070d;
+      }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        padding: 64px 80px;
+        background:
+          radial-gradient(circle at 12% 20%, rgba(122, 92, 255, 0.45), transparent 55%),
+          radial-gradient(circle at 88% 14%, rgba(58, 214, 255, 0.35), transparent 55%),
+          radial-gradient(circle at 80% 92%, rgba(66, 232, 200, 0.32), transparent 60%),
+          linear-gradient(135deg, #0a0e1a 0%, #050810 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      /* Subtle aurora-grid texture */
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        background-size: 32px 32px;
+        background-position: -1px -1px;
+        opacity: 0.7;
+        mask-image: radial-gradient(ellipse at center, #000 50%, transparent 90%);
+        pointer-events: none;
+      }
+      header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background:
+          linear-gradient(135deg, #7a5cff 0%, #42e8c8 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 8px 28px rgba(122, 92, 255, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      }
+      .logo svg {
+        width: 32px;
+        height: 32px;
+      }
+      .brand {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #cbd5e1;
+      }
+      .brand strong {
+        color: #f8fafc;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+      }
+      h1 {
+        position: relative;
+        font-size: 84px;
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        max-width: 900px;
+        margin-top: 64px;
+        background: linear-gradient(135deg, #f8fafc 0%, #c0c4ff 60%, #6df7d8 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      h1 em {
+        font-style: normal;
+        background: linear-gradient(135deg, #7a5cff 10%, #42e8c8 90%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .tagline {
+        position: relative;
+        font-size: 26px;
+        font-weight: 500;
+        color: #94a3b8;
+        margin-top: 22px;
+        max-width: 900px;
+        line-height: 1.4;
+      }
+      .pills {
+        position: relative;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 18px;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e2e8f0;
+        backdrop-filter: blur(6px);
+      }
+      .pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+      }
+      .pill.violet::before {
+        background: #7a5cff;
+        box-shadow: 0 0 12px rgba(122, 92, 255, 0.7);
+      }
+      .pill.cyan::before {
+        background: #3ad6ff;
+        box-shadow: 0 0 12px rgba(58, 214, 255, 0.7);
+      }
+      .pill.mint::before {
+        background: #42e8c8;
+        box-shadow: 0 0 12px rgba(66, 232, 200, 0.7);
+      }
+      .pill.amber::before {
+        background: #f5a524;
+        box-shadow: 0 0 12px rgba(245, 165, 36, 0.7);
+      }
+      footer {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+      }
+      .url {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 18px;
+        color: #94a3b8;
+        letter-spacing: -0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <header>
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+            <path
+              d="M16 44L32 16l16 28H40l-3-6h-10l-3 6z"
+              fill="#0a0e1a"
+            />
+          </svg>
+        </div>
+        <div class="brand"><strong>ASTRAUDIT</strong></div>
+      </header>
+
+      <div>
+        <h1>
+          Understand any <em>public GitHub repository</em> in 30 seconds.
+        </h1>
+        <p class="tagline">
+          Maps, scores, and explains a repo's structure, security posture,
+          maintenance signals, and onboarding path — entirely in your browser.
+        </p>
+      </div>
+
+      <footer>
+        <div class="pills">
+          <span class="pill violet">Browser-only</span>
+          <span class="pill cyan">Free forever</span>
+          <span class="pill mint">Public repos</span>
+          <span class="pill amber">Rule-based</span>
+        </div>
+        <div class="url">beko2210.github.io/astraudit</div>
+      </footer>
+    </div>
+  </body>
+</html>

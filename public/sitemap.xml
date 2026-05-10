@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Astraudit sitemap — Phase 5.12.
+
+  Lists the four canonical "real" routes Astraudit serves. The
+  per-audit hash URLs (#/audit/owner/repo, #/compare/…) are NOT
+  listed because they're parameterized into infinity, GitHub Pages
+  serves the same index.html for all of them, and search engines
+  drop the hash fragment before requesting anyway.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://beko2210.github.io/astraudit/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://beko2210.github.io/astraudit/#/rules</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://beko2210.github.io/astraudit/#/impressum</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://beko2210.github.io/astraudit/#/datenschutz</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
