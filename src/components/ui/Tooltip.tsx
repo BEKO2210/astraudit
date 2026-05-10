@@ -39,6 +39,7 @@
 import {
   cloneElement,
   isValidElement,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -47,6 +48,7 @@ import {
 } from "react";
 
 type Placement = "top" | "bottom";
+type EdgeAlign = "center" | "left" | "right";
 
 interface TooltipProps {
   /** Visible tooltip text. Keep it short (≤ ~40 chars). */
@@ -76,7 +78,9 @@ export function Tooltip({
   const id = useId();
   const tooltipId = `tt-${id}`;
   const [dismissed, setDismissed] = useState(false);
+  const [edgeAlign, setEdgeAlign] = useState<EdgeAlign>("center");
   const wrapRef = useRef<HTMLSpanElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
 
   // Esc dismissal: per WCAG 1.4.13, the tooltip must be closeable
   // without moving the pointer or focus. We track a "dismissed" flag
@@ -92,6 +96,55 @@ export function Tooltip({
   const resetDismiss = () => {
     if (dismissed) setDismissed(false);
   };
+
+  // Phase 5.x bugfix — viewport edge detection. The default
+  // `transform: translateX(-50%)` centers the bubble on the trigger,
+  // which works fine in the middle of the page but pushes the bubble
+  // off-screen when the trigger sits near the left or right viewport
+  // edge (the dashboard's score-area buttons cluster against the
+  // right edge; the rate-limit chip in the Hero cluster sits against
+  // the right edge on mobile). On hover/focus we measure the
+  // bubble's position relative to the viewport and flip the alignment
+  // to whichever edge it's closest to.
+  const measureEdge = () => {
+    const bubble = bubbleRef.current;
+    if (!bubble) return;
+    // Measure with the bubble's natural position (the visible rect
+    // includes the translateX(-50%) so we can detect overflow).
+    const rect = bubble.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const margin = 8;
+    if (rect.right > vw - margin) {
+      setEdgeAlign("right");
+    } else if (rect.left < margin) {
+      setEdgeAlign("left");
+    } else {
+      setEdgeAlign("center");
+    }
+  };
+
+  // Re-measure whenever the bubble becomes visible (hover / focus
+  // change). We can't use `useEffect` keyed on visibility because
+  // visibility lives in CSS — instead, hook the wrapper's pointer /
+  // focus events.
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const onShow = () => measureEdge();
+    wrap.addEventListener("pointerenter", onShow);
+    wrap.addEventListener("focusin", onShow);
+    // Re-check on resize so an orientation flip on mobile doesn't
+    // strand the bubble outside the new viewport.
+    const onResize = () => {
+      if (wrap.matches(":hover, :focus-within")) measureEdge();
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      wrap.removeEventListener("pointerenter", onShow);
+      wrap.removeEventListener("focusin", onShow);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
 
   if (!isValidElement(children)) {
     // Defensive: the consumer must pass a single React element. If not,
@@ -110,6 +163,7 @@ export function Tooltip({
       ref={wrapRef}
       className="tt-wrap"
       data-tt-placement={placement}
+      data-tt-align={edgeAlign}
       data-tt-dismissed={dismissed ? "true" : undefined}
       onKeyDown={handleKeyDown}
       onPointerLeave={resetDismiss}
@@ -117,6 +171,7 @@ export function Tooltip({
     >
       {trigger}
       <span
+        ref={bubbleRef}
         role="tooltip"
         id={tooltipId}
         className={`tt-bubble ${bubbleClassName}`}

@@ -195,7 +195,14 @@ export function ReviewDashboard({
                 <Award className="h-3.5 w-3.5 text-aurora-mint" />
                 Astraudit verdict
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Phase 5.x bugfix — `justify-end` so wrapped action
+                  rows right-align too. Without it, the second-row
+                  buttons (Copy verdict / Export / Print on a narrow
+                  viewport) flowed flush-left at the start of the
+                  right-aligned block — visually disconnected from
+                  the first row. The user-reported "copy ist zu weit
+                  links" came from this mis-wrap. */}
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {onOpenCompare ? (
                   <button
                     type="button"

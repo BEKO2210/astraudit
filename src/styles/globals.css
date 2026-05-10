@@ -1205,6 +1205,26 @@ html[data-density="compact"] header.relative.pt-10 {
   transform: translateX(-50%) translateY(-2px);
 }
 
+/* Phase 5.x bugfix — viewport edge alignment. When the trigger sits
+   near a viewport edge, the default centred bubble overflows the
+   screen ("Infos die auf popen sind nicht zu sehen"). The Tooltip
+   component sets `data-tt-align="left"` or `"right"` on the wrapper
+   when its hover-/focus-time measurement detects overflow; these
+   rules pin the bubble to the closest edge instead of centring. */
+.tt-wrap[data-tt-align="left"] > .tt-bubble {
+  left: 0;
+  transform: translateX(0) translateY(2px);
+}
+.tt-wrap[data-tt-align="right"] > .tt-bubble {
+  left: auto;
+  right: 0;
+  transform: translateX(0) translateY(2px);
+}
+.tt-wrap[data-tt-align="left"][data-tt-placement="bottom"] > .tt-bubble,
+.tt-wrap[data-tt-align="right"][data-tt-placement="bottom"] > .tt-bubble {
+  transform: translateX(0) translateY(-2px);
+}
+
 /* Show on hover, keyboard focus inside, OR direct hover on the bubble
    (in case the cursor traversed onto the tooltip from the trigger). */
 .tt-wrap:hover > .tt-bubble,
@@ -1218,6 +1238,20 @@ html[data-density="compact"] header.relative.pt-10 {
     opacity 120ms ease,
     transform 120ms ease,
     visibility 0s;
+}
+
+/* Edge-aligned visible state — overrides the default centred
+   transform with the alignment-specific one so the bubble stays
+   anchored to its chosen edge instead of snapping back to centre. */
+.tt-wrap[data-tt-align="left"]:hover > .tt-bubble,
+.tt-wrap[data-tt-align="left"]:focus-within > .tt-bubble,
+.tt-wrap[data-tt-align="left"] > .tt-bubble:hover {
+  transform: translateX(0) translateY(0);
+}
+.tt-wrap[data-tt-align="right"]:hover > .tt-bubble,
+.tt-wrap[data-tt-align="right"]:focus-within > .tt-bubble,
+.tt-wrap[data-tt-align="right"] > .tt-bubble:hover {
+  transform: translateX(0) translateY(0);
 }
 
 /* Esc-dismissed (WCAG 1.4.13 Dismissible). The flag is reset on blur /
