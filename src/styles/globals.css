@@ -9,6 +9,15 @@
     height: 100%;
   }
 
+  /* WCAG 2.4.11 (Focus Not Obscured) — when the sticky score bar +
+     section nav are visible, keyboard navigation must not park the
+     focused element under either of them. We expose --sticky-offset
+     (set by StickyScoreBar) and use the live SectionNav height to
+     compute the offset that scroll-padding-top adds. */
+  html {
+    scroll-padding-top: calc(56px + var(--sticky-offset, 0px));
+  }
+
   body {
     background-color: #05070d;
     color: rgb(226 232 240 / 0.92);

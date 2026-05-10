@@ -598,11 +598,53 @@ Sources informing the design:
 - Microsoft Fluent 2 — React Skeleton usage
 - WCAG 2.1 success criterion 2.3.3 animation from interactions
 
-#### 2.8.3 · Sticky score header on scroll
-Once the user scrolls past the Score section, a thin top-pinned bar
-slides in showing **`owner/repo · 81/100 · Strong`** plus the
-existing share / badge / print / verdict-copy actions, so the user
-never loses context while skimming Findings or Onboarding.
+#### 2.8.3 · Sticky score header on scroll ✅ shipped
+Once the user scrolls past the Score section, a slim 48 px bar
+slides in from the top showing **`owner/repo · 81/100 · Strong`**
+plus the most-needed actions (Compare, Share, Badge, Save as PDF,
+Copy verdict). Disappears the moment the Score section is back in
+view, so the screen stays free during reading.
+
+Implementation:
+
+- `src/components/StickyScoreBar.tsx` uses an
+  `IntersectionObserver` on the `#score` section (rather than a
+  scroll listener) — the IO callback runs once per crossing while
+  scroll events fire on every paint and force layout reads.
+  `rootMargin: "-46px 0px 0px 0px"` accounts for the existing
+  `<SectionNav>` height. The component bails out gracefully when
+  IntersectionObserver is undefined (SSR / very old browsers).
+- The bar is `position: fixed top: 0` so it overlays the page when
+  visible and disappears from layout when not. It exposes a CSS
+  custom property `--sticky-offset` which is `48px` while the bar
+  is shown and `0px` otherwise — the existing `<SectionNav>` reads
+  that variable through its inline `style.top`, transitions to
+  `top: 48px`, and stacks naturally.
+- Slide-in / slide-out is `translate-y-full ↔ 0` with a 200 ms
+  ease and a `motion-reduce:transition-none` escape hatch.
+- `role="region" aria-label="Audit summary"`, `aria-hidden="true"`
+  while the bar is hidden, action buttons get `tabIndex={-1}` while
+  hidden so keyboard users don't tab into invisible chrome.
+- WCAG 2.4.11 (Focus Not Obscured) handled at the `<html>` level
+  via `scroll-padding-top: calc(56px + var(--sticky-offset))` so
+  programmatic anchor scrolling never parks focus under the bars.
+- `print:hidden` keeps the bar out of PDF exports.
+
+Tests: 2 new cases in `tests/components/StickyScoreBar.test.tsx`
+— the exported `STICKY_OFFSET_VAR` and `BAR_HEIGHT_PX` constants
+(used by the CSS scroll-padding rule and SectionNav offset), plus
+an SSR smoke render that asserts the role / label / hidden-state
+attributes are correct on initial paint when IntersectionObserver
+is absent. **Total suite: 185 tests across 23 files.**
+
+Sources informing the design:
+- Chrome for Developers, "An event for CSS position:sticky"
+- TPGi/Vispero, "Prevent focused elements from being obscured by
+  sticky headers" (WCAG 2.4.11)
+- ParallelHQ, "What is a Sticky Header? UX Best Practices &
+  2026 Design Guide" (height, persistence, double-up)
+- Ryan Mulligan, "Sticky Page Header Shadow on Scroll"
+  (IntersectionObserver pattern)
 
 #### 2.8.4 · Mobile FAB cluster
 On phones (< sm), a bottom-right floating action cluster surfaces

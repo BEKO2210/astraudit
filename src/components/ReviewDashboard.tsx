@@ -21,6 +21,7 @@ import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 import { ShareButton } from "./ShareButton";
 import { BadgeDialog } from "./BadgeDialog";
+import { StickyScoreBar } from "./StickyScoreBar";
 
 interface ReviewDashboardProps {
   result: AuditResult;
@@ -48,6 +49,11 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
 
   return (
     <div className="mt-8 space-y-6">
+      <StickyScoreBar
+        result={result}
+        onOpenCompare={onOpenCompare}
+        onOpenBadge={() => setBadgeOpen(true)}
+      />
       <SectionNav sections={SECTIONS} />
 
       <div className="print-only mb-2 border-b border-slate-200 pb-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">
