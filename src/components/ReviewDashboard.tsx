@@ -13,6 +13,7 @@ import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
 import { OnboardingPanel } from "./OnboardingPanel";
+import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 
 interface ReviewDashboardProps {
@@ -23,6 +24,7 @@ const SECTIONS: SectionItem[] = [
   { id: "overview", label: "Overview" },
   { id: "score", label: "Score" },
   { id: "story", label: "Story" },
+  { id: "readme", label: "README" },
   { id: "insights", label: "Insights" },
   { id: "graph", label: "Graph" },
   { id: "findings", label: "Findings" },
@@ -79,6 +81,18 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
       <section id="story">
         <RepoStory story={result.story} />
       </section>
+
+      {result.bundle.readme?.content ? (
+        <section id="readme">
+          <ReadmePreview
+            content={result.bundle.readme.content}
+            owner={result.bundle.metadata.owner.login}
+            repo={result.bundle.metadata.name}
+            branch={result.bundle.metadata.defaultBranch}
+            htmlUrl={result.bundle.metadata.htmlUrl}
+          />
+        </section>
+      ) : null}
 
       <section id="insights">
         <InsightsPanel insights={result.insights} />

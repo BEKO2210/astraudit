@@ -41,10 +41,16 @@ JSON), 30-entry total cap, oldest-first eviction on quota errors. The
 Settings dialog shows the cache size, the most recent entries, and a
 one-click "Clear" button. See `src/lib/cache/auditCache.ts`.
 
-### 1.3 · Markdown rendering for README excerpts
-Render the first ~1,500 chars of the README using `markdown-it`
-(~30 KB gz) so headings, links, lists, and fenced code show up
-properly. The current text-only preview hides the actual README feel.
+### 1.3 · Markdown rendering for README excerpts ✅ shipped
+A new "README" section renders the first ~1,800 chars (expandable to
+~8,000) using `markdown-it` with `html: false` for XSS safety. Inline
+HTML is escaped, all external links carry `target="_blank"` +
+`rel="noreferrer noopener"`, in-page anchors stay in place, and
+images get `loading="lazy"` + `referrerpolicy="no-referrer"`. Relative
+URLs are resolved against the repo's branch — links go to
+`github.com/<owner>/<repo>/blob/<branch>/...` and images to
+`raw.githubusercontent.com/...`. Bundle cost: ~46 KB gz for
+markdown-it.
 
 ### 1.4 · Wider CI/CD detection
 We currently only detect GitHub Actions and miss many real CI setups.

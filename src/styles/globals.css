@@ -196,3 +196,139 @@
   color: rgba(148, 163, 184, 0.5) !important;
   font-size: 10px;
 }
+
+/* README preview prose styles. Targets only HTML inside .readme-prose
+   so the rest of the dashboard is unaffected. */
+.readme-prose {
+  color: rgb(226 232 240 / 0.92);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.readme-prose > *:first-child {
+  margin-top: 0;
+}
+.readme-prose > *:last-child {
+  margin-bottom: 0;
+}
+.readme-prose h1,
+.readme-prose h2,
+.readme-prose h3,
+.readme-prose h4,
+.readme-prose h5,
+.readme-prose h6 {
+  color: rgb(255 255 255);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.4em;
+  margin-bottom: 0.6em;
+}
+.readme-prose h1 { font-size: 1.45rem; }
+.readme-prose h2 { font-size: 1.2rem; }
+.readme-prose h3 { font-size: 1.05rem; }
+.readme-prose h4 { font-size: 0.95rem; }
+.readme-prose h5,
+.readme-prose h6 { font-size: 0.85rem; color: rgb(203 213 225 / 0.9); }
+.readme-prose p {
+  margin: 0.6em 0;
+}
+.readme-prose a {
+  color: #3ad6ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(58, 214, 255, 0.4);
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+.readme-prose a:hover {
+  color: #7a5cff;
+  text-decoration-color: rgba(122, 92, 255, 0.6);
+}
+.readme-prose strong { color: rgb(255 255 255); font-weight: 600; }
+.readme-prose em { color: rgb(241 245 249 / 0.92); }
+.readme-prose code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.82em;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #c9d6ff;
+}
+.readme-prose pre {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.readme-prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.82em;
+  color: #d6e1ff;
+}
+.readme-prose ul,
+.readme-prose ol {
+  padding-left: 1.4em;
+  margin: 0.6em 0;
+}
+.readme-prose ul { list-style: disc; }
+.readme-prose ol { list-style: decimal; }
+.readme-prose li {
+  margin: 0.25em 0;
+}
+.readme-prose li::marker {
+  color: rgba(122, 92, 255, 0.6);
+}
+.readme-prose blockquote {
+  border-left: 2px solid rgba(122, 92, 255, 0.5);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.4rem 1rem;
+  margin: 1em 0;
+  color: rgb(203 213 225);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.readme-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.5em 0;
+  display: inline-block;
+}
+.readme-prose hr {
+  border: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 1.6em 0;
+}
+.readme-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.85em;
+  display: block;
+  overflow-x: auto;
+}
+.readme-prose th,
+.readme-prose td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+}
+.readme-prose th {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgb(255 255 255);
+  font-weight: 600;
+}
+.readme-prose details {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.6em 0;
+}
+.readme-prose summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: rgb(255 255 255);
+}
