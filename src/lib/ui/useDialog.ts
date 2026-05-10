@@ -50,51 +50,57 @@ const FOCUSABLE_SELECTOR = [
 
 let openDialogCount = 0;
 let savedBodyStyles: {
-  overflow: string;
-  position: string;
-  top: string;
-  width: string;
-  scrollY: number;
+  htmlOverflow: string;
+  bodyOverflow: string;
+  bodyTouchAction: string;
+  htmlScrollTop: number;
 } | null = null;
 
 /**
- * Phase 5.x bugfix — body lock for iOS Safari + Android Chrome.
+ * Body scroll lock — Phase 5.x followup bugfix.
  *
- * `document.body.style.overflow = "hidden"` is what every desktop
- * tutorial recommends, and it works flawlessly on Chrome/Firefox
- * desktop. iOS Safari and Android Chrome's touch event pipeline,
- * however, doesn't always honour it — touch-drag inside a modal
- * frequently bubbles up and scrolls the body anyway, AND the
- * overlay's own `overflow-y-auto` stops responding because iOS
- * thinks the body is the only scrollable element.
+ * Earlier iteration used the `position: fixed; top: -<scrollY>;
+ * width: 100%` trick recommended by react-modal / headlessui /
+ * radix to defeat the iOS Safari overflow-hidden bypass. That
+ * solved the iOS chain-scroll bug but caused a much worse one:
+ * Chromium treats a fixed-position body as a containing block for
+ * fixed-position descendants, so the BadgeDialog's overlay
+ * (`fixed inset-0`) inflated to body-height (~7,000 px) and the
+ * card was positioned at y≈3,500 px — completely below the visible
+ * viewport. The screenshot evidence: the page dimmed (overlay was
+ * there) but the card was nowhere to be seen.
  *
- * The robust workaround (used by react-modal, headlessui, radix):
- * pin the body to the current scroll position with
- * `position: fixed; top: -<scrollY>; width: 100%`. That genuinely
- * freezes the page (no chaining), and we restore the scroll
- * position on close so the user lands exactly where they were.
+ * The cleanest fix that satisfies BOTH constraints (no body-fixed
+ * containing block, no iOS chain-scroll):
+ *  1. `overflow: hidden` on both <html> AND <body>. The double-
+ *     application is what stops the iOS touchmove leak — overflow
+ *     hidden on body alone is silently bypassed by iOS, but
+ *     applying it to <html> too is honoured.
+ *  2. `touch-action: none` on body so we don't even attempt to
+ *     scroll the document under finger drag (Modal scrolls itself
+ *     via its own internal containers).
+ *  3. We save and restore the original scroll position on
+ *     <html> so users land back where they were on dialog close.
+ *     No position-fixed gymnastics needed; <html> with overflow:
+ *     hidden simply pins the current scrollTop until released.
  *
- * The maintainer screenshot bug: opening the badge dialog on a
- * phone made the popup un-scrollable AND let the page underneath
- * scroll instead. Both symptoms have the same root cause —
- * iOS dropping the overflow:hidden contract under touch.
+ * `overscroll-behavior: contain` on `[role="dialog"]` and the
+ * `.bottom-sheet-card` (already in globals.css) handles the rest.
  */
 function lockBodyScroll(): void {
   if (typeof document === "undefined") return;
   if (openDialogCount === 0) {
-    const scrollY = window.scrollY;
+    const html = document.documentElement;
     const body = document.body;
     savedBodyStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      scrollY,
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyTouchAction: body.style.touchAction,
+      htmlScrollTop: html.scrollTop || window.scrollY,
     };
+    html.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.width = "100%";
+    body.style.touchAction = "none";
   }
   openDialogCount += 1;
 }
@@ -103,18 +109,16 @@ function unlockBodyScroll(): void {
   if (typeof document === "undefined") return;
   openDialogCount = Math.max(0, openDialogCount - 1);
   if (openDialogCount === 0 && savedBodyStyles) {
+    const html = document.documentElement;
     const body = document.body;
-    const { overflow, position, top, width, scrollY } = savedBodyStyles;
-    body.style.overflow = overflow;
-    body.style.position = position;
-    body.style.top = top;
-    body.style.width = width;
-    // Restore scroll AFTER the styles flip so the browser doesn't
-    // clamp scrollTop to the (now-tall again) document. Using the
-    // legacy two-argument form (always synchronous and instant)
-    // because some browsers ignore `behavior: "instant"` and fall
-    // back to smooth, which races with focus-restore.
-    window.scrollTo(0, scrollY);
+    html.style.overflow = savedBodyStyles.htmlOverflow;
+    body.style.overflow = savedBodyStyles.bodyOverflow;
+    body.style.touchAction = savedBodyStyles.bodyTouchAction;
+    // Restore exactly where the user was. With overflow: hidden the
+    // scroll position is preserved, but Safari has been observed to
+    // clamp scrollTop on overflow flip — re-applying is cheap and
+    // safe.
+    window.scrollTo(0, savedBodyStyles.htmlScrollTop);
     savedBodyStyles = null;
   }
 }

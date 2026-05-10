@@ -83,19 +83,40 @@ test.describe("Phase 5.x — Badge dialog mobile scroll trap", () => {
     await expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
-  test("body becomes position: fixed when the dialog opens (iOS-safe lock)", async ({
+  test("body + html lock scroll without breaking dialog containment", async ({
     page,
   }) => {
+    // Phase 5.x followup — earlier iteration used `position: fixed`
+    // on the body to win against iOS chain-scroll, but that caused
+    // Chromium to treat body as a containing block for the dialog's
+    // own `position: fixed` overlay, inflating it to body-height
+    // and pushing the card thousands of pixels off-screen. The
+    // current lock uses `overflow: hidden` on BOTH html and body
+    // plus `touch-action: none` on body. No position-fixed.
     await seedAndOpen(page);
     await page.getByRole("button", { name: "Badge", exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-    const bodyState = await page.evaluate(() => ({
-      position: getComputedStyle(document.body).position,
-      overflow: getComputedStyle(document.body).overflow,
+    const state = await page.evaluate(() => ({
+      bodyPosition: getComputedStyle(document.body).position,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+      bodyTouchAction: getComputedStyle(document.body).touchAction,
+      htmlOverflow: getComputedStyle(document.documentElement).overflow,
+      // Crucially: the dialog overlay must be viewport-sized, not
+      // body-sized. ≤ window.innerHeight + a small fudge is the
+      // contract.
+      dialogHeight: (document.querySelector('[role="dialog"]') as HTMLElement)
+        .getBoundingClientRect().height,
+      windowHeight: window.innerHeight,
     }));
-    expect(bodyState.position).toBe("fixed");
-    expect(bodyState.overflow).toBe("hidden");
+    expect(state.bodyPosition).not.toBe("fixed");
+    expect(state.bodyOverflow).toBe("hidden");
+    expect(state.bodyTouchAction).toBe("none");
+    expect(state.htmlOverflow).toBe("hidden");
+    expect(
+      state.dialogHeight,
+      `Dialog height ${state.dialogHeight} should fit in viewport ${state.windowHeight}`,
+    ).toBeLessThanOrEqual(state.windowHeight + 4);
   });
 
   test("dialog open + close does NOT jump the page to top", async ({

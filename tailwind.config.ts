@@ -83,9 +83,25 @@ const config: Config = {
         // motion-reduce fallback (fade only, no translate). Tailwind's
         // motion-safe / motion-reduce variants pick the right one
         // based on the user's prefers-reduced-motion setting.
+        //
+        // Phase 5.x bugfix — the keyframe ENDED with `transform:
+        // translateY(0)` (identity matrix). Combined with the
+        // animation's previous `both` fill-mode, the wrapper kept
+        // an identity-matrix transform applied forever after the
+        // 220ms ran — and Chromium treats *any* non-`none`
+        // transform on an ancestor as a containing block for
+        // `position: fixed` descendants. The BadgeDialog's overlay
+        // (`fixed inset-0`) was anchoring to the wrapper instead
+        // of the viewport, ballooning to ~7,000 px tall and
+        // pushing the card thousands of pixels off-screen.
+        // Fix: drop the trailing transform from the 100% keyframe
+        // (so the element ends in its natural state) and switch
+        // the fill-mode to `backwards` (only the 0% state is held
+        // before the animation; after animation, the element
+        // returns to base styles where transform is `none`).
         "view-enter": {
           "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "100%": { opacity: "1" },
         },
         "fade-in": {
           "0%": { opacity: "0" },
@@ -97,8 +113,8 @@ const config: Config = {
         shimmer: "shimmer 2.4s linear infinite",
         floaty: "floaty 6s ease-in-out infinite",
         "toast-in": "toast-in 180ms ease-out",
-        "view-enter": "view-enter 220ms ease-out both",
-        "fade-in": "fade-in 180ms ease-out both",
+        "view-enter": "view-enter 220ms ease-out backwards",
+        "fade-in": "fade-in 180ms ease-out backwards",
       },
     },
   },
