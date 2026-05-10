@@ -56,6 +56,8 @@ export interface PeerDependency {
 }
 
 export interface ParsedManifest {
+  /** `name` field — null when absent or non-string. */
+  name: string | null;
   /** Module type — null when absent (default is "commonjs"). */
   moduleType: "module" | "commonjs" | null;
   /** Raw declared `engines` map, never mutated. */
@@ -71,6 +73,19 @@ export interface ParsedManifest {
   packageManagerPin: string | null;
   /** Declared peer dependencies in stable order. */
   peerDependencies: PeerDependency[];
+  /** Whether the manifest declares at least one `bin` entry — covers
+   *  both `bin: "./cli.js"` (string) and `bin: { name: "./cli.js" }`
+   *  (object). Phase 3.7. */
+  hasBinEntry: boolean;
+  /** Whether `workspaces` is declared (npm + Yarn classic) — covers
+   *  both `[…]` and `{ packages: […] }` shapes. Phase 3.7. */
+  hasWorkspaces: boolean;
+  /** Lower-cased `keywords` for quick set membership tests. Phase 3.7. */
+  keywords: string[];
+  /** Names of every dependency / devDependency declared, sorted
+   *  alphabetically. We do NOT try to resolve versions — the topic
+   *  rules just need to ask "is `react` declared anywhere?". */
+  dependencyNames: string[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -99,11 +114,17 @@ const PRE_LTS_THRESHOLD = 16;
 /* -------------------------------------------------------------------------- */
 
 interface RawPackageJson {
+  name?: unknown;
   type?: string;
   packageManager?: string;
   engines?: Record<string, unknown>;
   peerDependencies?: Record<string, unknown>;
   peerDependenciesMeta?: Record<string, { optional?: unknown } | undefined>;
+  bin?: unknown;
+  workspaces?: unknown;
+  keywords?: unknown;
+  dependencies?: Record<string, unknown>;
+  devDependencies?: Record<string, unknown>;
 }
 
 /** Find `package.json` in the classified file map and decode its
@@ -163,13 +184,52 @@ export function parseManifestObject(raw: RawPackageJson): ParsedManifest {
   // across audits.
   peerDependencies.sort((a, b) => a.name.localeCompare(b.name));
 
+  // Phase 3.7 fields — kept here so the topic-rules engine doesn't
+  // need to re-parse the JSON. Each guard tolerates the shape variants
+  // npm itself accepts.
+  const name = typeof raw.name === "string" && raw.name.trim() ? raw.name : null;
+
+  const hasBinEntry =
+    (typeof raw.bin === "string" && raw.bin.trim().length > 0) ||
+    (raw.bin !== null &&
+      typeof raw.bin === "object" &&
+      Object.keys(raw.bin as Record<string, unknown>).length > 0);
+
+  const hasWorkspaces =
+    (Array.isArray(raw.workspaces) && raw.workspaces.length > 0) ||
+    (raw.workspaces !== null &&
+      typeof raw.workspaces === "object" &&
+      Array.isArray(
+        (raw.workspaces as { packages?: unknown }).packages,
+      ) &&
+      ((raw.workspaces as { packages: unknown[] }).packages.length > 0));
+
+  const keywords = Array.isArray(raw.keywords)
+    ? raw.keywords
+        .filter((k): k is string => typeof k === "string")
+        .map((k) => k.toLowerCase())
+    : [];
+
+  const depNames = new Set<string>();
+  for (const map of [raw.dependencies, raw.devDependencies]) {
+    if (map && typeof map === "object") {
+      for (const k of Object.keys(map)) depNames.add(k);
+    }
+  }
+  const dependencyNames = Array.from(depNames).sort();
+
   return {
+    name,
     moduleType,
     engines,
     minimumNodeMajor,
     nodeFreshness,
     packageManagerPin,
     peerDependencies,
+    hasBinEntry,
+    hasWorkspaces,
+    keywords,
+    dependencyNames,
   };
 }
 

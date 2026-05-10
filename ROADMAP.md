@@ -1566,10 +1566,91 @@ useful drift indicator on projects that do both.
 - `npx vitest run` — 38 files / 448 tests green (was 37 / 425).
 - `npm run build` — 596 KB JS, no warnings.
 
-### 3.7 · Topic-driven contextual rules
-If repo topic is `cli`, expect a `bin` entry in `package.json`. If
-`react-component`, expect a peer dependency. Topics already give us a
-huge hint — use it.
+### 3.7 · Topic-driven contextual rules ✅ shipped
+**Why:** GitHub topics are an underused signal — when a maintainer
+tags their repo `cli` or `eslint-plugin`, they've *told us* what
+shape the project is supposed to take. A topic-aware audit catches
+gaps no generic documentation/security/CI check can: "repo says
+`cli` but ships no `bin` entry", "repo says `eslint-plugin` but
+breaks the `eslint-plugin-*` naming contract", "repo says
+`monorepo` but neither `workspaces` nor `pnpm-workspace.yaml` is
+declared".
+
+**Pre-build research (2026-05-10):**
+- GitHub Topics is a free-form taxonomy — there's no closed
+  allow-list. May-2026 trending data shows a stable set of ~30
+  topics consistently used to declare project shape. We bake a
+  curated subset into the rules engine (`cli`, `eslint-plugin`,
+  `babel-plugin`, `postcss-plugin`, `react-component`,
+  `vue-component`, `svelte-component`, `monorepo`, `typescript`,
+  `github-action`, `vscode-extension`, `chrome-extension`,
+  `electron`, plus the four bundler-plugin variants).
+- ESLint Docs — a plugin must declare three things: name pattern
+  `eslint-plugin-*` (or `@scope/eslint-plugin-…`), an `eslint`
+  peer dependency, and the `eslint-plugin` keyword. We mirror the
+  triple as a `met` / `partial` / `missing` rule so partial
+  compliance is visible.
+  https://eslint.org/docs/latest/extend/plugins
+- Babel plugin contract: `babel-plugin-*` naming + `@babel/core`
+  peer dependency.
+- GitHub Action contract: a root-level `action.yml` (or `.yaml`)
+  is the discovery file.
+- VS Code extension contract: `engines.vscode` in `package.json`
+  is required by the Marketplace.
+- Browser extension contract: a root-level `manifest.json` is the
+  discovery file across Chrome / Firefox / Edge.
+
+**Implementation:**
+- `packageManifest.ts` is extended to expose `name`, `hasBinEntry`
+  (covers both `bin: "./cli.js"` and `bin: { … }` shapes),
+  `hasWorkspaces` (covers both array and `{ packages: [...] }`
+  shapes), `keywords` (lowercased for fast set membership), and
+  `dependencyNames` (sorted union of dependencies +
+  devDependencies). All additive — existing 41 manifest tests
+  still pass without changes.
+- New `src/lib/audit/topicRules.ts`. `evaluateTopicRules(ctx)` is
+  a pure function returning a `TopicCheck[]`. Each rule:
+   · CLI (`cli` / `command-line` / `terminal` / `tui`) → require
+     a `bin` entry.
+   · ESLint plugin → require name + peer + keyword (triple-rule
+     graded met/partial/missing).
+   · Babel plugin → require name + `@babel/core` peer.
+   · PostCSS plugin → require `postcss` peer + keyword.
+   · React / Vue / Svelte component library → require the
+     framework as a peer dependency.
+   · Monorepo → require `workspaces` OR `pnpm-workspace.yaml`.
+   · TypeScript → require `tsconfig.json` (or `tsconfig.base.json`).
+   · GitHub Action → require root `action.yml` / `action.yaml`.
+   · VS Code extension → require `engines.vscode`.
+   · Browser extension → require root `manifest.json`.
+   · Electron → require `electron` in deps.
+   · Webpack / Vite / Rollup / esbuild plugin → require the
+     respective bundler as a peer dependency.
+- Unknown topics produce no checks (silent degradation). Each
+  check carries a stable `id`, the trigger topic, a status, the
+  collected evidence, and a hint when remediation is appropriate.
+- `insightEngine.ts` calls `evaluateTopicRules` and surfaces
+  `topicChecks: TopicCheck[]` on `DerivedInsights`.
+- New `src/components/TopicChecks.tsx` panel rendered just below
+  the existing Insights panel in `ReviewDashboard`. Each check
+  shows the trigger topic, the title, a coloured status pill
+  (met = mint, partial = amber, missing = risk-medium), the
+  evidence bullets, and the remediation hint.
+
+**Tests:** `tests/lib/audit/topicRules.test.ts` (34 cases): one
+test per rule (CLI met/missing/object-bin, ESLint
+met/partial/missing/scoped-name, Babel met, three component
+libraries individually, monorepo via workspaces / pnpm-workspace
+/ neither, GitHub Action met/missing, VS Code engines met/missing,
+browser extension met/missing, TypeScript met/missing, four
+bundler plugins each), plus the silent-no-match guard (returns
+empty list for unrelated or empty topics) and multi-rule firing,
+and the UI helpers (status formatter, summarise rollup).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 39 files / 482 tests green (was 38 / 448).
+- `npm run build` — 600 KB JS, no warnings.
 
 ### 3.8 · Free public registry lookups
 For Node packages, hit the **public** `https://registry.npmjs.org/{name}`

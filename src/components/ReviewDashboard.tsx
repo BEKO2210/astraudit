@@ -22,6 +22,7 @@ import { SecurityPanel } from "./SecurityPanel";
 import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
+import { TopicChecks } from "./TopicChecks";
 import { CopyButton } from "./CopyButton";
 import { OnboardingPanel } from "./OnboardingPanel";
 import { PrintButton } from "./PrintButton";
@@ -207,6 +208,7 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
 
       <section id="insights">
         <InsightsPanel insights={result.insights} stack={result.stack} />
+        <TopicChecks checks={result.insights.topicChecks} />
       </section>
 
       <section id="graph">

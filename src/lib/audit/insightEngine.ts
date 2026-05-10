@@ -10,6 +10,7 @@ import type { ParsedCodeowners } from "./codeownersParser";
 import type { ParsedSecurityPolicy } from "./securityPolicyParser";
 import type { DependencySignals } from "./dependencyDetector";
 import type { ParsedManifest } from "./packageManifest";
+import { evaluateTopicRules, type TopicCheck } from "./topicRules";
 import { parseChangelog, type ParsedChangelog } from "./changelogParser";
 import { computeReadability, type Readability } from "./readability";
 
@@ -132,6 +133,14 @@ export interface DerivedInsights {
    * no CHANGELOG with dated headings is present. Phase 3.6.
    */
   changelog: ParsedChangelog | null;
+  /**
+   * Topic-driven contextual checks. Each entry is a focused
+   * "what the topic implies" rule against the repo (CLI → bin entry,
+   * eslint-plugin → contract triple, monorepo → workspace config,
+   * etc.). Empty array when no recognised topics fire any rule.
+   * Phase 3.7.
+   */
+  topicChecks: TopicCheck[];
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -631,6 +640,12 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     securityPolicy: security.securityPolicy,
     manifest: deps.manifest,
     changelog,
+    topicChecks: evaluateTopicRules({
+      topics: meta.topics,
+      manifest: deps.manifest,
+      classified,
+      stack,
+    }),
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
