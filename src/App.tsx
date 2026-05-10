@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Hero } from "./components/Hero";
 import { RepoInput } from "./components/RepoInput";
 import { ExampleRepos } from "./components/ExampleRepos";
@@ -8,15 +8,38 @@ import { ErrorState } from "./components/ErrorState";
 import { ReviewDashboard } from "./components/ReviewDashboard";
 import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
-import { CompareDashboard } from "./components/CompareDashboard";
 import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
-import { CommandPalette } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
-import { Impressum } from "./components/legal/Impressum";
-import { Datenschutzerklaerung } from "./components/legal/Datenschutzerklaerung";
-import { RuleBook } from "./components/legal/RuleBook";
+
+// Phase 6.16 — lazy-load surfaces that aren't on the first-paint path:
+// CompareDashboard (only when in compare mode), CommandPalette (Cmd+K
+// modal), and the three legal pages (route-only). Each becomes its own
+// chunk so the initial bundle drops by ~70 KB. Suspense fallbacks are
+// null because these are deferred-render surfaces — the user already
+// triggered the navigation/open action, a momentary blank is fine.
+const CompareDashboard = lazy(() =>
+  import("./components/CompareDashboard").then((m) => ({
+    default: m.CompareDashboard,
+  })),
+);
+const CommandPalette = lazy(() =>
+  import("./components/CommandPalette").then((m) => ({
+    default: m.CommandPalette,
+  })),
+);
+const Impressum = lazy(() =>
+  import("./components/legal/Impressum").then((m) => ({ default: m.Impressum })),
+);
+const Datenschutzerklaerung = lazy(() =>
+  import("./components/legal/Datenschutzerklaerung").then((m) => ({
+    default: m.Datenschutzerklaerung,
+  })),
+);
+const RuleBook = lazy(() =>
+  import("./components/legal/RuleBook").then((m) => ({ default: m.RuleBook })),
+);
 import { readBundle, removeBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -581,9 +604,27 @@ export default function App() {
   // stand-alone view so the user can read them undistracted and so deep
   // links work. The audit state is preserved in memory but unmounted
   // visually — clicking "Zurück zur App" returns to it intact.
-  if (legalRoute === "impressum") return <Impressum />;
-  if (legalRoute === "datenschutz") return <Datenschutzerklaerung />;
-  if (legalRoute === "rules") return <RuleBook />;
+  if (legalRoute === "impressum") {
+    return (
+      <Suspense fallback={null}>
+        <Impressum />
+      </Suspense>
+    );
+  }
+  if (legalRoute === "datenschutz") {
+    return (
+      <Suspense fallback={null}>
+        <Datenschutzerklaerung />
+      </Suspense>
+    );
+  }
+  if (legalRoute === "rules") {
+    return (
+      <Suspense fallback={null}>
+        <RuleBook />
+      </Suspense>
+    );
+  }
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
@@ -660,11 +701,13 @@ export default function App() {
       ) : null}
 
       {state.kind === "compared" ? (
-        <CompareDashboard
-          compare={state.compare}
-          onReset={handleReset}
-          onOpenCompare={openCompare}
-        />
+        <Suspense fallback={null}>
+          <CompareDashboard
+            compare={state.compare}
+            onReset={handleReset}
+            onOpenCompare={openCompare}
+          />
+        </Suspense>
       ) : null}
 
       <Footer />
@@ -686,11 +729,15 @@ export default function App() {
         tick={historyTick}
       />
 
-      <CommandPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-        commands={commands}
-      />
+      {paletteOpen ? (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={paletteOpen}
+            onClose={() => setPaletteOpen(false)}
+            commands={commands}
+          />
+        </Suspense>
+      ) : null}
 
       <ShortcutsDialog
         open={shortcutsOpen}

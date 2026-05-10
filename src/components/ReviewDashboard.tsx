@@ -48,7 +48,11 @@ import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 import { ShareButton } from "./ShareButton";
-import { BadgeDialog } from "./BadgeDialog";
+// Phase 6.16 — BadgeDialog only mounts on user demand (Award button /
+// FAB / "Get badge" CTA). Lazy-loading saves ~9 KB on first paint.
+const BadgeDialog = lazy(() =>
+  import("./BadgeDialog").then((m) => ({ default: m.BadgeDialog })),
+);
 import { StickyScoreBar } from "./StickyScoreBar";
 
 interface ReviewDashboardProps {
@@ -359,15 +363,19 @@ export function ReviewDashboard({
         <RecommendationsPanel recommendations={result.recommendations} />
       </section>
 
-      <BadgeDialog
-        open={badgeOpen}
-        onClose={() => setBadgeOpen(false)}
-        owner={result.bundle.metadata.owner.login}
-        repo={result.bundle.metadata.name}
-        score={result.totalScore}
-        max={result.maxScore}
-        grade={result.grade}
-      />
+      {badgeOpen ? (
+        <Suspense fallback={null}>
+          <BadgeDialog
+            open={badgeOpen}
+            onClose={() => setBadgeOpen(false)}
+            owner={result.bundle.metadata.owner.login}
+            repo={result.bundle.metadata.name}
+            score={result.totalScore}
+            max={result.maxScore}
+            grade={result.grade}
+          />
+        </Suspense>
+      ) : null}
 
       <SpeedDialFAB actions={fabActions} hidden={badgeOpen} />
     </div>

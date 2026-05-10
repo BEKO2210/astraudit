@@ -2962,19 +2962,20 @@ this?" to a recognisable Astraudit card.
 
 ### III · Performance + bundle hygiene
 
-- **6.15 Bundle-size budget.** The current build emits a 517 KB
-  main chunk (167 KB gzip). Set a hard ceiling in Lighthouse
-  CI ("Some chunks are larger than 500 kB" warns today). Either
-  raise the limit deliberately and document why, or split out
-  the audit engine into its own chunk (it's already in a Web
-  Worker, the chunk just isn't separated cleanly).
-- **6.16 Code-split policy.** React Flow is already
-  lazy-loaded (Phase 4.4). Audit every other heavy import in
-  `src/components/index.tsx`-style barrel files; consider
-  lazy-loading: BadgeDialog (modal — only when opened),
-  CompareDashboard (only when in compare mode), RuleBook
-  (legal-page-style route), CommandPalette (Cmd+K — load on
-  first open).
+- **6.15 Bundle-size budget.** ✅ Hard ceiling enforced by
+  `scripts/check-bundle-size.ts` and gated in CI (`quality.yml`
+  → `Bundle-size budget` step). Budgets: main chunk ≤ 520 KB,
+  AuditGraph chunk ≤ 175 KB, audit worker ≤ 110 KB. Current
+  numbers: 484 / 148 / 93 KB — ~36 KB of headroom on the main
+  chunk before the gate fires. `vite.config.ts` carries the
+  same 500 KB warning threshold for local builds.
+- **6.16 Code-split policy.** ✅ React Flow / AuditGraph
+  remains lazy (Phase 4.4). Added: BadgeDialog (modal-only),
+  CompareDashboard (compare-state-only), CommandPalette
+  (Cmd+K modal), Impressum / Datenschutzerklaerung / RuleBook
+  (route-only). Main chunk dropped 53 KB (537 → 484) and the
+  ~55 KB of deferred code now lives in seven hashed chunks
+  that only download when the user navigates / opens them.
 - **6.17 Performance budget per route.** Lighthouse CI's
   performance score is gated to ≥ 0.7; bump to ≥ 0.85 once
   6.15 + 6.16 are done. Add LCP / FID / CLS thresholds.

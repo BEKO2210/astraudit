@@ -31,6 +31,11 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Bundle-size budget (Phase 6.15)
+        # Hard ceiling on the production main chunk and the heavy lazy
+        # chunks. Catches a stray eager import before it lands; the
+        # ceiling is documented per-budget in the script itself.
+        run: npm run check:bundle-size
       - name: Run Lighthouse CI
         # `lhci autorun` reads `lighthouserc.json`, runs the collect +
         # assert + upload steps, and exits non-zero if any assertion
