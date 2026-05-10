@@ -249,7 +249,8 @@ Astraudit defaults to **unauthenticated** GitHub API calls (60 req/hour). If you
 CI gates live in [`.github/workflows/`](./.github/workflows/):
 
 - `quality.yml` — Lighthouse CI + axe-core a11y
-- `visual.yml` — Playwright snapshots
+- `playwright.yml` — Playwright visual regression snapshots
+- `codeql.yml` — CodeQL static security analysis (JS/TS)
 - `deploy.yml` — Build + publish to GitHub Pages on `main`
 
 The build is run as its own step before Playwright so the webServer probe (60 s) only has to start `vite preview`, not pack a cold TypeScript + Vite build.

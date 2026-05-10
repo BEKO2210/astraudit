@@ -1,0 +1,28 @@
+# Astraudit — CODEOWNERS
+#
+# This file lets GitHub auto-request reviews from the right person
+# whenever a PR touches code they own. The maintainer owns the
+# whole repository today; subdivision happens organically as
+# contributors take on areas of expertise.
+#
+# Reference: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner — every file in the repo.
+* @BEKO2210
+
+# Detector engine + score model. Changes here move the audit
+# numbers, so the maintainer must explicitly approve.
+/src/lib/audit/                  @BEKO2210
+/src/lib/github/                 @BEKO2210
+/src/types/                      @BEKO2210
+
+# CI / deployment / release plumbing.
+/.github/                        @BEKO2210
+/playwright.config.ts            @BEKO2210
+/vite.config.ts                  @BEKO2210
+/lighthouserc.json               @BEKO2210
+
+# Public rule book + roadmap — review carefully because they
+# document the project's contract.
+/docs/RULES.md                   @BEKO2210
+/ROADMAP.md                      @BEKO2210

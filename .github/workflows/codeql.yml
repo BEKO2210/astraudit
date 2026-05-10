@@ -1,0 +1,63 @@
+# CodeQL — static security analysis for JavaScript / TypeScript.
+#
+# Astraudit ships a TypeScript-only client-side bundle with no
+# server code, so the attack surface that CodeQL can usefully
+# analyse is the SPA + its build-time scripts. The default
+# `security-and-quality` query suite is the right call here:
+# `security-extended` adds noise on a tool that has no auth, no
+# database, and no inbound HTTP.
+#
+# We schedule the workflow on PRs targeting main, on every push to
+# main, and on a weekly cron so a freshly-published query rule can
+# flag existing code without needing a human to push.
+#
+# Reference:
+# https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 06:00 UTC, matching the Dependabot cadence so the
+    # maintainer reviews both batches in one sitting.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # CodeQL needs `security-events: write` to upload the SARIF
+      # report; everything else stays read-only.
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # The default suite already covers the OWASP top 10 +
+          # quality issues; explicit so the choice is visible in
+          # the diff if anyone bumps it later.
+          queries: security-and-quality
+
+      # Astraudit's source is plain TypeScript; CodeQL's autobuild
+      # discovers it without any project-specific configuration.
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

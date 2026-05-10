@@ -1,0 +1,322 @@
+{
+  "schema": "astraudit-audit-export",
+  "schemaVersion": "1",
+  "generatedAt": "2026-05-10T17:59:53.243Z",
+  "repository": {
+    "fullName": "demo-org/sample",
+    "owner": "demo-org",
+    "name": "sample",
+    "htmlUrl": "https://github.com/owner/demo",
+    "description": "Sample audit fixture used to demonstrate export formats.",
+    "defaultBranch": "main",
+    "stars": 1234,
+    "forks": 3,
+    "openIssues": 2,
+    "language": "TypeScript",
+    "topics": [
+      "typescript",
+      "react",
+      "vite"
+    ],
+    "license": {
+      "spdxId": "MIT",
+      "name": "MIT License"
+    },
+    "pushedAt": "2026-05-03T17:59:53.206Z"
+  },
+  "score": {
+    "total": 54,
+    "max": 100,
+    "grade": "Risky",
+    "verdict": "Risky: critical signals such as license, tests, or maintenance activity are missing or weak.",
+    "headline": "Uneven baseline for a established, recently active popular community project."
+  },
+  "categories": [
+    {
+      "key": "documentation",
+      "label": "Documentation",
+      "score": 8,
+      "max": 15,
+      "status": "partial",
+      "evidence": [
+        "README is present.",
+        "README appears short.",
+        "Installation/setup instructions mentioned.",
+        "Usage section mentioned.",
+        "Examples or demo mentioned.",
+        "Contributing guide present."
+      ]
+    },
+    {
+      "key": "structure",
+      "label": "Structure",
+      "score": 8,
+      "max": 15,
+      "status": "partial",
+      "evidence": [
+        "Recognizable source directory present.",
+        "Test directory or test files detected.",
+        "Root directory is reasonably tidy.",
+        "package.json scripts present."
+      ]
+    },
+    {
+      "key": "quality",
+      "label": "Code Quality Signals",
+      "score": 11,
+      "max": 15,
+      "status": "partial",
+      "evidence": [
+        "Test files or test directories detected.",
+        "Test script present.",
+        "Lint tooling detected.",
+        "TypeScript signals detected.",
+        "CI workflows detected (1).",
+        "Build script present."
+      ]
+    },
+    {
+      "key": "security",
+      "label": "Security & Trust",
+      "score": 9,
+      "max": 15,
+      "status": "partial",
+      "evidence": [
+        "LICENSE file present.",
+        "SECURITY.md present.",
+        "Dependabot configuration detected."
+      ]
+    },
+    {
+      "key": "maintenance",
+      "label": "Maintenance",
+      "score": 6,
+      "max": 15,
+      "status": "weak",
+      "evidence": [
+        "Last push 7 days ago.",
+        "Repository description is set.",
+        "3 topic(s) set.",
+        "Open PRs: 0.",
+        "Open issues: 1."
+      ]
+    },
+    {
+      "key": "dx",
+      "label": "Developer Experience",
+      "score": 5,
+      "max": 10,
+      "status": "partial",
+      "evidence": [
+        "README mentions setup/installation.",
+        "package.json scripts are well-defined.",
+        "Contributing guide present.",
+        "Code of Conduct present."
+      ]
+    },
+    {
+      "key": "ecosystem",
+      "label": "Ecosystem & Dependencies",
+      "score": 4,
+      "max": 10,
+      "status": "weak",
+      "evidence": [
+        "No lockfile detected.",
+        "Frameworks: React.",
+        "Runtime: Node.js.",
+        "Dependencies: 1, dev: 0."
+      ]
+    },
+    {
+      "key": "ci",
+      "label": "CI/CD & Automation",
+      "score": 3,
+      "max": 5,
+      "status": "partial",
+      "evidence": [
+        "Workflows: 1.",
+        "Build/CI workflow detected."
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "f-readme-short-1",
+      "title": "README is too short",
+      "category": "documentation",
+      "severity": "medium",
+      "description": "Very short READMEs typically miss installation, usage, and contribution context.",
+      "evidence": "README content length: ~59 chars.",
+      "recommendation": "Expand the README with sections for setup, usage, and examples.",
+      "affectedFiles": [
+        "README.md"
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "f-lockfile-2",
+      "title": "No lockfile detected",
+      "category": "ecosystem",
+      "severity": "medium",
+      "description": "A lockfile pins exact dependency versions for reproducible installs.",
+      "evidence": "package.json present but no package-lock.json/pnpm-lock.yaml/yarn.lock.",
+      "recommendation": "Commit your package manager's lockfile.",
+      "affectedFiles": [
+        "package.json"
+      ],
+      "confidence": "high"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "reco-f-lockfile-2",
+      "title": "Commit the package manager lockfile",
+      "area": "ecosystem",
+      "rationale": "Commit your package manager's lockfile.",
+      "impact": "medium"
+    },
+    {
+      "id": "reco-f-readme-short-1",
+      "title": "Expand the README",
+      "area": "documentation",
+      "rationale": "Expand the README with sections for setup, usage, and examples.",
+      "impact": "medium"
+    },
+    {
+      "id": "reco-maintenance-fallback",
+      "title": "Re-engage maintenance signals",
+      "area": "maintenance",
+      "rationale": "Triage the open queue, ship a small maintenance release, and update topics, description, and homepage.",
+      "impact": "low"
+    },
+    {
+      "id": "reco-dx-fallback",
+      "title": "Polish the developer onboarding flow",
+      "area": "dx",
+      "rationale": "An .env.example, a Makefile or Dockerfile, and clean package.json scripts shorten time-to-first-contribution.",
+      "impact": "low"
+    },
+    {
+      "id": "reco-structure-fallback",
+      "title": "Reorganize files into clear top-level directories",
+      "area": "structure",
+      "rationale": "Move source, scripts, and configs out of the root into src/, scripts/, and config/.",
+      "impact": "low"
+    },
+    {
+      "id": "reco-security-fallback",
+      "title": "Tighten the security baseline",
+      "area": "security",
+      "rationale": "If SECURITY.md, CODEOWNERS, Dependabot, or a CodeQL workflow are missing, add the ones that are not yet present.",
+      "impact": "low"
+    },
+    {
+      "id": "reco-ci-fallback",
+      "title": "Add or expand the GitHub Actions workflow",
+      "area": "ci",
+      "rationale": "Even a minimal Actions workflow that runs build + test + lint on each PR makes regressions visible early.",
+      "impact": "low"
+    }
+  ],
+  "onboarding": [
+    {
+      "id": "clone",
+      "title": "Clone demo-org/sample",
+      "rationale": "Single-package layout based on the file tree.",
+      "command": "git clone https://github.com/demo-org/sample.git"
+    },
+    {
+      "id": "install",
+      "title": "Install dependencies",
+      "rationale": "No common package manager was detected. Read the README for the project-specific setup.",
+      "optional": true
+    },
+    {
+      "id": "dev",
+      "title": "Start the dev workflow",
+      "rationale": "Most JS/TS projects expose \"dev\"; check package.json scripts for the actual entry points if unsure.",
+      "command": "npm run dev",
+      "optional": true
+    },
+    {
+      "id": "test",
+      "title": "Run the test suite before any change",
+      "rationale": "Tests were detected in the tree even though no CI workflow was found."
+    },
+    {
+      "id": "contrib",
+      "title": "Read CONTRIBUTING.md before opening a PR",
+      "rationale": "The repo publishes contribution guidelines — follow them to avoid the most common rejection reasons."
+    },
+    {
+      "id": "coc",
+      "title": "Skim the Code of Conduct",
+      "rationale": "Standard for community projects; read once so PR conversations stay productive.",
+      "optional": true
+    }
+  ],
+  "story": [
+    {
+      "heading": "What this repository appears to be",
+      "body": "\"Sample audit fixture used to demonstrate export formats.\". This is a TypeScript-based project using React running on Node.js. 1,234 stars place it firmly in the well-known tier. Lifetime growth averages around 101.4 stars per month."
+    },
+    {
+      "heading": "Project age and momentum",
+      "body": "An established project at over a year old — long enough for patterns and a contributor base to settle in."
+    },
+    {
+      "heading": "Stack and tooling",
+      "body": "Primary language is TypeScript at 80% of bytes. A second language carries non-trivial weight, hinting at native bindings, build tooling, or a multi-target setup."
+    },
+    {
+      "heading": "How alive it is",
+      "body": "Push activity is fresh — last commit landed 7 days ago. Recent commits arrive in bursts of multiple per day (avg 1d apart). 2 distinct authors appear in the recent commit window. No tagged releases were detected. Open-issue volume looks well-managed (1 open, 0 PRs)."
+    },
+    {
+      "heading": "Where it shines and where it slips",
+      "body": "On the strong side: a working CI pipeline. Where it loses points: code-quality coverage is incomplete; documentation has gaps; security signals are uneven; structure could be tighter."
+    },
+    {
+      "heading": "What the README tells you",
+      "body": "The README is roughly 11 words long across 3 headings. Detected sections: Sample · Installation · Usage. That is short — most readers need 300+ words to evaluate a project."
+    },
+    {
+      "heading": "Best next steps",
+      "body": "The fastest score gains come from maintenance. After that, ecosystem & dependencies and developer experience would compound the improvement. Each of these has at least one finding below with a concrete action."
+    }
+  ],
+  "stack": {
+    "language": "TypeScript",
+    "languages": [
+      {
+        "name": "TypeScript",
+        "bytes": 80000,
+        "share": 0.8
+      },
+      {
+        "name": "JavaScript",
+        "bytes": 20000,
+        "share": 0.2
+      }
+    ],
+    "packageManager": null,
+    "runtime": "Node.js",
+    "frameworks": [
+      "React"
+    ],
+    "buildTools": [],
+    "testTools": [],
+    "lintTools": [],
+    "monorepoTool": null,
+    "containerized": false,
+    "hasLockfile": false,
+    "dependencyCounts": {
+      "dependencies": 1,
+      "devDependencies": 0
+    },
+    "envManagers": [],
+    "pythonTools": [],
+    "sboms": [],
+    "aiDevTools": []
+  }
+}

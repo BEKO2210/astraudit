@@ -69,7 +69,35 @@ export function isInNoiseFolder(lowerPath: string): boolean {
   );
 }
 
-const NOISE_BASENAME_HINTS = ["tokenizer", "tokenize", "tokenization"];
+// CamelCase / snake_case code-file basenames that contain a
+// suspicious-hint substring but are obviously source code, not
+// leaked secrets. Without this, any auth library that ships a
+// `tokenStore.ts` / `tokenManager.js` / `apiKeyStore.ts` flags
+// itself — not useful for users. The list is conservative: every
+// entry would have to be a deliberately-named file *with* a real
+// secret in it to slip through.
+const NOISE_BASENAME_HINTS = [
+  "tokenizer",
+  "tokenize",
+  "tokenization",
+  "tokenstore",
+  "tokenmanager",
+  "tokenauth",
+  "tokenservice",
+  "tokenprovider",
+  "tokenutils",
+  "tokenhelper",
+  "secretscanner",
+  "secretdetector",
+  "secretmanager",
+  "secretrotation",
+  "credentialstore",
+  "credentialprovider",
+  "credentialhelper",
+  "apikey",
+  "apikeystore",
+  "apikeymanager",
+];
 const NOISE_EXTENSIONS = [".lock", ".md", ".mdx", ".rst", ".txt"];
 
 function isAllowedSuspicious(path: string): boolean {

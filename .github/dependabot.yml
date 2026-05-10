@@ -1,0 +1,80 @@
+# Astraudit — Dependabot configuration
+#
+# Two ecosystems are watched:
+#   1. npm — the SPA's runtime + dev dependencies (~25 packages).
+#   2. github-actions — the workflow files in `.github/workflows/`.
+#
+# Schedule is weekly (Monday 06:00 UTC) so PRs land before the
+# work week starts and don't drown the maintainer in dailies.
+#
+# Reference:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+    # Keep large breaking-change bumps on a tighter leash so they
+    # arrive as a single combined PR instead of one-per-package.
+    groups:
+      tooling:
+        patterns:
+          - "vite*"
+          - "vitest*"
+          - "@vitejs/*"
+          - "typescript"
+          - "tsx"
+        update-types:
+          - "minor"
+          - "patch"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "autoprefixer"
+          - "postcss"
+        update-types:
+          - "minor"
+          - "patch"
+      playwright:
+        patterns:
+          - "@playwright/test"
+          - "@axe-core/playwright"
+          - "@lhci/cli"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"

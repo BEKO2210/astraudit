@@ -123,8 +123,9 @@ tests/
 └── ...
 .github/workflows/
 ├── deploy.yml                   # Build + push to GitHub Pages
-├── visual.yml                   # Playwright visual regression
-└── quality.yml                  # Lighthouse + axe gates
+├── playwright.yml               # Playwright visual regression
+├── quality.yml                  # Lighthouse + axe gates
+└── codeql.yml                   # CodeQL static security analysis
 playwright.config.ts             # Playwright + visual + axe config
 lighthouserc.json                # Score floors (perf 0.7, a11y 0.95, …)
 ```

@@ -73,7 +73,7 @@ export default defineConfig({
      diagnostic).
 
      Fix: build is its own GitHub Actions step now (see
-     `.github/workflows/visual.yml` and `quality.yml`), so this
+     `.github/workflows/playwright.yml` and `quality.yml`), so this
      command only spins up the preview server — which binds in <2 s.
      Locally the preview-only command also matches the dev workflow
      and stays interactive. `stdout: "pipe"` so the next time we hit

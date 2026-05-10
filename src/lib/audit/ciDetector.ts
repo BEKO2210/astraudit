@@ -26,10 +26,21 @@ export interface CiSignals {
   hasGithubActions: boolean;
 }
 
-const BUILD_RE = /(build|compile|\bci\b)/i;
-const TEST_RE = /(test|spec|jest|vitest|pytest|gotest)/i;
-const LINT_RE = /(lint|format|prettier|eslint|biome|stylelint|rubocop|black|ruff)/i;
-const DEPLOY_RE = /(deploy|publish|release|pages|gh-pages|docker|docs|netlify|vercel|cloudflare)/i;
+// Phase 5.x — broadened so common but non-literal workflow names
+// land in the right bucket. `playwright` / `a11y` / `axe` /
+// `accessibility` are categorised as tests because they exercise
+// the running app; `quality` / `verify` / `check` are categorised
+// as builds because that's the conventional "all-checks" pipeline
+// name; `lighthouse` falls under tests (it actually runs against a
+// live build). Without these, repos that follow GitHub's modern
+// naming conventions silently lose CI/CD score points.
+const BUILD_RE = /(build|compile|\bci\b|verify|quality|checks?)/i;
+const TEST_RE =
+  /(test|spec|jest|vitest|pytest|gotest|playwright|cypress|a11y|accessibility|axe|lighthouse)/i;
+const LINT_RE =
+  /(lint|format|prettier|eslint|biome|stylelint|rubocop|black|ruff|quality)/i;
+const DEPLOY_RE =
+  /(deploy|publish|release|pages|gh-pages|docker|docs|netlify|vercel|cloudflare)/i;
 const RELEASE_RE = /(release|changelog|tag|semantic-release)/i;
 const CODEQL_RE = /(codeql|sast|security-scan|trivy|snyk)/i;
 

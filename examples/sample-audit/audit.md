@@ -1,0 +1,128 @@
+# Astraudit — demo-org/sample
+
+> Sample audit fixture used to demonstrate export formats.
+
+**Score:** 54 / 100  ·  **Grade:** Risky
+
+*Risky: critical signals such as license, tests, or maintenance activity are missing or weak.*
+
+Generated: `2026-05-10T17:59:53.243Z`  ·  Repository: https://github.com/owner/demo
+
+## Score breakdown
+
+| Category | Score | Status |
+| --- | --- | --- |
+| Documentation | 8/15 | partial |
+| Structure | 8/15 | partial |
+| Code Quality Signals | 11/15 | partial |
+| Security & Trust | 9/15 | partial |
+| Maintenance | 6/15 | weak |
+| Developer Experience | 5/10 | partial |
+| Ecosystem & Dependencies | 4/10 | weak |
+| CI/CD & Automation | 3/5 | partial |
+
+## Repository story
+
+### What this repository appears to be
+
+"Sample audit fixture used to demonstrate export formats.". This is a TypeScript-based project using React running on Node.js. 1,234 stars place it firmly in the well-known tier. Lifetime growth averages around 101.4 stars per month.
+
+### Project age and momentum
+
+An established project at over a year old — long enough for patterns and a contributor base to settle in.
+
+### Stack and tooling
+
+Primary language is TypeScript at 80% of bytes. A second language carries non-trivial weight, hinting at native bindings, build tooling, or a multi-target setup.
+
+### How alive it is
+
+Push activity is fresh — last commit landed 7 days ago. Recent commits arrive in bursts of multiple per day (avg 1d apart). 2 distinct authors appear in the recent commit window. No tagged releases were detected. Open-issue volume looks well-managed (1 open, 0 PRs).
+
+### Where it shines and where it slips
+
+On the strong side: a working CI pipeline. Where it loses points: code-quality coverage is incomplete; documentation has gaps; security signals are uneven; structure could be tighter.
+
+### What the README tells you
+
+The README is roughly 11 words long across 3 headings. Detected sections: Sample · Installation · Usage. That is short — most readers need 300+ words to evaluate a project.
+
+### Best next steps
+
+The fastest score gains come from maintenance. After that, ecosystem & dependencies and developer experience would compound the improvement. Each of these has at least one finding below with a concrete action.
+
+## Findings
+
+### 🟡 [MEDIUM] README is too short
+
+**Category:** documentation
+
+Very short READMEs typically miss installation, usage, and contribution context.
+
+**Evidence:** README content length: \~59 chars.
+
+**Recommendation:** Expand the README with sections for setup, usage, and examples.
+
+**Affected files:**
+- `README.md`
+
+### 🟡 [MEDIUM] No lockfile detected
+
+**Category:** ecosystem
+
+A lockfile pins exact dependency versions for reproducible installs.
+
+**Evidence:** package.json present but no package-lock.json/pnpm-lock.yaml/yarn.lock.
+
+**Recommendation:** Commit your package manager's lockfile.
+
+**Affected files:**
+- `package.json`
+
+## Recommended next steps
+
+1. **Commit the package manager lockfile** _(impact: medium)_ — Commit your package manager's lockfile.
+2. **Expand the README** _(impact: medium)_ — Expand the README with sections for setup, usage, and examples.
+3. **Re-engage maintenance signals** _(impact: low)_ — Triage the open queue, ship a small maintenance release, and update topics, description, and homepage.
+4. **Polish the developer onboarding flow** _(impact: low)_ — An .env.example, a Makefile or Dockerfile, and clean package.json scripts shorten time-to-first-contribution.
+5. **Reorganize files into clear top-level directories** _(impact: low)_ — Move source, scripts, and configs out of the root into src/, scripts/, and config/.
+6. **Tighten the security baseline** _(impact: low)_ — If SECURITY.md, CODEOWNERS, Dependabot, or a CodeQL workflow are missing, add the ones that are not yet present.
+7. **Add or expand the GitHub Actions workflow** _(impact: low)_ — Even a minimal Actions workflow that runs build + test + lint on each PR makes regressions visible early.
+
+## How to actually use this repository
+
+1. **Clone demo-org/sample**
+
+   Single-package layout based on the file tree.
+
+   ```sh
+   git clone https://github.com/demo-org/sample.git
+   ```
+
+2. **Install dependencies** *(optional)*
+
+   No common package manager was detected. Read the README for the project-specific setup.
+
+3. **Start the dev workflow** *(optional)*
+
+   Most JS/TS projects expose "dev"; check package.json scripts for the actual entry points if unsure.
+
+   ```sh
+   npm run dev
+   ```
+
+4. **Run the test suite before any change**
+
+   Tests were detected in the tree even though no CI workflow was found.
+
+5. **Read CONTRIBUTING.md before opening a PR**
+
+   The repo publishes contribution guidelines — follow them to avoid the most common rejection reasons.
+
+6. **Skim the Code of Conduct** *(optional)*
+
+   Standard for community projects; read once so PR conversations stay productive.
+
+---
+
+Generated by Astraudit · 2026-05-10T17:59:53.243Z
