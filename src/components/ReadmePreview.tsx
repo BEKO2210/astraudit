@@ -63,8 +63,8 @@ export function ReadmePreview({
         </div>
       </header>
       <p className="mt-1 text-[11px] text-slate-500">
-        Rendered safely · markdown only · external HTML and scripts are
-        ignored. Relative links resolve to{" "}
+        Rendered safely · markdown + curated HTML allow-list · scripts,
+        styles and event handlers are stripped. Relative links resolve to{" "}
         <code className="font-mono">github.com/{owner}/{repo}</code>.
       </p>
       <div

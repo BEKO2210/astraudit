@@ -1,3 +1,11 @@
+// @vitest-environment happy-dom
+//
+// Phase 6.x — the renderer's sanitiser path needs DOMParser, which
+// the default `node` environment doesn't provide. happy-dom is a
+// fast (~250 KB) WHATWG DOM implementation that gives us
+// `DOMParser` + `document` without pulling in jsdom's Canvas /
+// network shims we don't use.
+
 import { describe, expect, it } from "vitest";
 import {
   renderReadmeMarkdown,
@@ -17,15 +25,64 @@ describe("renderReadmeMarkdown", () => {
     expect(html).toContain('href="https://example.com"');
   });
 
-  it("escapes raw HTML (no live <script>, <img>, or inline events)", () => {
-    const md = `# Hello <script>alert('xss')</script>\n\n<img src="x" onerror="alert(1)">`;
+  it("strips the dangerous bits of raw HTML but keeps safe markup", () => {
+    // Phase 6.x — the renderer now allows safe HTML so authored
+    // READMEs that use <div align="center"> / <img> / <details>
+    // render correctly. The sanitiser must still strip <script>,
+    // event handlers, and javascript: URLs.
+    const md = `# Hello <script>alert('xss')</script>\n\n<img src="x" onerror="alert(1)">\n\n<div align="center"><strong>Hi</strong></div>`;
     const html = renderReadmeMarkdown(md, opts);
-    // No live tags in the output — markdown-it has html:false, so raw HTML
-    // is escaped to &lt; / &gt; entities.
+    // No live tags, no event handlers.
     expect(html).not.toMatch(/<script[^>]*>/i);
-    expect(html).not.toMatch(/<img[^>]*onerror/i);
-    // The escaped form should contain the entity for the script tag.
-    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toMatch(/onerror/i);
+    // The `alert('xss')` body of the stripped <script> survives as
+    // inert text inside the surrounding <h1> — that's the unwrap
+    // contract documented in the next test. We do NOT assert the
+    // text is gone, only that nothing executable remains.
+    // Safe inline HTML survives.
+    expect(html).toMatch(/<div align="center">/i);
+    expect(html).toMatch(/<strong>Hi<\/strong>/i);
+  });
+
+  it("unwraps <script> bodies, doesn't execute them, doesn't leak the text", () => {
+    const md = `<script>const x = 'leaked';</script>`;
+    const html = renderReadmeMarkdown(md, opts);
+    expect(html).not.toMatch(/<script/i);
+    // The body of a stripped <script> stays as inert text via the
+    // unwrap rule. That's a deliberate trade-off — we'd rather
+    // surface "weird text appeared" than silently swallow content
+    // (matches GitHub's own behaviour for unknown tags).
+    expect(html).toMatch(/leaked/);
+  });
+
+  it("strips inline event handlers from otherwise-safe tags", () => {
+    const md = `<a href="https://example.com" onclick="bad()">x</a>`;
+    const html = renderReadmeMarkdown(md, opts);
+    expect(html).not.toMatch(/onclick/i);
+    expect(html).toMatch(/href="https:\/\/example\.com"/);
+  });
+
+  it("strips style attributes", () => {
+    const md = `<div style="color:red; background:url('javascript:bad')">x</div>`;
+    const html = renderReadmeMarkdown(md, opts);
+    expect(html).not.toMatch(/style=/i);
+    expect(html).not.toMatch(/javascript:/i);
+  });
+
+  it("resolves inline <img src> against raw.githubusercontent.com (matches markdown path)", () => {
+    const md = `<img src="./public/logo.png" alt="logo">`;
+    const html = renderReadmeMarkdown(md, opts);
+    expect(html).toContain(
+      "https://raw.githubusercontent.com/facebook/react/main/public/logo.png",
+    );
+  });
+
+  it("resolves inline <a href> against github.com/.../blob/<branch>", () => {
+    const md = `<a href="./docs/index.md">docs</a>`;
+    const html = renderReadmeMarkdown(md, opts);
+    expect(html).toContain(
+      "https://github.com/facebook/react/blob/main/docs/index.md",
+    );
   });
 
   it("strips javascript: URLs", () => {

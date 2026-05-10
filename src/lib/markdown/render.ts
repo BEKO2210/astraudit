@@ -2,21 +2,28 @@
  * README Markdown rendering.
  *
  * Safety choices:
- * - markdown-it is created with `html: false`, so any inline HTML in
- *   the source markdown is escaped and rendered as text. Combined with
- *   the fact that we never run scripts, this gives us a strong XSS
- *   baseline without pulling in DOMPurify.
+ * - markdown-it runs with `html: true` so authored READMEs that
+ *   use inline HTML (centred heroes, `<picture>` / `<img>` rows,
+ *   `<details>`, GitHub-style badge rows, tables, etc.) render
+ *   the same way they do on github.com. The output is fed through
+ *   `sanitiseHtml()` which walks the parsed DOM and unwraps any
+ *   tag that's not on the allow-list, drops every `on*` handler,
+ *   `style` attribute, and rejects `javascript:` / non-`data:image`
+ *   URLs. See `./sanitize.ts` for the full contract.
  * - All `<a>` tags are forced to open in a new tab with
- *   `rel="noreferrer noopener"`.
+ *   `rel="noreferrer noopener"` (both by the markdown-it token
+ *   rewrite below AND by the sanitiser, in case the source HTML
+ *   already carried `<a>` tags).
  * - Relative URLs are resolved against the repository's GitHub
  *   `blob/<branch>/` URL for links and the
  *   `raw.githubusercontent.com/<branch>/` URL for images, so the
  *   preview behaves the same way as it would on github.com.
- * - Images get `loading="lazy"` and a max-width so they cannot push
- *   the layout out of bounds (Phase mobile-safety from earlier).
+ * - Images get `loading="lazy"` and `referrerpolicy="no-referrer"`,
+ *   set by both the token rewrite and the sanitiser.
  */
 
 import MarkdownIt from "markdown-it";
+import { sanitiseHtml } from "./sanitize";
 
 export interface RenderOptions {
   owner: string;
@@ -25,7 +32,7 @@ export interface RenderOptions {
 }
 
 const md = new MarkdownIt({
-  html: false,
+  html: true,
   linkify: true,
   typographer: false,
   breaks: false,
@@ -94,7 +101,14 @@ export function renderReadmeMarkdown(
   const env: Record<string, unknown> = {};
   const tokens = md.parse(source, env);
   rewriteAttrs(tokens, opts);
-  return md.renderer.render(tokens, md.options, env);
+  const rawHtml = md.renderer.render(tokens, md.options, env);
+  // The sanitiser also handles inline-HTML URL resolution so
+  // <img src="public/...">  and  <a href="./docs/...">  in the
+  // authored README behave identically to their markdown forms.
+  return sanitiseHtml(rawHtml, {
+    resolveLink: (href) => resolveLink(href, opts),
+    resolveImage: (src) => resolveImage(src, opts),
+  });
 }
 
 /**
