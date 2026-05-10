@@ -45,7 +45,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
       aria-modal="true"
     >
       <div
-        className="glass-strong relative w-full max-w-md rounded-2xl p-5 sm:p-6"
+        className="bottom-sheet-card glass-strong relative w-full max-w-md rounded-2xl p-5 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
