@@ -2654,12 +2654,39 @@ and recovery affordance.
   the per-kind mapping + the countdown formatter (sub-minute,
   multi-minute round-up, past-timestamp, missing-timestamp).
 
-### 5.7 · Print stylesheet v2
-Re-walk every panel under `@media print` — every detector card,
-every Insight pill, the new Topic Checks + Registry panels added
-in Phase 3, plus the legal pages. The print stylesheet has grown
-ad-hoc since 1.7; v2 audits it with real sample audits and locks
-the contract down with a Playwright print-preview snapshot run.
+### 5.7 · Print stylesheet v2 ✅ shipped
+**Why:** the print stylesheet had grown ad-hoc since 1.7 and the
+Phase 3+ panels (Insights, Topic Checks, Registry) plus the
+Phase 2.x dialogs (Settings/History/Compare/CommandPalette/
+Shortcuts) were never wired into it. Printing an audit yielded
+modal chrome bleeding through, page breaks splitting individual
+findings in half, and the ActivityHeatmap (Phase 5.4) coming out
+as five aurora colours that all printed identically on a B&W
+laser printer.
+
+**What shipped:**
+- New `[role="dialog"]` rule hides every dialog in print —
+  generic enough that future dialogs are covered without
+  per-component plumbing.
+- Page-break hints extended to `topic-checks` + `registry`
+  (start a new page) and `insights` / `readme` / `maintenance` /
+  `stack` (avoid splitting mid-card).
+- New `[data-print-card]` opt-in on per-card primitives
+  (`FindingCard`, recommendation `<li>`, onboarding step,
+  registry row, topic check) so a 6-finding panel never gets
+  split across a page boundary mid-card.
+- ActivityHeatmap cells now emit `data-heat-level={0..4}`; the
+  print stylesheet remaps the aurora palette to a 5-step
+  grayscale (level-0 ≈ #f1f5f9 → level-4 ≈ #334155) so the
+  activity profile stays readable on B&W output. Level-4 also
+  flips text colour to white for contrast.
+- ErrorState gets `print:hidden` — error states aren't part of
+  a printed audit.
+- 11 vitest cases (`tests/styles/printContract.test.ts`) lock
+  the contract by parsing `globals.css` directly: every required
+  `@media print` rule has a regression guard, plus the dual
+  assertion that `.print-only` lives both inside (display: block)
+  and outside (display: none) the print block.
 
 ### 5.8 · Multi-format audit export
 **Why:** Today the audit is read in the browser or printed to PDF

@@ -9,7 +9,10 @@ interface FindingCardProps {
 
 export function FindingCard({ finding }: FindingCardProps) {
   return (
-    <article className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <article
+      className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4"
+      data-print-card
+    >
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03]">

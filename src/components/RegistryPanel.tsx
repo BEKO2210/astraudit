@@ -292,6 +292,7 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
             <li
               key={`${req.ecosystem}:${req.name}`}
               className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+              data-print-card
             >
               <RegistryRow ecosystem={req.ecosystem} name={req.name} outcome={outcome} />
             </li>

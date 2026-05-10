@@ -140,5 +140,18 @@ export function makeBundle(opts: BundleOptions = {}): RepoBundle {
     recentCommits: opts.recentCommits ?? [],
     releases: opts.releases ?? [],
     issues: opts.issues ?? { openIssueCount: 1, openPRCount: 0 },
+    // Phase 5.5.x — empty org-health snapshot by default; tests that
+    // care about the org-fallback path override it via the type cast
+    // below in a follow-up commit.
+    orgHealth: {
+      owner: metadata.owner.login,
+      hasOrgRepo: false,
+      securityPolicyPath: null,
+      securityPolicyContent: null,
+      codeOfConductPath: null,
+      codeOfConductContent: null,
+      contributingPath: null,
+      contributingContent: null,
+    },
   };
 }

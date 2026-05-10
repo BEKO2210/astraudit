@@ -436,8 +436,15 @@
     color: #0f172a !important;
   }
 
-  /* Hide things that don't work on paper. */
+  /* Hide things that don't work on paper. Phase 5.7 — added every
+     dialog (Settings/History/Compare/CommandPalette/Shortcuts) since
+     they're modal chrome that has no meaning in a printed audit. The
+     `[role="dialog"]` selector is intentionally generic so future
+     dialogs are covered without per-component plumbing. The
+     skeleton-shimmer rule already exists below; we keep it for
+     belt-and-suspenders coverage. */
   [data-print-hide="true"],
+  [role="dialog"],
   .react-flow,
   .react-flow__attribution {
     display: none !important;
@@ -579,18 +586,63 @@
     color: #0f172a !important;
   }
 
-  /* Page-break hints between major sections of the dashboard. */
+  /* Page-break hints between major sections of the dashboard.
+     Phase 5.7 — added the Phase 3+ section IDs (insights,
+     topic-checks, registry) so the print pagination mirrors the
+     screen reading order. Sections that ALWAYS start a fresh
+     page get `break-before: page`; those that just shouldn't be
+     split mid-card get `break-inside: avoid`. */
   section[id="findings"],
   section[id="onboarding"],
-  section[id="next"] {
+  section[id="next"],
+  section[id="topic-checks"],
+  section[id="registry"] {
     break-before: page;
     page-break-before: always;
   }
   section[id="overview"],
   section[id="score"],
-  section[id="story"] {
+  section[id="story"],
+  section[id="insights"],
+  section[id="readme"],
+  section[id="maintenance"],
+  section[id="stack"] {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* Per-card break protection. Avoids splitting an individual
+     finding / recommendation / onboarding step / registry row
+     across a page boundary — much harder to scan a half-card. The
+     `[data-print-card]` opt-in keeps the rule scoped so we don't
+     break-avoid every `<li>` on the page. */
+  [data-print-card],
+  .glass [data-print-card] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ActivityHeatmap (Phase 5.4) — translate the 5-bucket aurora
+     palette to grayscale so the heatmap stays readable on B&W
+     printers. Aurora violet/cyan/mint don't print as five
+     distinguishable shades on grayscale; mapping them to a real
+     5-step gray ramp (level-0 nearly white through level-4 ~50%
+     black) preserves the shape of the activity profile. */
+  [data-heat-level="0"] {
+    background: #f1f5f9 !important;
+  }
+  [data-heat-level="1"] {
+    background: #cbd5e1 !important;
+  }
+  [data-heat-level="2"] {
+    background: #94a3b8 !important;
+  }
+  [data-heat-level="3"] {
+    background: #64748b !important;
+  }
+  [data-heat-level="4"] {
+    background: #334155 !important;
+    color: #f8fafc !important;
   }
 
   /* Show full link destinations next to external links so PDF readers

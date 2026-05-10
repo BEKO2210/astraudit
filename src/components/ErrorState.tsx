@@ -85,7 +85,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`glass mt-8 flex items-start gap-4 border-l-2 border-l-risk-critical/70 p-5 ${VIEW_ENTER_CLASS}`}
+      className={`glass mt-8 flex items-start gap-4 border-l-2 border-l-risk-critical/70 p-5 print:hidden ${VIEW_ENTER_CLASS}`}
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-risk-critical/40 bg-risk-critical/10">
         <Icon className="h-5 w-5 text-risk-critical" />
