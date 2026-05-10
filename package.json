@@ -1,12 +1,46 @@
 {
   "name": "astraudit",
-  "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Astraudit maps, scores, and explains public GitHub repositories.",
+  "description": "Astraudit maps, scores, and explains public GitHub repositories — entirely in your browser, or via an MCP server your AI client can spawn.",
+  "homepage": "https://beko2210.github.io/astraudit/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BEKO2210/astraudit.git"
+  },
+  "bugs": "https://github.com/BEKO2210/astraudit/issues",
+  "license": "MIT",
+  "author": "BEKO2210",
+  "keywords": [
+    "audit",
+    "github",
+    "static-analysis",
+    "mcp",
+    "model-context-protocol",
+    "ai-tools",
+    "react",
+    "vite",
+    "typescript",
+    "browser-only"
+  ],
+  "bin": {
+    "astraudit-mcp": "dist-bin/mcp-server.js"
+  },
+  "files": [
+    "dist-bin/",
+    "src/lib/audit/",
+    "src/lib/github/",
+    "src/lib/export/",
+    "src/types/",
+    "README.md",
+    "LICENSE",
+    "docs/mcp.md",
+    "docs/RULES.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:bin": "tsx scripts/build-bin.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "tsc -b --noEmit",
@@ -14,14 +48,18 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:visual": "playwright test",
-    "test:visual:update": "playwright test --update-snapshots"
+    "test:visual:update": "playwright test --update-snapshots",
+    "mcp": "tsx bin/mcp-server.ts",
+    "prepack": "tsx scripts/build-bin.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "lucide-react": "^0.468.0",
     "markdown-it": "^14.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -33,11 +71,15 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.4.20",
+    "esbuild": "^0.24.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.21.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

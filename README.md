@@ -10,8 +10,9 @@
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/playwright.yml"><img alt="Visual regression" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/playwright.yml?branch=main&label=visual&style=flat-square&color=42e8c8"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/quality.yml"><img alt="Lighthouse + axe" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/quality.yml?branch=main&label=quality&style=flat-square&color=3ad6ff"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/codeql.yml?branch=main&label=codeql&style=flat-square&color=7a5cff"></a>
-    <img alt="Vitest" src="https://img.shields.io/badge/vitest-739%20passing-42e8c8?style=flat-square">
+    <img alt="Vitest" src="https://img.shields.io/badge/vitest-745%20passing-42e8c8?style=flat-square">
     <img alt="Playwright" src="https://img.shields.io/badge/playwright-36%20passing-42e8c8?style=flat-square">
+    <img alt="MCP" src="https://img.shields.io/badge/MCP-server%20included-7a5cff?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-94a3b8?style=flat-square">
     <img alt="Backend" src="https://img.shields.io/badge/backend-none-94a3b8?style=flat-square">
     <img alt="Tracking" src="https://img.shields.io/badge/tracking-none-94a3b8?style=flat-square">
@@ -188,6 +189,60 @@ If a new feature needs any of the above, we drop the feature.
 
 ---
 
+## Use Astraudit from your AI · MCP server
+
+Astraudit ships an **MCP server** so any AI client with [Model Context Protocol](https://modelcontextprotocol.io/) support — Claude Desktop, Cursor, Zed, VS Code AI, Continue.dev — can run a real audit on a public GitHub repo and read back the full categorised JSON. The server runs on **your machine**; Astraudit hosts no infrastructure. The full walkthrough lives in [`docs/mcp.md`](./docs/mcp.md); the short version:
+
+**1. Build the server**
+
+```bash
+git clone https://github.com/BEKO2210/astraudit.git
+cd astraudit
+npm install
+npm run build:bin          # → dist-bin/mcp-server.js
+```
+
+(Once `astraudit-mcp` is on npm — planned for v1.0 — `npx -y astraudit-mcp` replaces the clone + build.)
+
+**2. Wire it into Claude Desktop**
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```jsonc
+{
+  "mcpServers": {
+    "astraudit": {
+      "command": "node",
+      "args": ["/absolute/path/to/astraudit/dist-bin/mcp-server.js"],
+      "env": { "GITHUB_TOKEN": "github_pat_..." }   // optional
+    }
+  }
+}
+```
+
+Restart Claude. The `audit_repo` tool appears under the wrench icon.
+
+**3. Ask your AI**
+
+> "Audit `facebook/react` with Astraudit and tell me the top three things they should fix."
+>
+> "Use Astraudit to compare `expressjs/express` and `koajs/koa` — which has the stronger security posture?"
+
+The AI calls `audit_repo(owner, repo)` and gets back the versioned schema (same JSON the dashboard's "Export → JSON" button emits): score, eight categories, every detector hit, recommendations, onboarding steps, the plain-language repo story, and the stack profile.
+
+Cursor / Zed / VS Code / other clients use the same `node /path/to/dist-bin/mcp-server.js` invocation — `docs/mcp.md` carries the exact config per client + troubleshooting.
+
+| What | Where |
+| --- | --- |
+| Full install + per-client config | [`docs/mcp.md`](./docs/mcp.md) |
+| Tool schema (`audit_repo` inputs / output) | [`bin/mcp-server.ts`](./bin/mcp-server.ts) |
+| Output JSON schema (versioned) | [`src/lib/export/auditExport.ts`](./src/lib/export/auditExport.ts) |
+| Rule book — what every detector triggers on | [`docs/RULES.md`](./docs/RULES.md) / [`/rules` in-app](https://beko2210.github.io/astraudit/#/rules) |
+
+**Constraint check:** the MCP server is a parallel surface — the SPA stays the primary entry point. Each MCP invocation hits GitHub directly, runs the same rule-based engine, never talks to any Astraudit-hosted endpoint (we don't have one). Every line of the anti-roadmap stays intact.
+
+---
+
 ## Local development
 
 **Prerequisites:** Node.js 20+, npm 10+.
@@ -205,7 +260,9 @@ Other scripts:
 npm run build        # production build → dist/
 npm run preview      # serve dist/ locally on :4173
 npm run typecheck    # strict tsc -b --noEmit
-npm test             # vitest run (739 tests)
+npm test             # vitest run (745 tests)
+npm run mcp          # start the MCP server in dev mode (tsx, stdio)
+npm run build:bin    # compile bin/mcp-server.ts → dist-bin/mcp-server.js
 npm run test:visual  # Playwright snapshot suite (chromium)
 ```
 
@@ -219,7 +276,7 @@ Astraudit defaults to **unauthenticated** GitHub API calls (60 req/hour). If you
 
 | Suite | Tool | Specs |
 |---|---|---:|
-| Unit / integration | Vitest | 739 tests across 57 files (`tests/`) |
+| Unit / integration | Vitest | 745 tests across 58 files (`tests/`) — includes the MCP `audit_repo` handler |
 | Visual regression | Playwright + Chromium | 36 specs across 9 files (`tests/visual/`) — all major routes at 320 / 360 / 390 / 768 / 1280 px |
 | Accessibility | Playwright + axe‑core | Home, Impressum, Datenschutzerklärung, Rule book |
 | Mobile gestures | Playwright | Audit graph touch‑action, FAB sticky positioning, dialog scroll-trap on `< md` viewports |

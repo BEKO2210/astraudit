@@ -11,6 +11,32 @@ The full per-phase build log lives in [`ROADMAP.md`](./ROADMAP.md).
 
 ### Added
 
+- **MCP server** (`bin/mcp-server.ts`, `dist-bin/mcp-server.js`).
+  Astraudit now ships a Model Context Protocol server so any
+  MCP-compatible AI client (Claude Desktop, Cursor, Zed, VS Code
+  AI, Continue, …) can call the audit engine as a native tool.
+  One tool — `audit_repo(owner, repo, token?)` — returns the
+  curated, versioned JSON the dashboard's "Export → JSON" button
+  emits. Runs on the user's own machine; Astraudit hosts no
+  infrastructure (the engine still hits the GitHub public API
+  directly). New `docs/mcp.md` carries the per-client install
+  walkthrough (Claude Desktop / Cursor / Zed / VS Code) plus
+  troubleshooting. New `npm run mcp` / `npm run build:bin`
+  scripts. New `@modelcontextprotocol/sdk` + `zod` runtime deps;
+  `esbuild` devDep for the bundle step. 6 vitest cases cover the
+  happy path, NotFoundError + RateLimitError mappings, and the
+  token-routing precedence (tool arg overrides
+  `process.env.GITHUB_TOKEN`).
+- `src/lib/github/index.ts` → `loadRepoBundle(coords, { token })`
+  threads a per-call GitHub PAT through `process.env.GITHUB_TOKEN`
+  with proper save/restore so concurrent audits stay isolated.
+  Browser path unchanged.
+- `src/lib/auth/tokenStore.ts` → `loadToken()` now reads
+  `process.env.GITHUB_TOKEN` / `GH_TOKEN` when called outside a
+  browser. Caching disabled in Node so the MCP server can scope
+  a fresh token per request.
+- Hero gains a small "AI-ready · MCP" pill linking out to the
+  walkthrough. Footer gains a "Use from your AI" link.
 - LICENSE (MIT), SECURITY.md, CODE_OF_CONDUCT.md, CHANGELOG.md,
   CODEOWNERS, Dependabot config, CodeQL workflow, GitHub issue +
   PR templates — closes the meta-files gap that Astraudit's own

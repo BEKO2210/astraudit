@@ -25,6 +25,17 @@ export type LoadProgressKey =
 export interface LoadOptions {
   signal?: AbortSignal;
   onProgress?: (key: LoadProgressKey) => void;
+  /**
+   * Optional GitHub PAT scoped to this single audit. Threaded into
+   * `process.env.GITHUB_TOKEN` for the duration of the call so every
+   * sub-fetcher's `loadToken()` picks it up, then restored. Used by
+   * the MCP server / CLI so the caller can pass a token per request
+   * without touching the user's shell environment.
+   *
+   * The browser path leaves this undefined (the SPA reads its token
+   * from localStorage via the Settings dialog).
+   */
+  token?: string | null;
 }
 
 const MAX_TREE_ENTRIES = 60_000;
@@ -33,7 +44,39 @@ export async function loadRepoBundle(
   coords: RepoCoordinates,
   options: LoadOptions = {},
 ): Promise<RepoBundle> {
-  const { signal, onProgress } = options;
+  const { signal, onProgress, token } = options;
+
+  // Phase 6.x — token plumbing for the MCP server / CLI path.
+  // The fetchers all read the active token via `loadToken()` which,
+  // outside the browser, returns `process.env.GITHUB_TOKEN`. We
+  // temporarily set the env var here so a per-call token scopes
+  // correctly, then restore the previous value on the way out
+  // (so two concurrent loadRepoBundle calls don't trample each
+  // other — they shouldn't run concurrently in MCP, but defensive).
+  const restoreToken =
+    token != null && typeof process !== "undefined"
+      ? (() => {
+          const previous = process.env.GITHUB_TOKEN;
+          process.env.GITHUB_TOKEN = token;
+          return () => {
+            if (previous === undefined) delete process.env.GITHUB_TOKEN;
+            else process.env.GITHUB_TOKEN = previous;
+          };
+        })()
+      : () => {};
+
+  try {
+    return await loadRepoBundleInner(coords, signal, onProgress);
+  } finally {
+    restoreToken();
+  }
+}
+
+async function loadRepoBundleInner(
+  coords: RepoCoordinates,
+  signal: AbortSignal | undefined,
+  onProgress: ((key: LoadProgressKey) => void) | undefined,
+): Promise<RepoBundle> {
   const tick = (key: LoadProgressKey) => onProgress && onProgress(key);
 
   tick("metadata");
