@@ -275,7 +275,11 @@ function scoreSecurity(ctx: ScoreContext): CategoryScore {
   }
   if (security.hasSecurityPolicy) {
     score += 3;
-    evidence.push("SECURITY.md present.");
+    evidence.push(
+      security.securityPolicySource === "org-fallback"
+        ? "SECURITY.md inherited from the org's .github repo."
+        : "SECURITY.md present.",
+    );
   } else {
     evidence.push("No SECURITY.md detected.");
   }

@@ -66,10 +66,10 @@ export function runAudit(
   const readme = analyzeReadme(bundle.readme);
 
   emit("quality");
-  const security = analyzeSecurity(classified);
+  const security = analyzeSecurity(classified, bundle.orgHealth);
   const maintenance = analyzeMaintenance(bundle);
   const ci = analyzeCi(classified, bundle.workflows);
-  const dx = analyzeDx(classified, readme, deps);
+  const dx = analyzeDx(classified, readme, deps, bundle.orgHealth);
 
   const categories = buildCategoryScores({
     classified,

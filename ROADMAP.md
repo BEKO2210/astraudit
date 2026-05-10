@@ -2576,14 +2576,52 @@ on left), a higher-contrast palette for the missing-data cells in
 light mode, and mobile-friendly cell sizing that doesn't squash
 six months into a thumbnail.
 
-### 5.5 · Empty, loading & error state pass
+### 5.5 · Empty, loading & error state pass ✅ shipped
 Every major panel — Insights, Topic Checks, Registry, Story,
 Findings, Graph, Compare dashboard — gets a coherent loading
 skeleton (matching the dashboard skeleton from 2.8.2), a dignified
 empty state with an icon + one-line explanation, and an
 actionable error state with a retry CTA where it makes sense.
-Today these vary panel-to-panel; this pass aligns them to a
-single visual + accessibility baseline.
+
+**What shipped:**
+- `<EmptyPanelState />` primitive (`src/components/ui/EmptyPanelState.tsx`)
+  with icon + title + optional description in a glass card. Used
+  by `RecommendationsPanel` (celebratory "no fixes needed" copy)
+  and `OnboardingPanel` (replaces a silent `return null` with an
+  honest "couldn't infer setup" explanation).
+- `RegistryPanel` global error banner with a `RefreshCw` retry
+  button that re-fires the fetch effect via a `retryKey` state
+  bump — instead of unmounting the whole panel.
+- 9 vitest cases (`tests/components/emptyPanelState.test.tsx`)
+  lock the primitive's contract + the rewritten panels' empty
+  paths so a regression to `return null` fails CI.
+
+### 5.5.x · Org-level `.github` community-health fallback ✅ shipped
+**Why (express bug report):** GitHub's UI inherits SECURITY.md /
+CODE_OF_CONDUCT.md / CONTRIBUTING.md from `{owner}/.github` when
+the target repo doesn't ship its own. Without mirroring that
+fallback, Astraudit was reporting "missing SECURITY.md" on
+`expressjs/express` even though
+`https://github.com/expressjs/express?tab=security-ov-file` shows
+the policy from `expressjs/.github/SECURITY.md`.
+
+**What shipped:**
+- `fetchOrgHealth.ts` — best-effort probe of `{owner}/.github`
+  for SECURITY.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md, runs
+  AFTER the per-repo file fetch so the per-repo path always wins.
+- `RepoBundle.orgHealth` plumbed through `loadRepoBundle`.
+- `analyzeSecurity` and `analyzeDx` now consume the snapshot and
+  emit a `"repo" | "org-fallback" | null` source per file so the
+  graph + score evidence say "inherited from {owner}/.github"
+  instead of pretending it's a repo-local file.
+- 5 regression tests (`tests/lib/audit/orgHealthFallback.test.ts`).
+- Live validation harness `scripts/validate-org-health.ts` (run
+  with `npx tsx`) that probes 53 popular repos. Results: 14/53
+  (26%) were being false-flagged by at least one community-health
+  file before the fix — including express, eslint, webpack,
+  vercel/next.js, flask, pandas, numpy, rust-lang/rust,
+  spring-boot, elasticsearch, vscode, homebrew/brew, sveltejs,
+  actix.
 
 ### 5.6 · Error & rate-limit messaging review
 Every error path users can hit: invalid repo input, 404, 403
@@ -2686,6 +2724,52 @@ feel when the graph enters the viewport.
 - Add a Playwright spec that scrolls past the graph on a 360-px
   viewport and asserts `window.scrollY` actually advanced (i.e.
   React Flow didn't trap the gesture).
+
+### 5.12 · SEO & social-media cards
+**Why:** Astraudit is shared as a link in pull-request reviews,
+Slack threads, Bluesky / Twitter posts, blog write-ups. Today
+those previews show whatever the user agent guesses — usually the
+generic favicon + the first 160 characters of body text. A
+deliberate set of meta tags lifts the link preview from "what is
+this?" to a recognisable Astraudit card.
+
+**Two surfaces to cover:**
+1. **The website itself** (the SPA's index.html). One canonical
+   set of tags that loads on every URL — title, description,
+   Open Graph (og:title, og:description, og:image, og:url,
+   og:site_name, og:type), Twitter Card (twitter:card,
+   twitter:title, twitter:description, twitter:image), canonical
+   URL, JSON-LD `WebApplication` structured data, plus a static
+   `robots.txt` + `sitemap.xml` so search engines find every
+   route Astraudit serves (the legal pages + rule book).
+2. **Shared audit URLs** (e.g. `#/audit/owner/repo`). Per-repo
+   social cards are *not* technically possible without a backend
+   — Twitter / Facebook / Slack / Discord crawlers don't execute
+   JavaScript, so the OG tags they read are the static ones in
+   `index.html`. We honour the constraint by shipping ONE
+   well-designed Astraudit-brand card that works for every
+   shared link, plus the actual audit URL still resolves into a
+   live audit when clicked. The card describes the tool, not
+   the specific repo — the URL itself does the per-repo
+   identification.
+
+**What ships:**
+- A 1200 × 630 PNG OG image in `public/og-card.png` showing the
+  Astraudit wordmark + tagline + the four constraint pills
+  (browser-only / free / public-only / rule-based).
+- `<head>` block in `index.html` with all OG + Twitter + JSON-LD
+  tags, set up so `<base>` resolves correctly under
+  `/astraudit/` on GitHub Pages.
+- New `public/robots.txt` allowing every page; new
+  `public/sitemap.xml` listing the four canonical routes (`/`,
+  `#/rules`, `#/impressum`, `#/datenschutz`).
+- A vitest (or Playwright) spec that loads `dist/index.html` and
+  asserts each meta tag is present + carries the expected value
+  — locks the contract down so a future build that drops a tag
+  fails CI.
+- ROADMAP entry documents that per-repo cards would require a
+  backend and are explicitly out of scope (lands in the
+  anti-roadmap if anyone proposes them).
 
 ---
 

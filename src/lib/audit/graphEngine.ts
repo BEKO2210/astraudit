@@ -207,8 +207,18 @@ export function buildGraph(ctx: GraphContext): GraphPayload {
     "security-md",
     "SECURITY.md",
     security.hasSecurityPolicy ? "strong" : "missing",
-    security.hasSecurityPolicy ? "Security policy present." : "No SECURITY.md detected.",
-    [security.hasSecurityPolicy ? "Found in repo root or .github/" : "Missing"],
+    security.hasSecurityPolicy
+      ? security.securityPolicySource === "org-fallback"
+        ? "Security policy inherited from the org's .github repo."
+        : "Security policy present."
+      : "No SECURITY.md detected.",
+    [
+      security.hasSecurityPolicy
+        ? security.securityPolicySource === "org-fallback"
+          ? "Inherited from {owner}/.github"
+          : "Found in repo root or .github/"
+        : "Missing",
+    ],
     security.hasSecurityPolicy ? null : "Add a SECURITY.md with reporting instructions.",
     { x: 720, y: -240 },
   );
