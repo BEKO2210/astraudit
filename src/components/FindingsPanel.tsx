@@ -90,7 +90,7 @@ export function FindingsPanel({
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as Severity | "all")}
-            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200"
           >
             {SEVERITY_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key} className="bg-ink-800">
@@ -103,7 +103,7 @@ export function FindingsPanel({
             onChange={(e) =>
               setCategory(e.target.value as FindingCategory | "all")
             }
-            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200"
           >
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key} className="bg-ink-800">

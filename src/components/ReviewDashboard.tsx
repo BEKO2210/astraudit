@@ -7,6 +7,7 @@ import {
 import { useState } from "react";
 import { performShare } from "../lib/share/shareAction";
 import { pushToast } from "../lib/ui/toastStore";
+import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
@@ -105,7 +106,7 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
   }
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className={`mt-8 space-y-6 ${VIEW_ENTER_CLASS}`}>
       <StickyScoreBar
         result={result}
         onOpenCompare={onOpenCompare}

@@ -91,7 +91,7 @@ export function CompareDialog({
             placeholder="owner/repo or full GitHub URL"
             spellCheck={false}
             autoComplete="off"
-            className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-aurora-cyan/40"
+            className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora-cyan/60"
           />
           <button
             type="submit"

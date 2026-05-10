@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 
 interface ErrorStateProps {
   title: string;
@@ -8,7 +9,10 @@ interface ErrorStateProps {
 
 export function ErrorState({ title, message, onReset }: ErrorStateProps) {
   return (
-    <div className="glass mt-8 flex items-start gap-4 border-l-2 border-l-risk-critical/70 p-5">
+    <div
+      role="alert"
+      className={`glass mt-8 flex items-start gap-4 border-l-2 border-l-risk-critical/70 p-5 ${VIEW_ENTER_CLASS}`}
+    >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-risk-critical/40 bg-risk-critical/10">
         <AlertTriangle className="h-5 w-5 text-risk-critical" />
       </div>

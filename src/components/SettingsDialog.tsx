@@ -248,7 +248,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
-                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-9 font-mono text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-aurora-violet/40"
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 pr-9 font-mono text-sm text-white placeholder:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora-violet/60"
               />
               <button
                 type="button"
