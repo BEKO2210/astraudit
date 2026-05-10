@@ -139,12 +139,14 @@ export function StickyScoreBar({
           <span className="hidden sm:inline">{result.grade}</span>
         </span>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        {/* Action cluster — desktop only. On mobile the SpeedDialFAB
+            owns the action surface so this slim bar stays unclutter. */}
+        <div className="ml-auto hidden items-center gap-1.5 sm:flex">
           {onOpenCompare ? (
             <button
               type="button"
               onClick={onOpenCompare}
-              className="hidden rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 sm:inline-flex sm:items-center sm:gap-1.5"
+              className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20"
               tabIndex={visible ? 0 : -1}
             >
               <ArrowLeftRight className="h-3 w-3" />
@@ -161,7 +163,7 @@ export function StickyScoreBar({
               tabIndex={visible ? 0 : -1}
             >
               <Award className="h-3 w-3" />
-              <span className="hidden sm:inline">Badge</span>
+              Badge
             </button>
           ) : null}
           <CopyButton value={verdictPlain} label="Copy verdict" />

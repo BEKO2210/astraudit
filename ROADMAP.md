@@ -646,11 +646,74 @@ Sources informing the design:
 - Ryan Mulligan, "Sticky Page Header Shadow on Scroll"
   (IntersectionObserver pattern)
 
-#### 2.8.4 · Mobile FAB cluster
-On phones (< sm), a bottom-right floating action cluster surfaces
-the three highest-value actions — **Share**, **Save as PDF**,
-**Badge** — anchored in the thumb zone. Auto-hidden when a dialog
-is open and on `print:hidden`.
+#### 2.8.4 · Mobile FAB cluster ✅ shipped
+On phones (`< sm`), a Material-3 Speed-Dial sits in the bottom-
+right thumb zone. Tapping the main FAB expands a stack of pill-
+shaped, **labeled** mini-buttons above it — Compare, Share, Badge,
+Save as PDF on the audit dashboard, plus Exit on the compare view.
+Tap again, click outside, or hit Esc to close. The desktop UI
+keeps the existing action cluster in the StickyScoreBar; the FAB
+is `sm:hidden` to avoid duplication.
+
+Research-driven decisions (Material 3 FAB guidelines, Mobbin
+glossary, Apple HIG, Danny Payne on FAB a11y, Elaris on thumb
+zones, WCAG 4.1.2 / 2.4.7):
+
+- **One FAB per screen.** Material's "no multi-FAB" rule is
+  honoured via the Speed Dial pattern — a single 56 × 56 FAB
+  expands into a menu rather than scattering buttons.
+- **Bottom-right placement** matches the right-handed thumb zone
+  (statistical majority on mobile UX research). Mini items open
+  upward so labels stay above the thumb.
+- **Touch targets**: main FAB 56 px (Material), mini items 44 px
+  pills with visible label text — icon-only is always paired with
+  a name to satisfy WCAG 4.1.2 and avoid the icon-confusion trap.
+- **Speed Dial ARIA**: main button is `aria-haspopup="menu"`,
+  `aria-expanded`, `aria-controls`. Menu container is `role="menu"`
+  with `aria-hidden` flipping with state. Mini items are
+  `role="menuitem"`. `tabIndex={-1}` while collapsed so keyboard
+  users don't tab into invisible chrome (Danny Payne's caveat for
+  absolutely-positioned FABs).
+- **Esc + outside-click** close the menu. Esc restores focus to the
+  main FAB so the user can re-open with Space/Enter without
+  re-tabbing.
+- `motion-reduce:transition-none` honours `prefers-reduced-motion`.
+- `print:hidden` keeps the FAB out of PDFs.
+
+DRY refactor:
+
+- `src/lib/share/shareAction.ts` extracts the share/clipboard flow
+  from `ShareButton` into a typed, pure helper (`performShare`)
+  returning a discriminated `ShareOutcome`. The button uses it,
+  the FAB uses it, the CompareDashboard FAB uses it. The "user
+  cancelled the share sheet" case is now a first-class
+  `kind: "cancelled"` return so callers don't surface a misleading
+  "couldn't share" toast.
+- `ShareButton` slimmed down to ~15 lines of click handler.
+- `StickyScoreBar` action cluster wrapped in `hidden sm:flex` so
+  on mobile the FAB owns the action surface and the score bar
+  stays at-a-glance.
+
+Tests: 13 new cases.
+
+- `tests/lib/share/shareAction.test.ts` (6) — share-then-shared,
+  AbortError → cancelled, share-rejected → clipboard fallback,
+  no-share → clipboard, clipboard-rejected → error, neither API →
+  unavailable.
+- `tests/components/SpeedDialFAB.test.tsx` (7) — main FAB has
+  `aria-haspopup` + `aria-expanded`, menu starts `aria-hidden`,
+  mini items each have `role="menuitem"` + `tabindex="-1"`, the
+  custom `ariaLabel` propagates, `hidden=true` and empty actions
+  short-circuit the render to nothing, the cluster carries
+  `sm:hidden` and `print:hidden`.
+
+**Total suite: 198 tests across 25 files.**
+
+Sources informing the design:
+- https://m3.material.io/components/floating-action-button/guidelines
+- https://mobbin.com/glossary/floating-action-button
+- https://danny-payne.medium.com/accessibility-options-for-floating-action-buttons-99bdf8146988
+- https://elaris.software/blog/mobile-ux-thumb-zones-2025/
 
 #### 2.8.5 · Empty-state celebration
 When a repo audits with **zero findings** (rare but real — see

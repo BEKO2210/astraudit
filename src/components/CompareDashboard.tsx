@@ -3,13 +3,18 @@ import {
   Check,
   ExternalLink,
   Minus,
+  Printer as PrinterIcon,
   RotateCcw,
+  Share2 as ShareIcon,
   ShieldAlert,
   Trophy,
 } from "lucide-react";
 import type { CompareResult } from "../lib/compare/diff";
+import { performShare } from "../lib/share/shareAction";
+import { pushToast } from "../lib/ui/toastStore";
 import { CopyButton } from "./CopyButton";
 import { ShareButton } from "./ShareButton";
+import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
 import { ScoreRing } from "./ScoreRing";
 import { severityClass, severityLabel } from "../lib/utils/severity";
 
@@ -25,6 +30,48 @@ export function CompareDashboard({
   onOpenCompare,
 }: CompareDashboardProps) {
   const { left, right, summary, categories, findings, stack } = compare;
+
+  const fabActions: SpeedDialAction[] = [
+    {
+      id: "compare",
+      label: "Change opponent",
+      icon: ArrowLeftRight,
+      onClick: onOpenCompare,
+      toneClass:
+        "bg-aurora-cyan/15 hover:bg-aurora-cyan/25 border-aurora-cyan/40 text-aurora-cyan",
+    },
+    {
+      id: "share",
+      label: "Share",
+      icon: ShareIcon,
+      onClick: async () => {
+        const outcome = await performShare({
+          owner: left.bundle.metadata.owner.login,
+          repo: left.bundle.metadata.name,
+        });
+        if (outcome.kind === "copied") {
+          pushToast({ tone: "success", message: "Link copied to clipboard" });
+        } else if (outcome.kind === "error") {
+          pushToast({
+            tone: "warn",
+            message: "Could not copy the share link",
+          });
+        }
+      },
+    },
+    {
+      id: "print",
+      label: "Save as PDF",
+      icon: PrinterIcon,
+      onClick: () => window.print(),
+    },
+    {
+      id: "reset",
+      label: "Exit compare",
+      icon: RotateCcw,
+      onClick: onReset,
+    },
+  ];
 
   return (
     <div className="mt-8 space-y-6">
@@ -48,6 +95,8 @@ export function CompareDashboard({
         Compare summary built from {summary.catWins.left + summary.catWins.right + summary.catWins.tie} categories ·{" "}
         {findings.shared.length} shared findings · {findings.onlyInLeft.length + findings.onlyInRight.length} unique findings.
       </p>
+
+      <SpeedDialFAB actions={fabActions} ariaLabel="Compare actions" />
     </div>
   );
 }
