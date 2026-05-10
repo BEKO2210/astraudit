@@ -20,6 +20,12 @@ import {
   Wrench,
 } from "lucide-react";
 import type { DerivedInsights, ReadmeMetrics } from "../lib/audit/insightEngine";
+import {
+  formatInterval,
+  summariseByEcosystem,
+  type DependabotUpdate,
+  type ParsedDependabot,
+} from "../lib/audit/dependabotParser";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -210,6 +216,14 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
                 : "Pipeline files present, but no build/test/deploy keywords matched their names."
           }
         />
+        {insights.dependabot && insights.dependabot.updates.length > 0 ? (
+          <Card
+            icon={Bot}
+            label="Dependabot coverage"
+            value={buildDependabotValue(insights.dependabot.updates)}
+            sub={buildDependabotSub(insights.dependabot)}
+          />
+        ) : null}
         <Card
           icon={ShieldCheck}
           label="Trust signal score"
@@ -301,6 +315,42 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the Dependabot card's primary value: top three ecosystems
+ * with cadence, e.g. `npm · weekly  ·  github-actions · weekly`. Phase 3.2.
+ */
+function buildDependabotValue(updates: DependabotUpdate[]): string {
+  const eco = summariseByEcosystem(updates);
+  const top = eco.slice(0, 3);
+  return top
+    .map((s) => {
+      const interval =
+        s.intervals.length === 1
+          ? formatInterval(s.intervals[0]).toLowerCase()
+          : "mixed cadence";
+      return `${s.ecosystem} · ${interval}`;
+    })
+    .join("  ·  ");
+}
+
+/**
+ * Format the Dependabot card's subline: total update count + group
+ * count + registry count + extra-ecosystem hint when more than three
+ * ecosystems are watched. Phase 3.2.
+ */
+function buildDependabotSub(dep: ParsedDependabot): string {
+  const eco = summariseByEcosystem(dep.updates);
+  const totalGroups = eco.reduce((sum, s) => sum + s.totalGroupCount, 0);
+  const moreNote =
+    eco.length > 3 ? ` · + ${eco.length - 3} more ecosystem${eco.length - 3 === 1 ? "" : "s"}` : "";
+  const groupNote = totalGroups > 0 ? ` · ${totalGroups} group rule${totalGroups === 1 ? "" : "s"}` : "";
+  const registryNote =
+    dep.registryCount > 0
+      ? ` · ${dep.registryCount} private registr${dep.registryCount === 1 ? "y" : "ies"}`
+      : "";
+  return `${dep.updates.length} update entr${dep.updates.length === 1 ? "y" : "ies"}${moreNote}${groupNote}${registryNote}`;
 }
 
 /**

@@ -1195,10 +1195,90 @@ detector the project is built around.
 - `npx vitest run` — 32 files / 296 tests green (was 31 / 250).
 - `npm run build` — 577 KB JS, no warnings.
 
-### 3.2 · Parse Dependabot config
-Today we just check if `.github/dependabot.yml` exists. Parse it to list
-ecosystems covered (npm, github-actions, docker, pip, …) and report
-weekly/daily cadence.
+### 3.2 · Parse Dependabot config ✅ shipped
+**Why:** The audit already detects whether `.github/dependabot.yml`
+is present, but adopters care about the *content*: which ecosystems
+are watched, at what cadence, with how many groups. A presence flag
+is a low-resolution signal — a single npm-only weekly entry and a
+six-ecosystem daily-grouped enterprise config look identical to an
+existence check.
+
+**Pre-build research (2026-05-10):**
+- GitHub Docs · *Dependabot options reference* — confirmed v2 schema:
+  `version: 2` is required; `updates: [...]` is required; each entry
+  carries `package-ecosystem`, `directory` (or `directories`), and
+  `schedule.interval`. Optional fields include
+  `open-pull-requests-limit`, `target-branch`, `groups`, `allow`,
+  `ignore`, `assignees`, `labels`, `milestone`, `commit-message`,
+  `rebase-strategy`, `versioning-strategy`, `vendor`. Top-level
+  `registries:` block declares private registry credentials.
+  Confirmed full ecosystem list (32 values inc. bazel, bun, bundler,
+  cargo, composer, conda, devcontainers, docker, docker-compose,
+  dotnet-sdk, elm, gitsubmodule, github-actions, gomod, gradle, helm,
+  mix, julia, maven, npm, nuget, opentofu, pip, pre-commit, pub,
+  rust-toolchain, swift, terraform, uv, vcpkg, yarn, nix). Confirmed
+  schedule.interval values: `daily`, `weekly`, `monthly`,
+  `quarterly`, `semiannually`, `yearly`, `cron`.
+  https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+- Implementation choice: **scoped parser, not a YAML library.**
+  Astraudit ships browser-only with a strict "minimal deps" stance.
+  Pulling `yaml` (~50 KB min, ~15 KB gz) just to read one config
+  would inflate the bundle ~8 % for one feature. The Dependabot
+  schema is narrow + canonical (most configs follow GitHub's docs
+  near-verbatim), so a ~250 LOC line-based block-YAML decoder tuned
+  to that schema is a better fit. Anything weird → return null →
+  graceful degradation back to the legacy "yes/no" pill.
+
+**Implementation:**
+- New `src/lib/audit/dependabotParser.ts`. Three-layer pipeline:
+   1. Tokeniser strips trailing comments (quote-aware so a `#` inside
+      a quoted string survives) and full-line comments, drops blanks,
+      records `{ indent, content }` per line.
+   2. `decodeBlock` is a recursive-descent block-YAML decoder
+      handling block mappings (`key: value` and `key:` + indented
+      children), block sequences (`- value` / `- key: value` with
+      continuation indent), inline scalars (quoted single/double or
+      bare), inline numbers / booleans / `null`, and inline-flow
+      arrays. Anchors / aliases / tags / multi-line block scalars
+      are deliberately unsupported — `decodeBlock` returns null and
+      `parseDependabotConfig` reports the file as unparseable.
+   3. `parseDependabotConfig` validates `version: 2` (number or
+      string), iterates the `updates:` array, normalises each entry
+      to a `DependabotUpdate` (`ecosystem`, `directory`, `interval`,
+      `openPullRequestsLimit`, `targetBranch`, `groupCount`), and
+      counts top-level `registries:` keys. Unknown intervals
+      collapse to `"unknown"` so the type is closed.
+- `summariseByEcosystem(updates)` groups by ecosystem with
+  deduplicated intervals + directories — the UI uses this to render
+  "npm · weekly" pills compactly.
+- `formatInterval(interval)` provides the user-facing label.
+- `securityDetector.ts` calls the parser when the file is present
+  (looking up content from `classified.importantFileMap`) and adds
+  the result to `SecuritySignals.dependabotConfig`.
+- `insightEngine.ts` now takes `security` in its `InsightsContext`
+  and exposes `dependabot: ParsedDependabot | null` on
+  `DerivedInsights`. `auditEngine.ts` passes the security signals
+  through.
+- `InsightsPanel.tsx` adds a new "Dependabot coverage" card (Bot
+  icon) that surfaces the top three ecosystems + cadence and a
+  subline with total entry count, group rule count, and any private
+  registries. The card is omitted when no parsed config is
+  available, so legacy / exotic configs degrade silently.
+
+**Tests:** `tests/lib/audit/dependabotParser.test.ts` (23 cases):
+seven happy-path cases (reference example, unquoted vs quoted
+parity, optional fields, group counting, `directories` plural list,
+registry counting, full-line + trailing comment stripping including
+the `#`-inside-quotes preservation), six error / edge cases (empty /
+whitespace / null input, missing version, missing `updates:`, v1
+config, unknown interval normalisation, malformed entry skipping),
+eight `formatInterval` cases, and two `summariseByEcosystem`
+behaviour cases (grouping with dedupe, mixed cadence detection).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 33 files / 319 tests green (was 32 / 296).
+- `npm run build` — 579 KB JS / 62 KB CSS, no warnings.
 
 ### 3.3 · Parse CODEOWNERS for ownership density
 Distinct owners count and the % of paths covered. Surface when only a

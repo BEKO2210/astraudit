@@ -4,6 +4,8 @@ import type { ReadmeSignals } from "./documentationDetector";
 import type { CiSignals } from "./ciDetector";
 import type { StackSignals } from "../../types/audit";
 import type { MaintenanceSignals } from "./maintenanceDetector";
+import type { SecuritySignals } from "./securityDetector";
+import type { ParsedDependabot } from "./dependabotParser";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -95,6 +97,12 @@ export interface DerivedInsights {
   commits: CommitActivity;
   releases: ReleaseActivity;
   workflows: WorkflowProfile;
+  /**
+   * Parsed Dependabot config — null when the file is absent or
+   * unparseable. The UI uses this to show ecosystems + cadence;
+   * `workflows.hasDependabot` remains the boolean signal. Phase 3.2.
+   */
+  dependabot: ParsedDependabot | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -476,10 +484,11 @@ interface InsightsContext {
   ci: CiSignals;
   stack: StackSignals;
   maintenance: MaintenanceSignals;
+  security: SecuritySignals;
 }
 
 export function deriveInsights(ctx: InsightsContext): DerivedInsights {
-  const { bundle, classified, readme, ci, stack, maintenance } = ctx;
+  const { bundle, classified, readme, ci, stack, maintenance, security } = ctx;
   const meta = bundle.metadata;
 
   const ageDays =
@@ -573,6 +582,7 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     commits,
     releases,
     workflows,
+    dependabot: security.dependabotConfig,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
