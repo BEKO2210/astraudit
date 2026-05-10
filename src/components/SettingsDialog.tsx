@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
+  Database,
   ExternalLink,
   Eye,
   EyeOff,
@@ -20,6 +21,7 @@ import {
   type TokenMeta,
 } from "../lib/auth/tokenStore";
 import { probeRateLimit, type RateLimitProbe } from "../lib/github/githubClient";
+import { clearAll as clearAuditCache, getStats as getCacheStats, type CacheStats } from "../lib/cache/auditCache";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -33,6 +35,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<RateLimitProbe | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -42,6 +45,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setReveal(false);
     setError(null);
     setProbe(null);
+    setCacheStats(getCacheStats());
     void runProbe();
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
@@ -86,6 +90,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setMeta(null);
     setProbe(null);
     void runProbe();
+  };
+
+  const handleClearCache = () => {
+    clearAuditCache();
+    setCacheStats(getCacheStats());
   };
 
   if (!open) return null;
@@ -277,9 +286,74 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </button>
           </div>
         ) : null}
+
+        <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Database className="h-3.5 w-3.5 shrink-0 text-aurora-cyan" />
+              <span className="font-medium text-white">Audit cache</span>
+            </div>
+            {cacheStats && cacheStats.count > 0 ? (
+              <button
+                type="button"
+                onClick={handleClearCache}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear
+              </button>
+            ) : null}
+          </div>
+          {cacheStats && cacheStats.count > 0 ? (
+            <>
+              <p className="mt-1 text-slate-400">
+                {cacheStats.count} cached audit{cacheStats.count === 1 ? "" : "s"}{" "}
+                · ~{cacheStats.sizeKB.toLocaleString("en-US")} KB · 24h TTL.
+              </p>
+              <ul className="mt-2 space-y-1">
+                {cacheStats.entries.slice(0, 5).map((e) => (
+                  <li
+                    key={e.fullName}
+                    className="flex items-center justify-between gap-2 rounded-md bg-black/20 px-2 py-1"
+                  >
+                    <span className="min-w-0 truncate text-slate-300">
+                      {e.fullName}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-slate-500">
+                      {Math.round(e.sizeApprox / 1024)} KB ·{" "}
+                      {timeAgo(e.cachedAt)}
+                    </span>
+                  </li>
+                ))}
+                {cacheStats.entries.length > 5 ? (
+                  <li className="px-2 text-[10px] text-slate-500">
+                    + {cacheStats.entries.length - 5} more
+                  </li>
+                ) : null}
+              </ul>
+            </>
+          ) : (
+            <p className="mt-1 text-slate-500">
+              No cached audits yet. Re-running an audit within 24 hours skips
+              all GitHub API calls — useful when you are on the public
+              60 req/h limit.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return "—";
+  const m = Math.floor(ms / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} h ago`;
+  return `${Math.floor(h / 24)} d ago`;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

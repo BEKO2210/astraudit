@@ -32,10 +32,14 @@ The dialog also runs a live `/rate_limit` probe so the user can confirm
 the token works and watch the remaining budget in real time, plus a
 one-click "Remove token" path.
 
-### 1.2 · localStorage audit cache
-Cache full audit results keyed by `owner/repo + default-branch SHA`
-for 24 hours. Re-auditing the same repo becomes instant and the
-GitHub API budget shrinks dramatically.
+### 1.2 · localStorage audit cache ✅ shipped
+Bundles fetched from the GitHub API are cached in `localStorage`
+keyed by `owner/repo` for 24 hours. A cache hit skips the network
+entirely; the audit engine still runs in the current code path so
+audit-rule improvements apply immediately. Per-entry size cap (~1.5 MB
+JSON), 30-entry total cap, oldest-first eviction on quota errors. The
+Settings dialog shows the cache size, the most recent entries, and a
+one-click "Clear" button. See `src/lib/cache/auditCache.ts`.
 
 ### 1.3 · Markdown rendering for README excerpts
 Render the first ~1,500 chars of the README using `markdown-it`

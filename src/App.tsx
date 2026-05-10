@@ -8,6 +8,7 @@ import { ErrorState } from "./components/ErrorState";
 import { ReviewDashboard } from "./components/ReviewDashboard";
 import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { readBundle, writeBundle } from "./lib/cache/auditCache";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import {
   GithubError,
@@ -86,7 +87,17 @@ export default function App() {
       const repoLabel = `${parsed.coords.owner}/${parsed.coords.repo}`;
       setState({ kind: "fetching", repoLabel, step: "metadata" });
 
-      let bundle: RepoBundle;
+      let bundle: RepoBundle | null = readBundle(parsed.coords);
+      if (bundle) {
+        // Cache hit — skip the network entirely. Move straight to auditing.
+        setState({ kind: "auditing", repoLabel, step: "metadata" });
+        const worker = workerRef.current;
+        if (worker) {
+          worker.postMessage({ type: "audit", bundle });
+          return;
+        }
+      }
+
       try {
         bundle = await loadRepoBundle(parsed.coords, {
           signal: controller.signal,
@@ -106,6 +117,7 @@ export default function App() {
             setState({ kind: "fetching", repoLabel, step });
           },
         });
+        writeBundle(parsed.coords, bundle);
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         if (err instanceof RateLimitError) {
@@ -173,7 +185,7 @@ export default function App() {
   const showLoading = state.kind === "fetching" || state.kind === "auditing";
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col overflow-x-hidden px-4 sm:px-6 lg:px-8">
+    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
       <Hero
         onOpenSettings={() => setSettingsOpen(true)}
         authTick={authTick}

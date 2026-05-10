@@ -9,11 +9,6 @@
     height: 100%;
   }
 
-  html,
-  body {
-    overflow-x: hidden;
-  }
-
   body {
     background-color: #05070d;
     color: rgb(226 232 240 / 0.92);
@@ -25,7 +20,9 @@
   /* Mobile-safety: long unbreakable strings (URLs, file paths, commit
      hashes) must never push a card wider than its container. Defaults
      to "anywhere" which breaks at any character if no whitespace exists,
-     but keeps natural word wrapping otherwise. */
+     but keeps natural word wrapping otherwise. We deliberately do NOT
+     set overflow-x:hidden on html/body because that would break
+     position:sticky on the section nav. */
   p,
   li,
   dd,
