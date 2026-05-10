@@ -543,12 +543,60 @@ Sources informing the design:
   vs assertive)
 - WCAG 2.1 success criterion 2.2.1 timing-adjustable
 
-#### 2.8.2 · Skeleton loaders for the dashboard
-Replace the linear "Reading metadata… Mapping tree…" list during
-audit with **content-shaped skeletons** that mirror the eventual
-panels: a header bar, a score-ring placeholder, two story cards, a
-12-cell heatmap shimmer, a findings stack. Smooth shimmer animation,
-honours the existing `animate-shimmer` keyframe.
+#### 2.8.2 · Skeleton loaders for the dashboard ✅ shipped
+Replaces the old vertical step-list during audit with a
+**content-shaped** skeleton that mirrors every dashboard section so
+the layout stays still the moment data arrives — overview header,
+twelve-cell heatmap, score ring, story grid, insights grid, score
+breakdown, findings list, recommendations.
+
+Architecture:
+
+- `src/components/Skeleton.tsx` — generic primitive.
+  - Renders a `<div>` (or `<span>` when `inline`).
+  - `aria-hidden="true"` by default so screen readers don't read
+    placeholder gibberish — the surrounding live region in
+    `LoadingAudit` carries the textual loading announcement.
+  - Optional `label` prop flips the element to `role="img"` with
+    `aria-label`, useful for solo placeholders.
+- `src/components/DashboardSkeleton.tsx` — composite that mirrors
+  the actual `ReviewDashboard` layout 1:1. Hard-coded structure is
+  intentional: zero coupling to data, deterministic shape, no
+  surprises after load.
+- `src/components/LoadingAudit.tsx` — drops the step-list, mounts
+  the skeleton, and shows the current pipeline step as a single
+  status pill at the top (the only textual progress info — never
+  doubled-up with the skeleton).
+
+Accessibility (WCAG-conscious):
+
+- Wrapper section is `role="status"` `aria-live="polite"` with a
+  full sentence in `aria-label` ("Loading audit for owner/repo —
+  Mapping file tree."). Plus `aria-busy="true"` for the screen
+  readers that honour it (JAWS).
+- A `sr-only` paragraph mirrors the announcement so software that
+  ignores `aria-label` on a section still picks it up.
+- `.skeleton-shimmer` in `globals.css` defines the slide animation
+  with a `@media (prefers-reduced-motion: reduce)` block that
+  switches to a static fill — required by WCAG 2.3.3.
+- Light theme override re-tints the shimmer so the placeholder is
+  legible on both backgrounds.
+- `@media print` hides every shimmer block — they have no place on
+  paper.
+
+Tests: 4 new cases in `tests/components/Skeleton.test.tsx` —
+default `<div>` + shimmer class, inline mode renders `<span>`,
+`aria-hidden` by default, labeled mode flips to `role="img"` with
+`aria-label` and drops the `aria-hidden`. **Total suite: 183 tests
+across 22 files.**
+
+Sources informing the design:
+- LogRocket "Skeleton loading screen design"
+- GitLab Pajamas Design System — Skeleton loader
+- Adrian Roselli, "More Accessible Skeletons"
+- Sara Soueidan, "Accessible notifications with ARIA Live Regions"
+- Microsoft Fluent 2 — React Skeleton usage
+- WCAG 2.1 success criterion 2.3.3 animation from interactions
 
 #### 2.8.3 · Sticky score header on scroll
 Once the user scrolls past the Score section, a thin top-pinned bar
