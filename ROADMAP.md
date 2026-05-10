@@ -2764,29 +2764,41 @@ landed at the rightmost position.
   pill). A `ResizeObserver` watches viewport rotation so the
   fade state stays accurate.
 
-### 5.10 · Audit graph mobile rendering fix
-**Why:** Maintainer reported that on mobile, scrolling the audit
-dashboard down to the graph section causes the page to wobble and
-stutter. Root cause is almost certainly React Flow's default touch
-handling: `panOnScroll` + the wheel/touchpad gesture handler grabs
-the touch stream and fights the page scroll, producing the jittery
-feel when the graph enters the viewport.
+### 5.10 · Audit graph mobile rendering fix ✅ shipped
+**Why (maintainer report):** "auf Mobile Geräte … wackelte und
+ruckelt alles wenn es in den Bereich kommt" — when the page
+scrolled into the audit-graph section on mobile, the page started
+wobbling and stuttering. Root cause: React Flow's default touch
+handlers (`panOnDrag: true`, `zoomOnScroll: true`, and
+`preventScrolling: true`) captured the single-finger touch stream
+and fought the page scroll.
 
-**Plan:**
-- Set `panOnScroll: false`, `zoomOnScroll: false`, and
-  `panOnDrag: false` on the React Flow instance for narrow
-  viewports (< 768 px) so scrolling past the graph hands the
-  touch stream back to the page. Pan/zoom remains accessible via
-  the existing `<Controls>` buttons.
-- Add `touch-action: pan-y` on the graph wrapper at the same
-  breakpoint as a belt-and-suspenders fix.
-- Optional: render a static graph thumbnail (the existing
-  `<PrintGraphSummary>` is already built for this — re-use it on
-  the smallest viewports so users on tiny screens get a readable
-  picture instead of a tiny pannable viewport).
-- Add a Playwright spec that scrolls past the graph on a 360-px
-  viewport and asserts `window.scrollY` actually advanced (i.e.
-  React Flow didn't trap the gesture).
+**What shipped:**
+- New `useMediaQuery(query, default)` + `useIsNarrowViewport()`
+  hooks in `src/lib/ui/useMediaQuery.ts`. SSR-safe, supports the
+  modern `addEventListener("change", …)` API plus the deprecated
+  `addListener` shim for old Safari.
+- AuditGraph now reads `useIsNarrowViewport()` and passes
+  `panOnDrag={!isNarrow}`, `zoomOnScroll={!isNarrow}`,
+  `zoomOnDoubleClick={!isNarrow}`, and
+  `preventScrolling={!isNarrow}` to `<ReactFlow>` so vertical
+  scroll passes through to the page below the md breakpoint.
+- Graph wrapper gets `style={{ touchAction: "pan-y" }}` on
+  narrow viewports as belt-and-suspenders.
+- Pan/zoom remains accessible via the existing `<Controls>`
+  buttons (which work via clicks, not gestures) and pinch-zoom
+  (two-finger gesture, doesn't conflict with single-finger
+  page-scroll).
+
+**Tests:**
+- 6 vitest cases (`tests/lib/ui/useMediaQuery.test.tsx`) lock the
+  SSR contract + the `(max-width: 767px)` breakpoint anchor.
+- 4 Playwright specs (`tests/visual/auditGraphMobile.spec.ts`)
+  exercise the live mobile + desktop paths: `touch-action: pan-y`
+  is set on 360 px and NOT on 1280 px; a wheel scroll over the
+  graph on 360 px advances `window.scrollY` (no gesture trap);
+  `<Controls>` still renders so explicit pan/zoom remains
+  available. All 4 pass against the production build.
 
 ### 5.12 · SEO & social-media cards
 **Why:** Astraudit is shared as a link in pull-request reviews,

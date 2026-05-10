@@ -49,6 +49,7 @@ import {
   STATUS_ORDER,
   toggleStatusInSet,
 } from "./auditGraphHelpers";
+import { useIsNarrowViewport } from "../lib/ui/useMediaQuery";
 
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                   */
@@ -176,6 +177,14 @@ interface AuditGraphProps {
 function AuditGraphInner({ graph }: AuditGraphProps) {
   const { fitView } = useReactFlow();
   const [selectedId, setSelectedId] = useState<string | null>("repo");
+  // Phase 5.10 — at narrow viewports, React Flow's default touch
+  // handlers (panOnDrag, zoomOnScroll, preventScrolling) hijack the
+  // single-finger scroll gesture, making the page wobble and stutter
+  // when the graph enters the viewport. We disable those handlers
+  // below the md breakpoint so vertical scroll passes through to the
+  // page; pan/zoom remains accessible via the existing <Controls>
+  // buttons + pinch-zoom (which is two-finger and doesn't conflict).
+  const isNarrow = useIsNarrowViewport();
   // Status filter — when a status is in the set, nodes with that
   // status (and edges leading to/from them) are visible. Default
   // shows everything.
@@ -339,7 +348,15 @@ function AuditGraphInner({ graph }: AuditGraphProps) {
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[1fr,320px]">
-        <div className="h-[480px] bg-[radial-gradient(circle_at_50%_50%,rgba(122,92,255,0.08),transparent_60%)]">
+        <div
+          className="h-[480px] bg-[radial-gradient(circle_at_50%_50%,rgba(122,92,255,0.08),transparent_60%)]"
+          // `touch-action: pan-y` (only on mobile) belt-and-suspenders
+          // ensures the browser routes single-finger vertical
+          // gestures to the page even if React Flow tried to capture
+          // them. On wider viewports we leave it default so the
+          // graph can still pan/zoom on a Mac trackpad / wheel mouse.
+          style={isNarrow ? { touchAction: "pan-y" } : undefined}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -352,6 +369,12 @@ function AuditGraphInner({ graph }: AuditGraphProps) {
             elementsSelectable
             proOptions={{ hideAttribution: false }}
             onNodeClick={(_, node) => setSelectedId(node.id)}
+            // Phase 5.10 — mobile: hand the touch stream back to the
+            // page so scrolling past the graph doesn't wobble.
+            panOnDrag={!isNarrow}
+            zoomOnScroll={!isNarrow}
+            zoomOnDoubleClick={!isNarrow}
+            preventScrolling={!isNarrow}
           >
             <Background gap={24} color="rgba(255,255,255,0.05)" />
             <Controls
