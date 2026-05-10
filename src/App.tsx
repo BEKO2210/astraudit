@@ -15,6 +15,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
+import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
 import { buildCommands } from "./lib/commands/buildCommands";
 import { useGlobalShortcuts } from "./lib/keyboard/useGlobalShortcuts";
@@ -72,6 +73,14 @@ export default function App() {
     left?: AuditResult;
     right?: AuditResult;
   } | null>(null);
+
+  // Bootstrap density on first paint — needs to run before the user
+  // ever opens Settings, otherwise compact mode wouldn't apply on
+  // refresh. Theme follows the same pattern (in ThemeToggle's effect),
+  // but density has no toggle in the header so we wire it here.
+  useEffect(() => {
+    applyDensity(loadDensity());
+  }, []);
 
   useEffect(() => {
     const worker = new Worker(

@@ -814,6 +814,79 @@ html[data-theme="light"] select option {
 }
 
 /* =========================================================================
+   DENSITY MODES — Phase 2.8.9.
+
+   Activated by `<html data-density="compact">`. The default (no
+   attribute) preserves the comfortable spacing exactly. Compact
+   reduces card padding ~20 % and shrinks body font 1 px so the
+   dashboard fits more above the fold.
+
+   WCAG 2.5.8 hard rule: we never shrink interactive targets below
+   24×24 CSS px. Compact only touches *padding around content* and
+   *font-size of body text*, never the height of buttons, selects, or
+   tap targets. The score-bar height, FAB diameter, button heights
+   and tooltip target areas are all unchanged.
+   ========================================================================= */
+html[data-density="compact"] body {
+  font-size: 15px;
+}
+
+/* Glass cards — the dominant card paddings in this codebase are
+   `p-6` (1.5rem) and `p-5` (1.25rem). Override them when present on
+   a glass / glass-strong surface. Specificity (0,3,1) beats Tailwind's
+   single-class utility (0,1,0). */
+html[data-density="compact"] .glass.p-6,
+html[data-density="compact"] .glass-strong.p-6 {
+  padding: 1.25rem;
+}
+html[data-density="compact"] .glass.p-5,
+html[data-density="compact"] .glass-strong.p-5 {
+  padding: 1rem;
+}
+html[data-density="compact"] .glass.p-4,
+html[data-density="compact"] .glass-strong.p-4 {
+  padding: 0.75rem;
+}
+html[data-density="compact"] .glass.p-3,
+html[data-density="compact"] .glass-strong.p-3 {
+  padding: 0.625rem;
+}
+
+/* Vertical stack rhythm. Tailwind's `space-y-6` compiles to a margin-top
+   chain; we just override the gap. Same for explicit `gap-*`. */
+html[data-density="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1.25rem;
+}
+html[data-density="compact"] .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem;
+}
+html[data-density="compact"] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem;
+}
+html[data-density="compact"] .gap-6 {
+  gap: 1.25rem;
+}
+
+/* Section heading sizes — the dashboard's ~`text-xl` titles go down
+   half a step so they don't visually shout in compact mode. We deliberately
+   leave the page-level `<h1>` at its current size (it's the only spot the
+   user expects "branding"). */
+html[data-density="compact"] h2 {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+html[data-density="compact"] h3 {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+/* Hero header padding — still leaves enough breathing room. */
+html[data-density="compact"] header.relative.pt-10 {
+  padding-top: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+/* =========================================================================
    TOOLTIP PRIMITIVE — Phase 2.8.8.
 
    CSS-only show/hide via :hover and :focus-within so the trigger needs
