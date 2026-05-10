@@ -12,6 +12,7 @@ import { SecurityPanel } from "./SecurityPanel";
 import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
+import { CopyButton } from "./CopyButton";
 import { OnboardingPanel } from "./OnboardingPanel";
 import { PrintButton } from "./PrintButton";
 import { PrintGraphSummary } from "./PrintGraphSummary";
@@ -68,7 +69,14 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
                 <Award className="h-3.5 w-3.5 text-aurora-mint" />
                 Astraudit verdict
               </div>
-              <PrintButton />
+              <div className="flex items-center gap-2">
+                <CopyButton
+                  value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
+                  label="Copy verdict"
+                  withText
+                />
+                <PrintButton />
+              </div>
             </div>
             <h3 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
               {result.grade}

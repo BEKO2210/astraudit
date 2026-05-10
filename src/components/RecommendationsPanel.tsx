@@ -1,5 +1,6 @@
 import { CheckCircle2, Sparkles } from "lucide-react";
 import type { Recommendation } from "../types/audit";
+import { CopyButton } from "./CopyButton";
 
 interface RecommendationsPanelProps {
   recommendations: Recommendation[];
@@ -20,13 +21,27 @@ const IMPACT_COLOR: Record<Recommendation["impact"], string> = {
 export function RecommendationsPanel({
   recommendations,
 }: RecommendationsPanelProps) {
+  const allText = recommendations
+    .map(
+      (r, i) =>
+        `${i + 1}. ${r.title} [${r.area} · ${r.impact}]\n   ${r.rationale}`,
+    )
+    .join("\n\n");
+
   return (
     <section className="glass p-6">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-aurora-mint" />
-        <h3 className="text-sm font-semibold text-white">
-          Recommended next steps
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-aurora-mint" />
+          <h3 className="text-sm font-semibold text-white">
+            Recommended next steps
+          </h3>
+        </div>
+        <CopyButton
+          value={allText}
+          label="Copy all steps"
+          withText
+        />
       </div>
       <p className="mt-1 text-xs text-slate-500">
         Seven prioritized improvements ordered by likely impact.

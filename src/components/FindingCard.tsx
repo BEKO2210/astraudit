@@ -1,6 +1,7 @@
 import { ShieldAlert } from "lucide-react";
 import type { Finding } from "../types/finding";
 import { severityClass, severityLabel } from "../lib/utils/severity";
+import { CopyButton } from "./CopyButton";
 
 interface FindingCardProps {
   finding: Finding;
@@ -48,15 +49,30 @@ export function FindingCard({ finding }: FindingCardProps) {
         </div>
       </dl>
       {finding.affectedFiles.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {finding.affectedFiles.slice(0, 6).map((file) => (
-            <code
+            <span
               key={file}
-              className="max-w-full break-all rounded-md border border-white/5 bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-slate-300"
+              className="inline-flex max-w-full items-center gap-1 rounded-md border border-white/5 bg-black/40 px-1.5 py-0.5"
             >
-              {file}
-            </code>
+              <code className="break-all font-mono text-[11px] text-slate-300">
+                {file}
+              </code>
+              <CopyButton
+                value={file}
+                label="Copy path"
+                className="!h-4 !w-4 !border-0 !bg-transparent !text-slate-500 hover:!text-white"
+              />
+            </span>
           ))}
+          {finding.affectedFiles.length > 1 ? (
+            <CopyButton
+              value={finding.affectedFiles.join("\n")}
+              label="Copy all paths"
+              withText
+              className="border-white/10"
+            />
+          ) : null}
         </div>
       ) : null}
     </article>

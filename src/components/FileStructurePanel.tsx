@@ -1,5 +1,6 @@
 import { FileCheck2, FileWarning, FolderTree, Hash } from "lucide-react";
 import type { FileStructureSummary } from "../types/audit";
+import { CopyButton } from "./CopyButton";
 
 interface FileStructurePanelProps {
   structure: FileStructureSummary;
@@ -87,8 +88,12 @@ export function FileStructurePanel({ structure }: FileStructurePanelProps) {
           ) : (
             <ul className="mt-2 space-y-1.5">
               {structure.suspiciousFiles.slice(0, 10).map((file) => (
-                <li key={file} className="text-xs text-slate-300">
+                <li
+                  key={file}
+                  className="flex items-center gap-2 text-xs text-slate-300"
+                >
                   <code className="break-all font-mono">{file}</code>
+                  <CopyButton value={file} label="Copy path" />
                 </li>
               ))}
             </ul>

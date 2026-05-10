@@ -179,9 +179,34 @@ Verified by build + the full vitest suite (92 tests still green).
 Bundle delta: +0.7 KB gz CSS, ~0.2 KB gz JS for the two new
 components.
 
-### 1.8 · "Copy" buttons everywhere
-Every command block, every URL, every finding ID gets a one-click copy
-button. Mobile-friendly.
+### 1.8 · "Copy" buttons everywhere ✅ shipped
+Reusable `CopyButton` component (`src/components/CopyButton.tsx`)
+uses `navigator.clipboard.writeText` with a graceful no-op fallback
+when the API is unavailable. Click feedback toggles the icon to a
+mint-green check for 1.8 s. Three sizes (sm / md), two variants
+(ghost / solid), optional inline label, and `print:hidden` so they
+disappear on PDF export.
+
+Wired into:
+- `OnboardingPanel`: every shell-command `<pre>` block has a copy
+  button pinned to the top-right corner.
+- `OverviewHeader`: copies the canonical `owner/repo` slug and the
+  full GitHub URL.
+- `FindingCard`: per-file copy on each affected-file chip plus a
+  "Copy all paths" button when a finding has more than one file.
+- `FileStructurePanel`: copy on each suspicious filename row.
+- `MaintenancePanel`: copy on commit SHAs (long form) and release
+  tags. The 7-char short SHA is now also visible on screen.
+- `RecommendationsPanel`: a "Copy all steps" button serializes the
+  prioritized list as a numbered text block ready to paste into
+  issues / Slack.
+- `ReviewDashboard`: a "Copy verdict" button next to the existing
+  "Save as PDF" button copies a four-line summary (repo, score,
+  headline, verdict) — what you'd paste into a status update.
+
+Test coverage: a vitest suite verifies the clipboard contract and
+that the module loads even when `navigator.clipboard` is missing
+(non-secure context). Total suite is now 94 tests across 12 files.
 
 ---
 

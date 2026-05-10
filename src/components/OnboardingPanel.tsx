@@ -1,5 +1,6 @@
 import { Check, Compass } from "lucide-react";
 import type { OnboardingStep } from "../lib/audit/copyEngine";
+import { CopyButton } from "./CopyButton";
 
 interface OnboardingPanelProps {
   steps: OnboardingStep[];
@@ -47,9 +48,16 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
                   {step.rationale}
                 </p>
                 {step.command ? (
-                  <pre className="mt-2 max-w-full overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 text-[12px] text-slate-200 scrollbar-thin">
-                    <code className="font-mono whitespace-pre">{step.command}</code>
-                  </pre>
+                  <div className="relative mt-2">
+                    <pre className="max-w-full overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 pr-10 text-[12px] text-slate-200 scrollbar-thin">
+                      <code className="font-mono whitespace-pre">{step.command}</code>
+                    </pre>
+                    <CopyButton
+                      value={step.command}
+                      label="Copy command"
+                      className="absolute right-1.5 top-1.5"
+                    />
+                  </div>
                 ) : null}
               </div>
             </div>
