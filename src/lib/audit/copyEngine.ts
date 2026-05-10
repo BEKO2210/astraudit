@@ -156,7 +156,17 @@ function describeMaintenance(insights: DerivedInsights, bundle: RepoBundle): str
       parts.push(`There is a moderate triage queue: ${issues.toLocaleString("en-US")} issues open${prs !== null ? `, ${prs} PRs` : ""}.`);
       break;
     case "backlog":
-      parts.push(`A real backlog has built up — ${issues.toLocaleString("en-US")} open issues${prs !== null ? ` and ${prs} PRs` : ""}.`);
+      // Phase 6.x bugfix — guard against the case where bucketTriage
+      // (incorrectly, in older versions of this file) classified a
+      // PR-only queue as "backlog". The new bucketTriage already
+      // returns "healthy" for openIssues === 0; this assertion is
+      // defensive so a future bucket-rule regression doesn't put
+      // contradictory copy in front of users again.
+      if (issues === 0) {
+        parts.push(`Open-issue volume looks well-managed (0 open${prs !== null ? `, ${prs} PRs` : ""}).`);
+      } else {
+        parts.push(`A real backlog has built up — ${issues.toLocaleString("en-US")} open issue${issues === 1 ? "" : "s"}${prs !== null ? ` and ${prs} PR${prs === 1 ? "" : "s"}` : ""}.`);
+      }
       break;
     case "heavy":
       parts.push(`The triage queue looks heavy: ${issues.toLocaleString("en-US")} open issues${prs !== null ? ` and ${prs} PRs` : ""} relative to community size.`);
