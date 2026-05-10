@@ -30,7 +30,7 @@ export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputP
             spellCheck={false}
             autoComplete="off"
             inputMode="url"
-            className="w-full bg-transparent py-3 text-base text-white placeholder:text-slate-500 focus:outline-none"
+            className="w-full rounded-md bg-transparent py-3 text-base text-white placeholder:text-slate-500"
             aria-label="GitHub repository URL"
           />
         </div>

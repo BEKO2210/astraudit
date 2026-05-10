@@ -115,7 +115,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
             placeholder="Type a command, jump to a section, run an example…"
             spellCheck={false}
             autoComplete="off"
-            className="flex-1 bg-transparent py-1 text-sm text-white placeholder:text-slate-500 focus:outline-none"
+            className="flex-1 rounded-md bg-transparent py-1 text-sm text-white placeholder:text-slate-500"
             aria-label="Command palette search"
           />
           <kbd className="hidden shrink-0 rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-slate-500 sm:inline">

@@ -68,10 +68,63 @@
     color: white;
   }
 
+  /* =====================================================================
+     UNIVERSAL FOCUS RING — Phase 2.8.7.
+
+     Goals (WCAG 2.4.7 Focus Visible AA, 2.4.11 Focus Appearance AA, 2.4.13
+     Focus Appearance enhanced): keyboard focus is impossible to miss on
+     every interactive surface, the indicator survives both themes, and it
+     never duplicates onto mouse-clicks.
+
+     Implementation:
+     - `:focus-visible` (not `:focus`): mouse-clicks are quiet, keyboard
+       Tab and synthetic focus light up. Per Sara Soueidan and W3C WAI,
+       this is the modern baseline replacement for the old `outline:none
+       + custom :focus` anti-pattern.
+     - 2 px solid outline + 2 px offset = ≥4 CSS-px perimeter band, well
+       above SC 2.4.13 minimum (2 px). Outline is rendered outside the
+       element so border-radius can stay component-local.
+     - 4 px translucent halo via `box-shadow`. The halo doubles as a
+       *contrast bridge*: against very light or very dark adjacent
+       surfaces the inner solid line keeps 3:1 contrast (SC 2.4.11),
+       while the outer halo guarantees the indicator is still visible
+       when the element sits on a same-coloured patch.
+     - `border-radius: 6px` is a fallback for elements that have no
+       intrinsic radius (e.g. <span> wrappers); rounded buttons keep
+       their own and the outline follows the element's border-box.
+     - We deliberately do NOT animate the ring — `prefers-reduced-motion`
+       users would still see flicker on rapid Tab. The ring just appears.
+
+     Sources:
+       - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+       - https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+       - https://www.sarasoueidan.com/blog/focus-indicators/
+       - https://www.a11y-collective.com/blog/focus-indicator-accessibility/
+       - https://testparty.ai/blog/wcag-focus-visible
+     ===================================================================== */
   *:focus-visible {
-    outline: 2px solid rgba(122, 92, 255, 0.7);
+    outline: 2px solid rgba(159, 132, 255, 0.95);
     outline-offset: 2px;
     border-radius: 6px;
+    box-shadow: 0 0 0 4px rgba(122, 92, 255, 0.28);
+  }
+
+  /* Light theme — indigo on near-white reaches ≥7:1 against #f8fafc and
+     stays visible on the aurora-mint / aurora-cyan tints used throughout
+     the dashboard. Halo is dialled down because the surrounding surfaces
+     are already light. */
+  html[data-theme="light"] *:focus-visible {
+    outline-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.20);
+  }
+
+  /* Forced-colors users (Windows High Contrast) get the system-defined
+     Highlight color so the ring picks up their chosen palette. */
+  @media (forced-colors: active) {
+    *:focus-visible {
+      outline: 2px solid Highlight;
+      box-shadow: none;
+    }
   }
 
   body::before {

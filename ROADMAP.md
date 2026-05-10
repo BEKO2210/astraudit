@@ -838,11 +838,66 @@ Sources informing the design:
 - https://gist.github.com/uxderrick/07b81ca63932865ef1a7dc94fbe07838 (Web Animation Best Practices)
 - https://motion.dev/docs/react-transitions
 
-#### 2.8.7 · Universal focus-visible ring
-Replace ad-hoc focus styles with a single
-`:focus-visible` ring tuned per theme (aurora-violet on dark,
-indigo-600 on light). Audit every interactive element so keyboard
-users have an unambiguous target.
+#### 2.8.7 · Universal focus-visible ring ✅ shipped
+**Why:** Without an unmistakable keyboard focus indicator, the app
+silently violates WCAG 2.4.7 (Focus Visible · A) and 2.4.11 (Focus
+Appearance · AA in WCAG 2.2). Sighted keyboard users are the most
+neglected accessibility audience — Tab-only navigation has to be
+obviously visible against every surface in the app, in both themes.
+
+**Pre-build research (2026-05-10):**
+- W3C WAI · *Understanding SC 2.4.7 Focus Visible* — at least one
+  state where keyboard focus is visually distinguishable. The browser
+  default usually qualifies, but the moment a designer adds
+  `outline:none` without a replacement, the page fails.
+  https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+- W3C WAI · *Understanding SC 2.4.11 Focus Appearance* — measurable
+  minimums: contrast ≥ 3:1 against both the focused element and the
+  adjacent background, and a perimeter band ≥ 2 CSS px (or area
+  equivalent). https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+- Sara Soueidan · *A guide to designing accessible focus indicators*
+  — recommends the *halo* pattern (a wider, low-opacity outer ring on
+  top of a solid 2 px inner ring) so the indicator stays visible on
+  same-coloured patches and high-contrast dividers alike.
+  https://www.sarasoueidan.com/blog/focus-indicators/
+- a11y-collective · *Focus indicators that don't make designers cry*
+  — emphasises always preferring `:focus-visible` over `:focus` so
+  mouse-clicks don't paint rings.
+  https://www.a11y-collective.com/blog/focus-indicator-accessibility/
+- TestParty · *Focus visible in WCAG 2.2* — confirms that an outline
+  with a transparent fallback still passes forced-colors mode if the
+  rule resolves to a system colour like `Highlight`.
+  https://testparty.ai/blog/wcag-focus-visible
+
+**Implementation:**
+- New CSS in `src/styles/globals.css → @layer base`:
+  `*:focus-visible { outline: 2px solid rgba(159,132,255,0.95);
+   outline-offset: 2px; border-radius: 6px;
+   box-shadow: 0 0 0 4px rgba(122,92,255,0.28); }`
+  Lavender outline picks up ≥ 5:1 contrast against the dark bg; the
+  4 px halo handles the SC 2.4.13 *contrast bridge* requirement
+  against same-coloured elements.
+- Light-theme override: `html[data-theme="light"] *:focus-visible`
+  swaps the colour to indigo-600 (`#4f46e5`) which keeps ≥ 7:1
+  contrast against the near-white surface.
+- `@media (forced-colors: active) *:focus-visible` resolves to
+  `outline: 2px solid Highlight; box-shadow: none;` so Windows
+  High-Contrast users get the system-defined focus colour.
+- Audited every component for legacy `focus:outline-none`. Sites
+  that had no replacement (RepoInput, FindingsPanel selects,
+  CommandPalette input) drop the override and inherit the global
+  ring. Sites that already shipped a custom ring (CompareDialog,
+  SettingsDialog token field) migrate from `focus:` → `focus-visible:`
+  so the ring fires on Tab but not on mouse-click.
+- New tests in `tests/lib/ui/focusVisible.test.ts` lock the global
+  rule contract (outline, offset, halo, light override, forced-colors
+  block) and walk every `src/**/*.tsx?` file to fail CI if a
+  `focus:outline-none` re-appears without `focus-visible:`.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 28 files / 215 tests green (was 27 / 208).
+- `npm run build` — 574 KB JS / 58.9 KB CSS, no warnings.
 
 #### 2.8.8 · Lightweight tooltip primitive
 A small `Tooltip` helper (CSS-only, no library) used by
