@@ -13,6 +13,7 @@ import {
   type CheckStatus,
   type TopicCheck,
 } from "../lib/audit/topicRules";
+import { EmptyPanelState } from "./ui/EmptyPanelState";
 
 interface Props {
   checks: TopicCheck[];
@@ -36,7 +37,35 @@ const STATUS_ICON: Record<
 };
 
 export function TopicChecks({ checks }: Props) {
-  if (checks.length === 0) return null;
+  // Phase 6.3 — when the repo declares zero topics in its About
+  // settings (or none of the declared topics map to a check), render
+  // an EmptyPanelState instead of vanishing. The user expects a
+  // section here whenever the dashboard mentions "Topic alignment";
+  // a silent return-null hides the affordance entirely.
+  if (checks.length === 0) {
+    return (
+      <section
+        id="topic-checks"
+        aria-label="Topic-driven contextual checks"
+        className="mt-6"
+      >
+        <EmptyPanelState
+          icon={Sparkles}
+          title="No topic alignment yet"
+          description={
+            <>
+              Add a few topics in your repo's GitHub <em>About</em>{" "}
+              settings (e.g. <code>react</code>, <code>cli</code>,{" "}
+              <code>typescript</code>). Astraudit then checks the topics
+              against the repo's actual signals — README, lockfile,
+              tests, CI, license — and surfaces gaps here.
+            </>
+          }
+          accentClass="text-aurora-violet"
+        />
+      </section>
+    );
+  }
   const summary = summariseTopicChecks(checks);
 
   return (

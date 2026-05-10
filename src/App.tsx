@@ -12,13 +12,16 @@ import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
+import { PanelSkeleton } from "./components/ui/PanelSkeleton";
 
 // Phase 6.16 — lazy-load surfaces that aren't on the first-paint path:
 // CompareDashboard (only when in compare mode), CommandPalette (Cmd+K
 // modal), and the three legal pages (route-only). Each becomes its own
-// chunk so the initial bundle drops by ~70 KB. Suspense fallbacks are
-// null because these are deferred-render surfaces — the user already
-// triggered the navigation/open action, a momentary blank is fine.
+// chunk so the initial bundle drops by ~70 KB. Phase 6.4 wires the
+// content-shaped routes to <PanelSkeleton /> fallbacks so the chunk
+// fetch doesn't leave a blank viewport. Modals stay on `null` because
+// the user just clicked something — they expect the modal to appear,
+// not a skeleton in the page below it.
 const CompareDashboard = lazy(() =>
   import("./components/CompareDashboard").then((m) => ({
     default: m.CompareDashboard,
@@ -620,7 +623,7 @@ export default function App() {
   }
   if (legalRoute === "rules") {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PanelSkeleton label="Loading rule book" rows={8} />}>
         <RuleBook />
       </Suspense>
     );
@@ -701,7 +704,9 @@ export default function App() {
       ) : null}
 
       {state.kind === "compared" ? (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={<PanelSkeleton label="Loading compare dashboard" rows={6} />}
+        >
           <CompareDashboard
             compare={state.compare}
             onReset={handleReset}

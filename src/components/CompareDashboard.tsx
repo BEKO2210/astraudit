@@ -131,7 +131,7 @@ function CompareHeader({
             </h2>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <ShareButton
             coords={{
               owner: left.bundle.metadata.owner.login,
