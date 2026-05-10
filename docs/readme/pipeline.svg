@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Astraudit pipeline diagram — animated SVG.
+
+  Replaces the ASCII art that previously lived in the README. GitHub
+  renders SVG via the markdown `<img>` tag; SMIL animations are
+  preserved (scripts and external resources are stripped, but
+  `<animateMotion>` / `<animate>` / `<animateTransform>` are kept).
+
+  Style: matches the dashboard's aurora palette
+    bg base   #05070d / #0a0e1a
+    violet    #7a5cff
+    blue      #3a7bff
+    cyan      #3ad6ff
+    mint      #42e8c8
+    amber     #f5a524
+    text      #f8fafc / #94a3b8
+
+  Layout: 720×820 — narrow enough to scale gracefully on mobile
+  GitHub renders (typically 360-414 px wide). Stages stack
+  vertically; the three outputs fan out at the bottom in a tight
+  3-column grid that fits the viewport without the connection
+  lines passing through any other element.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="820"
+  viewBox="0 0 720 820"
+  preserveAspectRatio="xMidYMid meet"
+  role="img"
+  aria-labelledby="title desc"
+  style="font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; max-width: 100%; height: auto"
+>
+  <title id="title">Astraudit pipeline diagram</title>
+  <desc id="desc">
+    Animated diagram of how an audit travels through Astraudit:
+    public GitHub API to typed fetchers with a 24-hour localStorage
+    cache, into a Web Worker that runs about seventy rule-based
+    detectors, producing an AuditResult that fans out to the
+    dashboard UI, the printed PDF, and the Markdown / JSON /
+    AsciiDoc exports.
+  </desc>
+
+  <defs>
+    <!-- Aurora glow blobs in three corners of the viewport -->
+    <radialGradient id="bgViolet" cx="0%" cy="0%" r="65%">
+      <stop offset="0%" stop-color="#7a5cff" stop-opacity="0.42" />
+      <stop offset="100%" stop-color="#7a5cff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bgCyan" cx="100%" cy="0%" r="65%">
+      <stop offset="0%" stop-color="#3ad6ff" stop-opacity="0.32" />
+      <stop offset="100%" stop-color="#3ad6ff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bgMint" cx="100%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#42e8c8" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#42e8c8" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bgAmber" cx="0%" cy="100%" r="55%">
+      <stop offset="0%" stop-color="#f5a524" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#f5a524" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Linear aurora used for stage borders + accents -->
+    <linearGradient id="aurora" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7a5cff" />
+      <stop offset="50%" stop-color="#3a7bff" />
+      <stop offset="100%" stop-color="#42e8c8" />
+    </linearGradient>
+
+    <!-- Stage card fill — matches the .glass token in globals.css -->
+    <linearGradient id="cardFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f1424" stop-opacity="0.92" />
+      <stop offset="100%" stop-color="#0a0e1a" stop-opacity="0.94" />
+    </linearGradient>
+
+    <!-- Soft glow filter for the AuditResult card -->
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6" />
+      <feFlood flood-color="#7a5cff" flood-opacity="0.45" />
+      <feComposite in2="SourceAlpha" operator="in" />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Particle gradients — bright core fading to brand colour -->
+    <radialGradient id="particle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="40%" stop-color="#3ad6ff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#3ad6ff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="particleViolet" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="40%" stop-color="#7a5cff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#7a5cff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="particleMint" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="40%" stop-color="#42e8c8" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#42e8c8" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="particleAmber" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="40%" stop-color="#f5a524" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#f5a524" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Connection paths for animateMotion. The spine is centred at
+         x = 360. The fan-out goes to x = 130, 360, 590 at y = 720.
+         All path endpoints stop short of the destination card top
+         so no particle ever crosses card chrome. -->
+    <path id="path12" d="M 360 130 L 360 180" />
+    <path id="path23" d="M 360 270 L 360 320" />
+    <path id="path34" d="M 360 410 L 360 460" />
+    <path id="path45a" d="M 320 550 C 280 590, 200 640, 130 685" />
+    <path id="path45b" d="M 360 550 L 360 685" />
+    <path id="path45c" d="M 400 550 C 440 590, 520 640, 590 685" />
+
+    <!-- Subtle dotted-grid pattern for the body background -->
+    <pattern id="grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="0.5" cy="0.5" r="0.6" fill="#ffffff" fill-opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <!-- ============================================================
+       BACKGROUND
+       ============================================================ -->
+  <rect width="720" height="820" fill="#05070d" />
+  <rect width="720" height="820" fill="url(#grid)" />
+  <rect width="720" height="820" fill="url(#bgViolet)" />
+  <rect width="720" height="820" fill="url(#bgCyan)" />
+  <rect width="720" height="820" fill="url(#bgMint)" />
+  <rect width="720" height="820" fill="url(#bgAmber)" />
+
+  <!-- ============================================================
+       CONNECTION LINES (rendered behind cards, never crossing them)
+
+       Stage geometry:
+         Stage 1 (GitHub):       y=  50 → 130
+         Stage 2 (Fetchers):     y= 180 → 260
+         Stage 3 (Worker):       y= 320 → 400
+         Stage 4 (AuditResult):  y= 460 → 540
+         Outputs row:            y= 690 → 770
+
+       Connection-line ranges sit strictly between cards:
+         line 1→2:  y= 130 → 180
+         line 2→3:  y= 260 → 320
+         line 3→4:  y= 400 → 460
+         fan-out:   y= 540 → 690
+
+       No line passes through a card. No card overlaps a line.
+       ============================================================ -->
+  <g stroke="url(#aurora)" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45">
+    <line x1="360" y1="130" x2="360" y2="180">
+      <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.4s" repeatCount="indefinite" />
+      <animate attributeName="stroke-dasharray" values="0 40;40 0" dur="1.4s" repeatCount="indefinite" />
+    </line>
+    <line x1="360" y1="260" x2="360" y2="320">
+      <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.4s" repeatCount="indefinite" />
+      <animate attributeName="stroke-dasharray" values="0 40;40 0" dur="1.4s" repeatCount="indefinite" />
+    </line>
+    <line x1="360" y1="400" x2="360" y2="460">
+      <animate attributeName="stroke-dashoffset" from="40" to="0" dur="1.4s" repeatCount="indefinite" />
+      <animate attributeName="stroke-dasharray" values="0 40;40 0" dur="1.4s" repeatCount="indefinite" />
+    </line>
+    <path d="M 320 540 C 280 580, 200 640, 130 685" />
+    <path d="M 360 540 L 360 685" />
+    <path d="M 400 540 C 440 580, 520 640, 590 685" />
+  </g>
+
+  <!-- ============================================================
+       FLOWING PARTICLES — staggered so the pipeline never sits empty.
+       ============================================================ -->
+  <circle r="6" fill="url(#particleViolet)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" begin="0s">
+      <mpath href="#path12" />
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="url(#particle)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" begin="0.45s">
+      <mpath href="#path23" />
+    </animateMotion>
+  </circle>
+  <circle r="6" fill="url(#particleMint)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" begin="0.9s">
+      <mpath href="#path34" />
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="url(#particle)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.35s">
+      <mpath href="#path45a" />
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="url(#particleViolet)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.45s">
+      <mpath href="#path45b" />
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="url(#particleAmber)">
+    <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.55s">
+      <mpath href="#path45c" />
+    </animateMotion>
+  </circle>
+
+  <!-- Second wave -->
+  <circle r="6" fill="url(#particle)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" begin="0.9s">
+      <mpath href="#path12" />
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="url(#particleMint)">
+    <animateMotion dur="1.8s" repeatCount="indefinite" begin="1.35s">
+      <mpath href="#path23" />
+    </animateMotion>
+  </circle>
+
+  <!-- ============================================================
+       STAGE 1 — GitHub public API
+       y = 50 → 130
+       ============================================================ -->
+  <g transform="translate(110 50)">
+    <rect width="500" height="80" rx="14" ry="14" fill="url(#cardFill)" stroke="url(#aurora)" stroke-width="1.4" stroke-opacity="0.5" />
+    <g transform="translate(20 22)" fill="#f8fafc">
+      <path d="M18 0C8.06 0 0 8.06 0 18c0 7.95 5.16 14.7 12.32 17.08.9.16 1.23-.39 1.23-.86 0-.42-.02-1.83-.02-3.32-5.01 1.09-6.06-2.13-6.06-2.13-.82-2.08-2-2.63-2-2.63-1.63-1.12.13-1.1.13-1.1 1.81.13 2.76 1.86 2.76 1.86 1.6 2.74 4.21 1.95 5.24 1.49.16-1.16.63-1.95 1.14-2.4-3.99-.45-8.19-2-8.19-8.89 0-1.96.7-3.57 1.85-4.83-.18-.45-.8-2.28.18-4.76 0 0 1.51-.48 4.94 1.84A17.18 17.18 0 0118 8.66c1.53.01 3.06.21 4.5.61 3.43-2.32 4.94-1.84 4.94-1.84.98 2.48.36 4.31.18 4.76 1.15 1.26 1.85 2.87 1.85 4.83 0 6.91-4.21 8.43-8.22 8.88.65.56 1.22 1.65 1.22 3.34 0 2.41-.02 4.36-.02 4.95 0 .48.32 1.04 1.24.86C30.85 32.69 36 25.95 36 18 36 8.06 27.94 0 18 0z" />
+    </g>
+    <text x="78" y="36" font-size="20" font-weight="700" fill="#f8fafc">GitHub public API</text>
+    <text x="78" y="58" font-size="12" font-weight="500" fill="#94a3b8">api.github.com  ·  raw.githubusercontent.com  ·  {owner}/.github</text>
+  </g>
+
+  <!-- ============================================================
+       STAGE 2 — Typed fetchers + cache
+       y = 180 → 260
+       ============================================================ -->
+  <g transform="translate(110 180)">
+    <rect width="500" height="80" rx="14" ry="14" fill="url(#cardFill)" stroke="url(#aurora)" stroke-width="1.4" stroke-opacity="0.55" />
+    <g transform="translate(20 22)">
+      <rect x="0" y="6" width="34" height="26" rx="4" fill="none" stroke="#3ad6ff" stroke-width="1.8" />
+      <path d="M0 12 L8 4 L18 4 L22 8 L34 8" fill="none" stroke="#3ad6ff" stroke-width="1.8" stroke-linejoin="round" />
+      <path d="M16 14 L13 22 L18 22 L15 30" fill="none" stroke="#42e8c8" stroke-width="1.8" stroke-linejoin="round" />
+    </g>
+    <text x="78" y="34" font-size="18" font-weight="700" fill="#f8fafc">src/lib/github/<tspan font-weight="500" fill="#94a3b8"> — typed fetchers</tspan></text>
+    <text x="78" y="58" font-size="12" font-weight="500" fill="#94a3b8">24-hour localStorage cache  ·  org-fallback  ·  rate-limit aware</text>
+  </g>
+
+  <!-- ============================================================
+       STAGE 3 — Web Worker
+       y = 320 → 400
+       ============================================================ -->
+  <g transform="translate(80 320)">
+    <rect width="560" height="80" rx="14" ry="14" fill="url(#cardFill)" stroke="url(#aurora)" stroke-width="1.4" stroke-opacity="0.6" />
+    <g transform="translate(22 20)" stroke="#7a5cff" stroke-width="1.8" fill="none">
+      <circle cx="20" cy="20" r="6" />
+      <path d="M20 8 v6 M20 26 v6 M8 20 h6 M26 20 h6 M11 11 l4 4 M25 25 l4 4 M29 11 l-4 4 M11 29 l4 -4" stroke-linecap="round" />
+      <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="14s" repeatCount="indefinite" additive="sum" />
+    </g>
+    <text x="78" y="34" font-size="18" font-weight="700" fill="#f8fafc">Web Worker<tspan font-weight="500" fill="#94a3b8"> — runs ~70 rule-based detectors</tspan></text>
+    <text x="78" y="58" font-size="12" font-weight="500" fill="#94a3b8">documentation · structure · code-quality · security · maintenance · DX · ecosystem · CI/CD</text>
+  </g>
+
+  <!-- ============================================================
+       STAGE 4 — AuditResult
+       y = 460 → 540
+       ============================================================ -->
+  <g transform="translate(60 460)">
+    <rect width="600" height="80" rx="14" ry="14" fill="url(#cardFill)" stroke="url(#aurora)" stroke-width="1.4" stroke-opacity="0.65" filter="url(#glow)" />
+    <g transform="translate(24 26)" fill="#42e8c8">
+      <path d="M14 0 L17 11 L28 14 L17 17 L14 28 L11 17 L0 14 L11 11 Z" />
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2.4s" repeatCount="indefinite" />
+    </g>
+    <text x="76" y="36" font-size="20" font-weight="700" fill="#f8fafc">AuditResult</text>
+    <text x="76" y="58" font-size="12" font-weight="500" fill="#94a3b8">categories · story · findings · graph · recommendations · onboarding</text>
+  </g>
+
+  <!-- ============================================================
+       STAGE 5 — Three outputs (fan-out)
+       y = 690 → 770
+       Three 220-px-wide cards centred at x = 130 / 360 / 590.
+       ============================================================ -->
+  <g transform="translate(20 690)">
+    <rect width="220" height="75" rx="12" ry="12" fill="url(#cardFill)" stroke="#3ad6ff" stroke-width="1.4" stroke-opacity="0.7" />
+    <g transform="translate(14 14)" stroke="#3ad6ff" stroke-width="1.8" fill="none">
+      <rect x="0" y="0" width="34" height="26" rx="3" />
+      <line x1="0" y1="9" x2="34" y2="9" />
+      <circle cx="5" cy="5" r="1.5" fill="#3ad6ff" />
+      <circle cx="11" cy="5" r="1.5" fill="#3ad6ff" />
+    </g>
+    <text x="60" y="30" font-size="14" font-weight="700" fill="#f8fafc">Dashboard UI</text>
+    <text x="60" y="52" font-size="11" font-weight="500" fill="#94a3b8">React + React Flow</text>
+  </g>
+
+  <g transform="translate(250 690)">
+    <rect width="220" height="75" rx="12" ry="12" fill="url(#cardFill)" stroke="#7a5cff" stroke-width="1.4" stroke-opacity="0.7" />
+    <g transform="translate(14 14)" stroke="#7a5cff" stroke-width="1.8" fill="none">
+      <path d="M5 0 L21 0 L29 8 L29 30 L5 30 Z" />
+      <path d="M21 0 L21 8 L29 8" />
+      <line x1="9" y1="16" x2="25" y2="16" />
+      <line x1="9" y1="22" x2="22" y2="22" />
+    </g>
+    <text x="56" y="30" font-size="14" font-weight="700" fill="#f8fafc">PDF report</text>
+    <text x="56" y="52" font-size="11" font-weight="500" fill="#94a3b8">browser print</text>
+  </g>
+
+  <g transform="translate(480 690)">
+    <rect width="220" height="75" rx="12" ry="12" fill="url(#cardFill)" stroke="#f5a524" stroke-width="1.4" stroke-opacity="0.7" />
+    <g transform="translate(14 14)" stroke="#f5a524" stroke-width="1.8" fill="none">
+      <path d="M0 4 L0 26 L8 30 L8 0 Z" />
+      <path d="M14 0 L24 0 L24 30 L14 30 Z" />
+      <path d="M30 4 L30 30 L38 26 L38 0 Z" />
+    </g>
+    <text x="60" y="30" font-size="14" font-weight="700" fill="#f8fafc">MD · JSON · ADoc</text>
+    <text x="60" y="52" font-size="11" font-weight="500" fill="#94a3b8">versioned schema</text>
+  </g>
+</svg>

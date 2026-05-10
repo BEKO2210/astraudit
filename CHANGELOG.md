@@ -15,6 +15,68 @@ The full per-phase build log lives in [`ROADMAP.md`](./ROADMAP.md).
   CODEOWNERS, Dependabot config, CodeQL workflow, GitHub issue +
   PR templates — closes the meta-files gap that Astraudit's own
   detectors flagged when audited against itself.
+- Animated `docs/readme/pipeline.svg` — replaces the ASCII data-flow
+  diagram in the README with a brand-aligned animated SVG (aurora
+  gradients, SMIL particles flowing along the spine, rotating
+  worker cog, glowing AuditResult). 720×820 viewBox so it scales
+  cleanly to mobile GitHub renders.
+- **Phase 6 — release-readiness hardening roadmap** (53 tracked
+  items across nine independent tracks: visual polish, a11y,
+  performance, cross-browser, error paths, security, docs,
+  code-quality, release engineering). No new features — only
+  polish, debug, and verification of the surface we already have.
+
+### Fixed
+
+- BadgeDialog invisible on click (`5973619`). Two interacting
+  bugs: the Phase 5.x iOS body-lock used `position: fixed` on
+  body which made it a Chromium containing block for the
+  dialog's `position: fixed` overlay, AND the
+  `motion-safe:animate-view-enter` keyframe ended on
+  `transform: translateY(0)` (identity matrix, but Chromium
+  treats *any* non-`none` transform as a containing block).
+  Result: the overlay sized to dashboard-height (~7,000 px)
+  and pushed the card thousands of pixels off-screen.
+  Fixed both: body lock now uses `overflow: hidden` on
+  `<html>` + `<body>` + `touch-action: none` (no
+  position-fixed); the view-enter keyframe drops its trailing
+  transform and switches `animation-fill-mode: both` →
+  `backwards` so the wrapper returns to `transform: none`
+  after the 220 ms.
+- Tooltip / popup overflow on viewport edges (`ffd7c69`).
+  Tooltips now measure their bubble's bounding rect on
+  `pointerenter` / `focusin`, set `data-tt-align` on the
+  wrapper, and CSS pins the bubble to the closer edge instead
+  of overflowing.
+- Score-area action-cluster wrap (`ffd7c69`). `justify-end` so
+  wrapped second-row buttons (Copy verdict / Export / Print)
+  right-align consistently with the first row, instead of
+  flowing flush-left at the start of the right-aligned block.
+- White-on-accent buttons unreadable in light mode
+  (`2770103`). Light-theme `.text-white` remap is now scoped
+  with `:not([class*="bg-gradient"]):not([class*="bg-aurora-"])
+  :not([class*="bg-risk-"])` so accent buttons keep their
+  white text. Hero / card heading contrast unchanged.
+- Badge dialog popup unscrollable + background scrolls
+  (`8329224`). iOS Safari overflow-hidden bypass: `[role="dialog"]
+  { overscroll-behavior: contain }` plus
+  `.bottom-sheet-card { overscroll-behavior: contain }` plus
+  the new html+body double-overflow-hidden lock.
+- SpeedDialFAB drift + light-mode contrast (`9b7d537`). FAB
+  now portals to `document.body` so no ancestor can hijack
+  its containing block; `.fab-main-text` + `.fab-mini-default`
+  tokens win specificity over the broad theme remap.
+- Re-baselined Playwright home snapshots (`9875b0a`) for the
+  new logo + hero copy + score-breakdown methodology panel
+  + simple-mode toggle button + FAB tokens.
+
+### Closed (Dependabot triage)
+
+- `#36` vite 5.4 → 8.0 — closed pending a planned vite
+  major-upgrade pass (3 majors is too big for blind merge).
+- `#37` `@vitejs/plugin-react` 4 → 6 — paired with #36.
+- `#35` typescript 5.9 → 6.0 — closed pending a planned TS
+  major-upgrade pass.
 
 ## [1.4.0] — 2026-05-10
 

@@ -7,7 +7,7 @@
 
   <p>
     <a href="https://beko2210.github.io/astraudit/"><img alt="Live site" src="https://img.shields.io/badge/live-beko2210.github.io%2Fastraudit-7a5cff?style=flat-square"></a>
-    <img alt="Tests" src="https://img.shields.io/badge/tests-724%20passing-42e8c8?style=flat-square">
+    <img alt="Tests" src="https://img.shields.io/badge/tests-739%20%2B%2036%20passing-42e8c8?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-94a3b8?style=flat-square">
     <img alt="Backend" src="https://img.shields.io/badge/backend-none-94a3b8?style=flat-square">
     <img alt="Tracking" src="https://img.shields.io/badge/tracking-none-94a3b8?style=flat-square">
@@ -109,36 +109,13 @@ The viewport‑pinned **floating action button** (bottom‑right) opens a Materi
 
 ## How it works
 
-```
-┌──────────────────────┐    fetch     ┌─────────────────────────┐
-│  GitHub public API   │  ◀─────────  │  src/lib/github/*       │
-│  api.github.com      │              │  (typed fetchers + 24h  │
-│  raw.githubusercontent│              │   localStorage cache)   │
-│  .com / org .github  │              └─────────────────────────┘
-└──────────────────────┘                            │
-                                                    ▼
-                                       ┌─────────────────────────┐
-                                       │   Web Worker            │
-                                       │   src/workers/audit.*   │
-                                       │   runs ~70 detectors    │
-                                       └─────────────────────────┘
-                                                    │
-                                                    ▼
-                                       ┌─────────────────────────┐
-                                       │   AuditResult           │
-                                       │   (categories, story,   │
-                                       │   findings, graph,      │
-                                       │   recommendations,      │
-                                       │   onboarding)           │
-                                       └─────────────────────────┘
-                                                    │
-                       ┌────────────────────────────┼─────────────────────────────┐
-                       ▼                            ▼                             ▼
-              ┌────────────────┐          ┌──────────────────┐           ┌─────────────────┐
-              │  Dashboard UI  │          │  PDF (print CSS) │           │  MD / JSON /     │
-              │  (React + RF)  │          │  Phase 5.7       │           │  AsciiDoc export │
-              └────────────────┘          └──────────────────┘           └─────────────────┘
-```
+<p align="center">
+  <img
+    src="docs/readme/pipeline.svg"
+    alt="Astraudit data-flow diagram: a GitHub public API request travels through the typed fetchers (with a 24-hour localStorage cache) into a Web Worker that runs about seventy rule-based detectors, producing an AuditResult that fans out to the dashboard UI, the printed PDF, and the Markdown / JSON / AsciiDoc exports."
+    width="900"
+  />
+</p>
 
 Detectors live in [`src/lib/audit/`](./src/lib/audit/) — one module per concern (`securityDetector.ts`, `dependencyDetector.ts`, `ciDetector.ts`, …). The `auditEngine` orchestrates them, the `scoreEngine` weights the outputs, the `graphEngine` renders the relationships, and the `copyEngine` writes the human‑readable story.
 
@@ -224,7 +201,7 @@ Other scripts:
 npm run build        # production build → dist/
 npm run preview      # serve dist/ locally on :4173
 npm run typecheck    # strict tsc -b --noEmit
-npm test             # vitest run (724 tests)
+npm test             # vitest run (739 tests)
 npm run test:visual  # Playwright snapshot suite (chromium)
 ```
 
@@ -238,10 +215,11 @@ Astraudit defaults to **unauthenticated** GitHub API calls (60 req/hour). If you
 
 | Suite | Tool | Specs |
 |---|---|---:|
-| Unit / integration | Vitest | 724 tests across 55 files (`tests/`) |
-| Visual regression | Playwright + Chromium | All major routes at desktop + 320 / 360 / 390 / 768 / 1280 |
+| Unit / integration | Vitest | 739 tests across 57 files (`tests/`) |
+| Visual regression | Playwright + Chromium | 36 specs across 9 files (`tests/visual/`) — all major routes at 320 / 360 / 390 / 768 / 1280 px |
 | Accessibility | Playwright + axe‑core | Home, Impressum, Datenschutzerklärung, Rule book |
-| Mobile gesture | Playwright | Audit graph touch‑action contract on `< md` viewports |
+| Mobile gestures | Playwright | Audit graph touch‑action, FAB sticky positioning, dialog scroll-trap on `< md` viewports |
+| Dialog hardening | Playwright | WAI‑ARIA APG focus trap + restore + scroll lock + Esc dismissal + viewport-size containment |
 | Print | Playwright PDF + `pdftotext` | Page count, section presence, sparse‑page heuristic |
 | Performance | Lighthouse CI | Score floors enforced per `lighthouserc.json` |
 | Detection | Live harness | 53 popular real‑world repos (`scripts/validate-org-health.ts`) |
