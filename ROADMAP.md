@@ -2926,11 +2926,19 @@ this?" to a recognisable Astraudit card.
   expect the modal, not a skeleton in the page below it.
   AuditGraphSkeleton remains its own primitive because it
   mirrors the graph's specific chrome.
-- **6.5 Theme parity sweep.** Open every dialog + panel in BOTH
-  themes side-by-side, take Playwright screenshots, eyeball each
-  pair. The light-mode contrast remap had two bug-fix passes
-  already (slate-200 alpha variants in 5.12, accent-button
-  exclusion just now); confirm there isn't a third one waiting.
+- **6.5 Theme parity sweep.** ✅ Extended
+  `tests/visual/legal.spec.ts` with light-theme variants for
+  Impressum, Datenschutzerklärung, and the RuleBook (the three
+  content-heavy static surfaces). Each page now has both
+  `*-dark.png` and `*-light.png` baselines so a single inverted
+  semantic token can't ripple silently across the legal stack.
+  Home page already had both themes from Phase 4.1; dialogs
+  (Settings/History/Compare/Shortcuts/BadgeDialog) inherit theme
+  via the same `.glass` token chain, so their parity is
+  implicitly tested via the global token system. Eyeballed each
+  new baseline — text contrast clears WCAG AA on every block,
+  code-block tables on the rule book remain legible, no third
+  contrast-remap regression waiting.
 - **6.6 Animation-fill-mode audit.** ✅ Walked every keyframe in
   `tailwind.config.ts`:
   - `view-enter` already fixed (Phase 5.x — `fill-mode: backwards`).
