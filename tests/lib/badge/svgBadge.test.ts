@@ -113,6 +113,61 @@ describe("generateBadgeSvg", () => {
   });
 });
 
+describe("aurora layout — Phase 5.3 follow-up regression guard", () => {
+  // The bug the maintainer reported: the grade letter (`Very
+  // Strong` / `B` / etc.) overlapped the inline `/100` tspan
+  // because the grade x-offset was computed as
+  // `padding + scoreWidth + 14`, ignoring the width of the suffix
+  // sitting between the score number and the grade.
+  //
+  // We can't measure rendered glyph widths from a node test, but
+  // we CAN parse the SVG output and assert two invariants:
+  //   1. The grade <text> x-coordinate is at least one full
+  //      suffix-width past the score's right edge.
+  //   2. The badge's outer width grew to accommodate the new offset.
+  // Together those two make a future regression (someone reverting
+  // the offset back to `+ 14`) impossible to ship.
+
+  function extract(svg: string, regex: RegExp): RegExpMatchArray | null {
+    return svg.match(regex);
+  }
+
+  it("positions the grade past the inline `/max` suffix", () => {
+    const svg = generateBadgeSvg({ ...baseOpts, style: "aurora" });
+    // For score=81 (2 chars × 22 × 0.6 ≈ 27) + suffix /100
+    // (4 chars × 11 × 0.6 ≈ 27): grade x ≥ padding (14) + 27 + 27
+    // + 14 = 82.
+    const gradeMatch = extract(
+      svg,
+      /<text x="(\d+)" y="38"[^>]*font-weight="600">/,
+    );
+    expect(gradeMatch).not.toBeNull();
+    const gradeX = Number(gradeMatch![1]);
+    expect(
+      gradeX,
+      `grade text rendered at x=${gradeX}, must be ≥ 82 to clear /100`,
+    ).toBeGreaterThanOrEqual(82);
+  });
+
+  it("widens the SVG to accommodate the score+suffix+grade row", () => {
+    const svg = generateBadgeSvg({ ...baseOpts, style: "aurora" });
+    const widthMatch = extract(svg, /<svg[^>]*width="(\d+)"/);
+    expect(widthMatch).not.toBeNull();
+    const width = Number(widthMatch![1]);
+    // Inner content ≥ scoreWidth + suffixWidth + 14 + gradeWidth.
+    // For "Very Strong" (11 chars × 11 × 0.6 ≈ 73): inner ≥ 27 +
+    // 27 + 14 + 73 = 141, plus padding × 2 (28) = 169.
+    expect(width).toBeGreaterThanOrEqual(169);
+  });
+
+  it("renders the suffix as a real `/max` tspan with the muted color", () => {
+    const svg = generateBadgeSvg({ ...baseOpts, style: "aurora" });
+    expect(svg).toMatch(
+      /<tspan font-size="11" fill="#9aa3c2">\/100<\/tspan>/,
+    );
+  });
+});
+
 describe("buildBadgeMarkdown", () => {
   it("links the badge to the Astraudit share URL", () => {
     const md = buildBadgeMarkdown(
