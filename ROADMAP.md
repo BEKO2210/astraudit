@@ -2863,7 +2863,328 @@ this?" to a recognisable Astraudit card.
 
 ---
 
-## Stretch ideas (might do, might not)
+## Phase 6 — release-readiness hardening
+
+> **No new features.** Everything below is polish, debugging, and
+> systematic verification of the surface we already have. The goal
+> is "publishable to a wide audience without embarrassment", not
+> "feature-complete". When the checklist is green, Astraudit ships
+> a tagged 1.0 to GitHub Pages and the README announces it.
+>
+> Each item is a small, time-boxed unit of work. Items grouped under
+> a single Roman numeral can land together; the numerals themselves
+> are independent and can be picked off in any order.
+
+### I · Visual + interaction polish (every panel re-walked)
+
+- **6.1 Popup edge containment audit.** ✅ Tooltip + ExportMenu
+  already handle viewport edges. Re-walk every popover-shaped
+  surface (CopyButton confirmation, ShareButton "Link copied"
+  pill, FAB speed-dial labels, status pills with hover detail)
+  and confirm none overflows on 320 / 360 / 768 px viewports.
+  Lock with Playwright cases that probe each edge.
+- **6.2 Action-cluster wrap audit.** ✅ Score-area cluster now
+  uses `justify-end`. Apply the same review to: Hero settings/
+  history strip, ReviewDashboard panel headers (Findings filters,
+  RecommendationsPanel actions, RegistryPanel retry CTA), Compare
+  dashboard headers, Settings dialog footer.
+- **6.3 Empty-state coverage.** Phase 5.5 added `<EmptyPanelState />`
+  and applied it to RecommendationsPanel + OnboardingPanel.
+  Re-run the audit on every panel that *can* render with zero
+  data: TopicChecks (no detector hits), Insights (no scoreable
+  signals), MaintenancePanel (zero commits + zero releases),
+  FindingsPanel (zero findings — currently uses
+  EmptyFindingsCelebration which should be promoted to a
+  consistent shape), Story (already covered).
+- **6.4 Loading-skeleton consistency.** AuditGraphSkeleton sets
+  the bar; ReviewDashboard, CompareDashboard, RegistryPanel each
+  ship their own ad-hoc placeholder. Promote one shared
+  `<PanelSkeleton />` primitive sized to the same `glass` slot as
+  the live content so dashboards never reflow on first paint.
+- **6.5 Theme parity sweep.** Open every dialog + panel in BOTH
+  themes side-by-side, take Playwright screenshots, eyeball each
+  pair. The light-mode contrast remap had two bug-fix passes
+  already (slate-200 alpha variants in 5.12, accent-button
+  exclusion just now); confirm there isn't a third one waiting.
+- **6.6 Animation-fill-mode audit.** `view-enter` was the
+  containing-block trap for the BadgeDialog (commit 5973619).
+  Re-walk every animation in `tailwind.config.ts` (`pulseRing`,
+  `shimmer`, `floaty`, `toast-in`, `view-enter`, `fade-in`) and
+  confirm none of them retain a `transform` end-state on an
+  ancestor of any `position: fixed` modal / popover.
+- **6.7 Print stylesheet edge cases.** Phase 5.7 covered the
+  golden path. Verify two specific edges: long file paths
+  inside `<code>` elements (do they wrap or scroll-clip?), and
+  the audit graph's printed `<PrintGraphSummary />` replacement
+  (renders correctly? legible? not too tall?).
+- **6.8 Reduced-motion fallback consistency.** Every animated
+  enter / exit must have a `motion-reduce:` variant. The
+  Phase 5.x dialog flow uses `VIEW_ENTER_CLASS` which already
+  carries it; sweep the rest of the codebase for animations
+  that go straight to a transform.
+
+### II · Accessibility hardening
+
+- **6.9 Full screen-reader pass with VoiceOver + NVDA.** Both
+  read every panel from top to bottom. Note: missing `<h1>`,
+  duplicate landmarks, ambiguous link text ("here"), tables
+  without headers, lists that should be lists. Convert every
+  finding to a vitest case asserting the relevant ARIA / role
+  / structure invariant.
+- **6.10 Keyboard-only flow.** Tab through the entire dashboard
+  with no mouse. Document every dead-end, every focus jump
+  past a control, every escape that doesn't actually close the
+  thing it should. Lock fixes with Playwright keyboard-trace
+  specs.
+- **6.11 Forced-colours mode (Windows High Contrast / Firefox
+  forced colours).** Verify every aurora/risk/mint/violet
+  palette element falls back to system colours. The Phase 5.3
+  pass added `forced-colours: active` rules for tooltips +
+  toasts; verify the rest of the surface, especially the audit
+  graph's status-coded edges.
+- **6.12 Magnification + zoom.** WCAG 1.4.4 says content must
+  resize to 200 % without content loss. Test at 200 % browser
+  zoom on a 1280×800 viewport. Then test at 200 % on a 360 px
+  viewport (= 720 effective). Document and fix anything that
+  clips, scrolls horizontally, or loses controls.
+- **6.13 Touch-target audit at 24 / 32 / 44 px.** Phase 5.2
+  enforced WCAG 2.5.8 (24 px). The looser 32 px (Apple HIG)
+  and stricter 44 px (Apple legacy) thresholds are easier on
+  shaky hands. Catalogue every interactive control's size and
+  decide which threshold we want to clear; lift the visual
+  regression spec accordingly.
+- **6.14 axe-core "best-practice" rules.** The CI gate today
+  fires only on `serious` + `critical`. Run a one-shot pass
+  over `moderate` + `minor` + `experimental` and pick off
+  the cheap wins (label-content-name-mismatch, decorative
+  alt text, etc.). Don't enable the gate at this level —
+  some best-practice rules are noisy — but capture the wins.
+
+### III · Performance + bundle hygiene
+
+- **6.15 Bundle-size budget.** The current build emits a 517 KB
+  main chunk (167 KB gzip). Set a hard ceiling in Lighthouse
+  CI ("Some chunks are larger than 500 kB" warns today). Either
+  raise the limit deliberately and document why, or split out
+  the audit engine into its own chunk (it's already in a Web
+  Worker, the chunk just isn't separated cleanly).
+- **6.16 Code-split policy.** React Flow is already
+  lazy-loaded (Phase 4.4). Audit every other heavy import in
+  `src/components/index.tsx`-style barrel files; consider
+  lazy-loading: BadgeDialog (modal — only when opened),
+  CompareDashboard (only when in compare mode), RuleBook
+  (legal-page-style route), CommandPalette (Cmd+K — load on
+  first open).
+- **6.17 Performance budget per route.** Lighthouse CI's
+  performance score is gated to ≥ 0.7; bump to ≥ 0.85 once
+  6.15 + 6.16 are done. Add LCP / FID / CLS thresholds.
+- **6.18 Image / asset audit follow-up.** The 5,678 KB → 593 KB
+  asset compression already happened. Remaining items:
+  apply `loading="lazy"` to the README screenshot images
+  rendered in /rules; consider converting the OG card to AVIF
+  for browsers that prefer it (PNG fallback unchanged).
+- **6.19 Network-fetch concurrency budget.** `loadRepoBundle`
+  fetches ~9 endpoints sequentially today (metadata → tree →
+  languages → readme → important files → workflows → commits
+  → releases → issues → org-health). Profile real audits to
+  confirm there's no obvious win from parallelising independent
+  ones; wire up `Promise.all` where safe.
+- **6.20 localStorage budget.** The bundle cache caps at 30
+  entries / 1.5 MB each. Verify quota-exceeded handling: open
+  the app in private mode (storage often disabled), audit a
+  large repo, confirm the dashboard still renders and the user
+  sees a clear message that the cache is unavailable.
+
+### IV · Cross-browser + device verification
+
+- **6.21 Safari (macOS) golden-path manual run.** Audit
+  facebook/react. Hit every dashboard panel. Open every dialog.
+  Print to PDF. Compare with Chromium's output side-by-side.
+  Flag any pixel-perfect drift; flag any functional drift.
+- **6.22 Safari (iOS) golden-path manual run.** Same routine
+  on a real iPhone. Special focus: the body-lock + dialog
+  scroll-trap fixes from Phase 5.x followups, the FAB sticky
+  positioning, the touch-action rule on the audit graph.
+- **6.23 Firefox (desktop) golden-path manual run.** Mostly a
+  smoke test — the Tailwind + React Flow + Vite stack is
+  well-supported there.
+- **6.24 Android Chrome on a real device.** Web Worker behaviour,
+  large-tree audits (memory pressure), the FAB safe-area inset
+  on phones with on-screen nav bars, the BadgeDialog scroll
+  containment when the keyboard isn't present.
+- **6.25 Browser-extension survival.** Dark-reader, uBlock,
+  Privacy Badger, Tampermonkey, Stylus. Confirm the dashboard
+  still renders sensibly with each enabled; document any
+  expected drift (e.g. dark-reader inverting the inverted
+  light-mode card).
+
+### V · Error paths + edge cases
+
+- **6.26 Every error message reviewed.** Phase 5.6 centralised
+  the GitHub-error → user-state mapping. Re-walk the resulting
+  copy with three audiences in mind: (a) a maintainer who
+  knows GitHub's API, (b) a curious dev who's never used
+  Astraudit, (c) a non-technical reader who saw the link in a
+  PR review. Tighten anything jargon-heavy.
+- **6.27 Race conditions on rapid input.** User pastes URL →
+  Audit fires → user pastes a different URL before the first
+  finishes → second Audit fires. Confirm the in-flight first
+  abort works, the URL hash updates, and there's no visible
+  flicker between the two states.
+- **6.28 Cache invalidation deep-dive.** `removeBundle` runs on
+  Re-audit (Phase 5.x followup). Test: cache hit, cache TTL
+  expiry, cache-but-pushedAt-changed, cache-but-different-tree
+  (e.g. force-pushed branch), private-mode no-cache. Each
+  should land cleanly with no console errors.
+- **6.29 Rate-limit messaging end-to-end.** Phase 5.6 added the
+  countdown. With a real exhausted unauthenticated quota:
+  - Verify the "Resets in X min" countdown ticks.
+  - Verify "Open Settings → add a PAT" actually opens the
+    settings dialog focused on the token input.
+  - Verify the retry path after a token is added clears the
+    error without a page reload.
+- **6.30 Compare-mode edge cases.** Same repo on both sides
+  (already blocked). Forks of the same upstream. One repo
+  archived. One repo so much bigger than the other that the
+  audit timing diverges sharply. Document expected behaviour
+  for each.
+- **6.31 Share-URL fuzz.** Every visible URL pattern fed to
+  `parseRepoInput` should either parse cleanly or surface a
+  helpful error. Cases: gist URLs, GitLab URLs, BitBucket
+  URLs, owner-only URLs, repo-only paths, URLs with trailing
+  slashes, URLs with query strings, URLs with fragments,
+  shortened URLs (git.io / bit.ly).
+
+### VI · Security hardening
+
+- **6.32 Content-Security-Policy.** The deploy currently has no
+  CSP. Add a strict one to `index.html` (or via meta-refresh):
+  `default-src 'self'; img-src 'self' data: https:;
+  connect-src 'self' https://api.github.com
+  https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'
+  https://fonts.googleapis.com; font-src 'self'
+  https://fonts.gstatic.com; script-src 'self'`. Verify the
+  build still loads.
+- **6.33 Subresource-Integrity (SRI) on Google Fonts links.**
+  Apply `integrity="sha384-..."` to the Inter / JetBrains Mono
+  link tags. They're third-party — SRI prevents a CDN compromise
+  from running arbitrary CSS in the dashboard.
+- **6.34 `dangerouslySetInnerHTML` audit.** Three known sites:
+  the badge SVG preview in BadgeDialog, the rendered README
+  prose, the rule book markdown. Each is fed to a sanitiser
+  (markdown-it with `html: false`) or a hand-rolled escape
+  (`escapeXml` for the badge). Confirm all three with a unit
+  test that injects a `<script>alert(1)</script>` payload and
+  asserts it doesn't render.
+- **6.35 GitHub PAT handling end-to-end.** The token lives in
+  localStorage and is sent ONLY to `api.github.com` /
+  `raw.githubusercontent.com`. Verify with a fetch-monitor in
+  the dev tools that no other origin sees the Authorization
+  header. Add a unit test for `withAuthHeader()` that asserts
+  the same: `loadToken()` value is only attached to GitHub
+  origins.
+- **6.36 Privacy review for the Datenschutzerklärung.** Walk
+  the existing legal text against the actual implementation.
+  Anything mentioned that we don't actually do (Google
+  Analytics, cookies for analytics, etc.) gets removed or
+  reworded; anything we do that isn't disclosed gets added.
+- **6.37 Dependency review.** Run `npm audit`. Document each
+  finding (severity + decision: fix / suppress with
+  justification). Add a CI gate that fails on `high` or
+  `critical` vulnerabilities.
+
+### VII · Documentation + community
+
+- **6.38 README audit.** The current README has six screenshots
+  + an ASCII data-flow diagram + tables. Confirm every
+  screenshot is current; regenerate via
+  `scripts/capture-readme-shots.ts` if anything moved. Add a
+  short "5-minute tour" GIF or screencast above the
+  screenshots.
+- **6.39 docs/RULES.md completeness.** Every detector that
+  exists in `src/lib/audit/` has an entry. Every score weight
+  matches what `scoreEngine.ts` actually emits. Lock with a
+  test that diffs the two.
+- **6.40 CONTRIBUTING walkthrough.** A first-time contributor
+  should be able to follow the doc and ship a passing PR.
+  Pair-test it: have someone unfamiliar follow the steps,
+  note every place they get stuck, fix the doc.
+- **6.41 Release notes for v1.0.** A clean Markdown summary of
+  what Astraudit does, what's in / out of scope, the four
+  operating constraints, the score model, and the one-line
+  install + use sequence. Lives at the top of CHANGELOG.md.
+- **6.42 GitHub repo polish.** Repository description set,
+  topics set (`audit`, `github`, `static-analysis`,
+  `browser-only`, `react`, `vite`, `typescript`), homepage
+  pointing at the GitHub Pages URL, social-preview image
+  uploaded (the OG card), pinned issue thread inviting
+  feedback.
+
+### VIII · Code quality + cleanup
+
+- **6.43 Dead-code purge.** Astraudit has accumulated some
+  Phase 1.x / 2.x scaffolding that newer phases replaced
+  (e.g. the original ToastHost might still ship code paths
+  no live consumer triggers). Catalogue, test, prune.
+- **6.44 Consistent naming.** Two patterns coexist for
+  detector outputs: `hasX: boolean` + `xPath: string | null`
+  (used by SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md
+  after the org-fallback fix) vs. `hasX` only (used elsewhere).
+  Pick one (the path-aware shape is strictly more useful) and
+  align.
+- **6.45 Type-narrowing audit.** Several places use `as` casts
+  to bypass TS unions. Each cast that isn't load-bearing should
+  become a real type-narrowing check. Lighthouse CI's CodeQL
+  run already flags some of these.
+- **6.46 Test density audit.** 739 vitest cases sounds healthy,
+  but per-file coverage is uneven. Spot-check the lib modules
+  with the lowest test count (`copyEngine`, `riskEngine`) and
+  add cases for under-tested branches.
+- **6.47 Comment hygiene.** Several modules carry "Phase 4.x —
+  Y" comments that have outlived their context. Promote useful
+  ones into the function docstring; delete the rest.
+- **6.48 ESLint + Prettier (deliberately deferred).** Today we
+  lean on `tsc --noEmit` as the only lint gate. If we add ESLint
+  here, configure it to block on no-floating-promises,
+  exhaustive-deps, no-unused-vars-with-underscore-exception, and
+  the React Hooks rules. Decide whether the marginal value is
+  worth the +2 deps. Skip if Prettier-style formatting is the
+  only thing on the table.
+
+### IX · Release engineering
+
+- **6.49 Tagged releases.** Cut `v1.0.0` after Phase 6 closes.
+  Subsequent releases follow SemVer based on the public surface
+  (the rule book + the export schema + the share-URL format).
+- **6.50 GitHub Actions release workflow.** Triggered by tag
+  push: builds, runs the full quality matrix, generates the
+  CHANGELOG entry from commits, attaches the og-card and a
+  zipped `dist/` to the release.
+- **6.51 GitHub Pages CDN-cache headers.** Default Pages
+  caching is fine for static assets but not for `index.html`
+  (we want fresh JS chunk references on every visit). Verify
+  the deploy headers and add a `_headers` shim if needed.
+- **6.52 Rollback rehearsal.** Practice rolling back to the
+  previous tag from the GitHub Actions UI. Document the steps
+  in `docs/RUNBOOK.md` so the next time something breaks it's
+  a 60-second fix, not a debug-the-CI rabbit hole.
+- **6.53 Telemetry decision (final).** Reaffirm "no per-visitor
+  telemetry" in the anti-roadmap. If we ever want post-hoc
+  numbers, the only acceptable mechanism is an opt-in
+  privacy-respecting beacon (e.g. user-initiated "Share my
+  audit anonymously to help improve the rules"). Document the
+  decision so reviewers don't have to re-litigate it.
+
+---
+
+> **101 % ready when:** every box above is either ticked or has an
+> explicit "won't fix — here's why" comment. The verdict is mine
+> (the maintainer); a contributor reviewing the box list should be
+> able to reproduce the rationale without asking.
+
+---
+
+
 
 - **Audit a specific commit / branch / tag.** Currently we always audit
   the default branch.
