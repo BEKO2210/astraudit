@@ -2206,9 +2206,92 @@ measures.
    themes; back-link returns to the app; cross-links to
    Impressum/Datenschutz work.
 
-### 4.6 · Contribution guide
-A `CONTRIBUTING.md` for adding new detectors, with the same fixture
-test pattern as Phase 1.6.
+### 4.6 · Contribution guide ✅ shipped
+**Why:** A first-time contributor today has to reverse-engineer the
+project's conventions from `git log` and a dozen detector files. A
+proper `CONTRIBUTING.md` turns "where does the new rule go?" from
+a 30-minute archaeology session into a 5-minute checklist, and
+locks in the operating constraints + testing conventions so they
+don't drift over time.
+
+**Implementation:**
+- New `CONTRIBUTING.md` with 13 sections (~430 lines), structured
+  for both quick-reference and deep onboarding:
+   1. The four operating constraints (browser-only / free /
+      public-only / rule-based) — repeated up front because
+      they're the most common reason a feature gets pushed back.
+   2. Code of conduct (Contributor Covenant on the way).
+   3. Quick start (clone → install → dev) plus a script-name
+      cheatsheet.
+   4. Repo layout — annotated directory tree with one-line
+      explanations of every top-level folder.
+   5. Adding a new finding-emitting rule — end-to-end checklist
+      with a worked example ("no Code of Conduct"), the actual
+      `Finding` interface fields (description, evidence string,
+      recommendation, affectedFiles, confidence), and the relation
+      between rule-book IDs (`doc-no-coc`) and runtime
+      `Finding.id` (`f-coc-N`).
+   6. Adding a new panel detector — for Phase 3-style enrichment
+      that doesn't emit findings.
+   7. Writing tests with the fixture builders — uses
+      `makeTree`, `makeImportantFiles`, `makeBundle` from
+      `tests/fixtures/builders.ts` so synthetic repos stay
+      deterministic + offline.
+   8. Running every CI gate locally —
+      `npm run typecheck` / `npm test` / `npm run build` /
+      `npx playwright test` / `npx lhci autorun`, in the order CI
+      runs them.
+   9. Updating the rule book — every emitted ID must survive in
+      `docs/RULES.md`; the rule-book test fails CI otherwise.
+  10. Pull request workflow — branch naming, commit message style,
+      one-concern-per-PR rule, draft-vs-ready toggle.
+  11. Review expectations — six concrete checks reviewers will
+      apply (constraint compliance, determinism, no silent
+      failures, negative-path tests, rule book entry, bundle
+      weight, accessibility parity).
+  12. Reporting security issues — direct email path
+      (`belkis.aslani@gmail.com`) per the Datenschutzerklärung
+      contact.
+  13. Recognition + licence.
+- README gets a new "Documentation" section pointing at both
+  `docs/RULES.md` and `CONTRIBUTING.md` so the discoverability
+  path is explicit.
+
+**Tests:** `tests/components/contributing.test.ts` (6 cases) —
+locks the structural contract so a regression is caught in CI:
+- Four operating constraints are quoted verbatim.
+- Every canonical section heading is present.
+- Every CI command is quoted (so a contributor can copy/paste
+  without re-deriving them).
+- The fixture-builder + rule-book paths are referenced.
+- The worked example uses the actual `Finding` shape — guards
+  against the doc drifting from `src/types/finding.ts`.
+- The security email is present.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 47 files / 609 tests green (was 46 / 603).
+- `npm run build` — no warnings.
+
+---
+
+### Phase 4 wrap
+
+All six Phase 4 items now ship:
+
+- **4.1** Visual regression tests (Playwright + GH Actions)
+- **4.2** Lighthouse + axe CI gates
+- **4.3** Audit graph improvements (rescoped from i18n at the
+  maintainer's request — filters / icons / edge colours / focus-
+  failing button)
+- **4.4** Bundle splitting (lazy-load AuditGraph, 24 % first-paint
+  reduction)
+- **4.5** Public rule book at `#/rules` + `docs/RULES.md`
+- **4.6** Contribution guide (`CONTRIBUTING.md`)
+
+Suite grew across Phase 4 from 39 / 482 (start) to **47 / 609**
+(end), plus 4 visual + 3 axe Playwright specs and a 4-floor
+Lighthouse gate.
 
 ---
 

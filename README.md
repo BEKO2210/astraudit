@@ -147,3 +147,12 @@ Astraudit will never do — backend, serverless, AI APIs, OAuth, private
 repos, code execution. Every roadmap item is checked against the
 four operating constraints (browser-only, free, public-only,
 rule-based) before it is accepted.
+
+## Documentation
+
+- [`docs/RULES.md`](./docs/RULES.md) — the public **rule book**:
+  every detector and exactly what triggers it. Also rendered in-app
+  at `#/rules`.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — how to set up the dev
+  env, add a new audit rule, write fixture-based tests, and clear
+  every CI gate before opening a PR.
