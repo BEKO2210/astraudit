@@ -2627,6 +2627,30 @@ downloads sort nicely on disk. The schema is documented in
 `docs/export-schema.md` and locked with a fixture-based test that
 fails on any unintentional shape change.
 
+### 5.10 · Audit graph mobile rendering fix
+**Why:** Maintainer reported that on mobile, scrolling the audit
+dashboard down to the graph section causes the page to wobble and
+stutter. Root cause is almost certainly React Flow's default touch
+handling: `panOnScroll` + the wheel/touchpad gesture handler grabs
+the touch stream and fights the page scroll, producing the jittery
+feel when the graph enters the viewport.
+
+**Plan:**
+- Set `panOnScroll: false`, `zoomOnScroll: false`, and
+  `panOnDrag: false` on the React Flow instance for narrow
+  viewports (< 768 px) so scrolling past the graph hands the
+  touch stream back to the page. Pan/zoom remains accessible via
+  the existing `<Controls>` buttons.
+- Add `touch-action: pan-y` on the graph wrapper at the same
+  breakpoint as a belt-and-suspenders fix.
+- Optional: render a static graph thumbnail (the existing
+  `<PrintGraphSummary>` is already built for this — re-use it on
+  the smallest viewports so users on tiny screens get a readable
+  picture instead of a tiny pannable viewport).
+- Add a Playwright spec that scrolls past the graph on a 360-px
+  viewport and asserts `window.scrollY` actually advanced (i.e.
+  React Flow didn't trap the gesture).
+
 ---
 
 ## Stretch ideas (might do, might not)
