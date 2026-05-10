@@ -1,4 +1,15 @@
-import { Boxes, Cpu, FlaskConical, GitBranch, Hammer, ShieldCheck } from "lucide-react";
+import {
+  Boxes,
+  Bot,
+  ClipboardCheck,
+  Cpu,
+  FlaskConical,
+  GitBranch,
+  Hammer,
+  Layers3,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 import type { StackSignals } from "../types/audit";
 
 interface DependencyPanelProps {
@@ -56,6 +67,34 @@ export function DependencyPanel({ stack }: DependencyPanelProps) {
           label="Lint/format tools"
           value={stack.lintTools.length ? stack.lintTools.join(", ") : "Not detected"}
         />
+        {stack.envManagers.length > 0 ? (
+          <Field
+            icon={Wrench}
+            label="Toolchain managers"
+            value={stack.envManagers.join(", ")}
+          />
+        ) : null}
+        {stack.pythonTools.length > 0 ? (
+          <Field
+            icon={Layers3}
+            label="Python ecosystem"
+            value={stack.pythonTools.join(", ")}
+          />
+        ) : null}
+        {stack.sboms.length > 0 ? (
+          <Field
+            icon={ClipboardCheck}
+            label="Software bill of materials"
+            value={stack.sboms.join(", ")}
+          />
+        ) : null}
+        {stack.aiDevTools.length > 0 ? (
+          <Field
+            icon={Bot}
+            label="AI / agent tooling"
+            value={stack.aiDevTools.join(", ")}
+          />
+        ) : null}
       </div>
 
       {stack.dependencyCounts ? (

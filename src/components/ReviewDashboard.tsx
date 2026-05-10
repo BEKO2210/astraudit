@@ -95,7 +95,7 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
       ) : null}
 
       <section id="insights">
-        <InsightsPanel insights={result.insights} />
+        <InsightsPanel insights={result.insights} stack={result.stack} />
       </section>
 
       <section id="graph">

@@ -46,6 +46,14 @@ export interface StackSignals {
     dependencies: number | null;
     devDependencies: number | null;
   } | null;
+  /** Toolchain version pinning (mise, asdf, nvm, pyenv, rbenv, …). */
+  envManagers: string[];
+  /** Python-side ecosystem detection (uv, Pixi, Hatch, Poetry, Pipenv). */
+  pythonTools: string[];
+  /** Software Bill of Materials files detected at the repo root. */
+  sboms: string[];
+  /** AI / agent tooling integrations detected (Claude Code, Cursor, Aider, …). */
+  aiDevTools: string[];
 }
 
 export interface FileStructureSummary {

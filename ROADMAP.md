@@ -70,13 +70,44 @@ the workflow names hit. Verified against `python/cpython` (correctly
 reports GitHub Actions + Azure Pipelines) and `torvalds/linux`
 (reports GitHub Actions despite tree truncation).
 
-### 1.5 · Wider stack detection
-- Frameworks: **Astro**, **SolidStart**, **Qwik**, **Hono**, **Elysia**,
-  **Effect**, **TanStack Start**, **Remix Vite**.
-- Package / env managers: **mise** (`.mise.toml`), **Pixi** (`pixi.toml`),
-  **Hatch** (`hatch.toml`), **uv** (`uv.lock`), **PNPm v9 catalogs**.
-- Newer Bun text lockfile (`bun.lock`).
-- SBOMs: `sbom.json`, `cyclonedx.xml`, `spdx.json`, `*.cdx.json`.
+### 1.5 · Wider stack detection ✅ shipped
+- Frameworks added to the detection catalog: **Astro**, **SolidStart**,
+  **Qwik** + **Qwik City**, **Hono**, **Elysia**, **Effect**,
+  **TanStack Start / Router**, **Modern.js**, **h3**, **tRPC**, plus
+  **Tauri**, **UnoCSS**, **styled-components**, **Emotion**, **RxJS**,
+  **Remix v2** entry points.
+- Build tools: **Rspack**, **Rsbuild**, **Rspress**, **unbuild**,
+  **tsdown**, **Nx Vite executor**.
+- Test tools: **node:test**, **bun:test**, **@playwright/test**.
+- Lint tools: **Oxlint**.
+- New `envManagers` detector for **mise**, **asdf**, **nvm**,
+  **node-version**, **pyenv**, **rbenv**, **SDKMAN**, **Nix**,
+  **Devbox**, **Dev Containers** — surfaced as a "Toolchain managers"
+  field in the dashboard.
+- New `pythonTools` detector for **uv** (`uv.lock` + `[tool.uv]`),
+  **Pixi**, **Hatch** (file + `[tool.hatch]`), **Poetry** (file +
+  `[tool.poetry]`), **PDM**, **Pipenv**, **Conda**, **setuptools**,
+  **Ruff** (`[tool.ruff]`).
+- New `sboms` detector for `sbom.json`, `bom.json`, `cyclonedx.json`,
+  `spdx.json`, `*.cdx.json`, `*.spdx.json` and their XML variants.
+  An SBOM presence adds 9 points to the trust score.
+- Newer Bun lockfile (`bun.lock` text format) and Yarn PnP
+  (`.pnp.cjs`) wired through monorepo / package-manager detection.
+- Bazel `WORKSPACE` / `MODULE.bazel` recognized as monorepo signal.
+- New `aiDevTools` detector for AI / agent CLIs that maintainers
+  commit configs for: **Claude Code** (`CLAUDE.md`, `.claude/`),
+  **Cursor** (`.cursorrules`, `.cursor/`), **Windsurf**, **Aider**,
+  **GitHub Copilot custom instructions**, **Continue**, **Cline**,
+  **Roo Code**, **Codeium**, **Tabnine**, **OpenHands**, **Open
+  Interpreter**, **GPT-Pilot**, **smolagents**, and the cross-tool
+  **AGENTS.md** spec. Surfaced as both an Insights card and a row in
+  the Dependency panel.
+- Verified live against `pydantic/pydantic` (uv + Hatch + Ruff),
+  `astral-sh/uv` (uv), `QwikDev/qwik` (Qwik), `withastro/astro`
+  (Dev Containers + nvm), `microsoft/TypeScript` (Claude Code +
+  GitHub Copilot + AGENTS.md), `cline/cline` (Cline + Claude Code +
+  Copilot), `RooVetGit/Roo-Code` (Roo Code + AGENTS.md), and the
+  original 10 repos with no score regressions.
 
 ### 1.6 · Detector unit tests
 A Vitest suite that runs each detector against synthetic file-tree

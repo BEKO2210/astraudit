@@ -525,23 +525,24 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
   );
 
   let trustScore = 0;
-  if (meta.license) trustScore += 25;
+  if (meta.license) trustScore += 22;
   if (classified.hasFile(
     "SECURITY.md",
     ".github/SECURITY.md",
     "docs/SECURITY.md",
     "SECURITY",
   ))
-    trustScore += 20;
-  if (workflows.hasDependabot) trustScore += 15;
-  if (workflows.hasCodeQL) trustScore += 15;
+    trustScore += 18;
+  if (workflows.hasDependabot) trustScore += 14;
+  if (workflows.hasCodeQL) trustScore += 14;
   if (classified.hasFile(
     "CODEOWNERS",
     ".github/CODEOWNERS",
     "docs/CODEOWNERS",
   ))
-    trustScore += 10;
-  if (workflows.total > 0) trustScore += 10;
+    trustScore += 9;
+  if (workflows.total > 0) trustScore += 9;
+  if (stack.sboms.length > 0) trustScore += 9;
   if (!classified.suspiciousFiles.length) trustScore += 5;
   trustScore = Math.min(100, trustScore);
 
