@@ -2931,22 +2931,40 @@ this?" to a recognisable Astraudit card.
   pair. The light-mode contrast remap had two bug-fix passes
   already (slate-200 alpha variants in 5.12, accent-button
   exclusion just now); confirm there isn't a third one waiting.
-- **6.6 Animation-fill-mode audit.** `view-enter` was the
-  containing-block trap for the BadgeDialog (commit 5973619).
-  Re-walk every animation in `tailwind.config.ts` (`pulseRing`,
-  `shimmer`, `floaty`, `toast-in`, `view-enter`, `fade-in`) and
-  confirm none of them retain a `transform` end-state on an
-  ancestor of any `position: fixed` modal / popover.
-- **6.7 Print stylesheet edge cases.** Phase 5.7 covered the
-  golden path. Verify two specific edges: long file paths
-  inside `<code>` elements (do they wrap or scroll-clip?), and
-  the audit graph's printed `<PrintGraphSummary />` replacement
-  (renders correctly? legible? not too tall?).
-- **6.8 Reduced-motion fallback consistency.** Every animated
-  enter / exit must have a `motion-reduce:` variant. The
-  Phase 5.x dialog flow uses `VIEW_ENTER_CLASS` which already
-  carries it; sweep the rest of the codebase for animations
-  that go straight to a transform.
+- **6.6 Animation-fill-mode audit.** ✅ Walked every keyframe in
+  `tailwind.config.ts`:
+  - `view-enter` already fixed (Phase 5.x — `fill-mode: backwards`).
+  - `pulseRing` + `floaty` animate `transform` and loop forever,
+    but their consumers are all leaf decorative elements in
+    `EmptyFindingsCelebration` (no `position: fixed` descendants);
+    safe.
+  - `shimmer` + `fade-in` don't touch `transform`; safe.
+  - `toast-in` is one-shot (180 ms) with no fill-mode, so no
+    end-state leaks; safe.
+  Locked by `tests/lib/ui/animationFillMode.test.ts` — parses
+  `tailwind.config.ts` and asserts (a) every keyframe has a
+  registered animation, (b) no animation uses `fill-mode: both`
+  with a transform end-state (the BadgeDialog regression class),
+  (c) any new looping transform animation must be added to a
+  manually-audited whitelist with a justifying comment.
+- **6.7 Print stylesheet edge cases.** ✅ Two edges checked:
+  - **Inline `<code>` with long paths** — added
+    `overflow-wrap: anywhere; word-break: break-word` inside the
+    `@media print` block so a path like
+    `src/lib/audit/some-very-long-filename.ts` wraps inside its
+    cell instead of bleeding past the printable margin.
+  - **`<PrintGraphSummary />`** — text-only `<table>`, each row
+    has `page-break-inside: avoid`. Renders correctly, legible,
+    height-bounded by row count. No change needed.
+- **6.8 Reduced-motion fallback consistency.** ✅ Six ungated
+  `animate-spin` consumers (LoadingAudit, RepoInput, ToastHost,
+  SettingsDialog, two in RegistryPanel) now use
+  `motion-safe:animate-spin` so reduced-motion users see a
+  static loader icon next to the surrounding "Loading…" text.
+  Locked by `tests/lib/ui/reducedMotion.test.ts` — the test
+  walks every `.ts/.tsx` file in `src/`, finds every Tailwind
+  `animate-*` class, and fails if any is missing the
+  `motion-safe:` / `motion-reduce:` prefix.
 
 ### II · Accessibility hardening
 

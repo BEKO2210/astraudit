@@ -566,6 +566,17 @@
     overflow: visible !important;
     white-space: pre-wrap !important;
   }
+  /* Phase 6.7 — inline <code> elements (Findings recommendations,
+     Onboarding steps, Insights panels) often hold long file paths
+     like `src/lib/audit/some-very-long-filename.ts`. Without
+     `overflow-wrap`, those break out of the cell or paragraph and
+     bleed past the printable margin. `anywhere` is more aggressive
+     than `break-word` (it can break at any code-point boundary, not
+     just word edges) which is what we want for paths and URLs. */
+  code {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
 
   /* README prose: drop scroll cap and overflow on paper. */
   .readme-prose {

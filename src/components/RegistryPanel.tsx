@@ -230,7 +230,7 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
               }${errored > 0 ? ` · ${errored} errored` : ""}`
             : `Looking up ${outcomes.length}/${requests.length}…`}
           {!done ? (
-            <Loader2 className="ml-2 inline h-3 w-3 animate-spin text-slate-500" />
+            <Loader2 className="ml-2 inline h-3 w-3 text-slate-500 motion-safe:animate-spin" />
           ) : null}
         </span>
       </header>
@@ -458,7 +458,7 @@ function RegistryRow({
 
       {!outcome ? (
         <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <Loader2 className="h-3 w-3 motion-safe:animate-spin" />
           Looking up…
         </div>
       ) : outcome.kind === "ok" ? (
