@@ -11,8 +11,12 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { CompareDashboard } from "./components/CompareDashboard";
 import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
+import { CommandPalette } from "./components/CommandPalette";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
 import { recordAudit } from "./lib/history/historyStore";
+import { buildCommands } from "./lib/commands/buildCommands";
+import { useGlobalShortcuts } from "./lib/keyboard/useGlobalShortcuts";
 import {
   applyAuditHash,
   applyCompareHash,
@@ -57,6 +61,8 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [authTick, setAuthTick] = useState(0);
   const [historyTick, setHistoryTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
@@ -497,6 +503,43 @@ export default function App() {
     }
   }, [state]);
 
+  // Smooth-scroll to a section by its anchor id, identical to the
+  // SectionNav click handler — re-implemented here so global keyboard
+  // shortcuts work even when the SectionNav is unmounted.
+  const jumpTo = useCallback((sectionId: string) => {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+    const offset = 90;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, []);
+
+  // Compose the palette commands fresh on every render so they always
+  // reflect the latest history / favorites / current state.
+  const commands = buildCommands({
+    hasAudit: state.kind === "ready",
+    hasCompare: state.kind === "compared",
+    jumpTo,
+    startAudit: (raw) => void startAudit(raw),
+    openCompare,
+    openSettings: () => setSettingsOpen(true),
+    openHistory: () => setHistoryOpen(true),
+    resetToHome: handleReset,
+  });
+
+  useGlobalShortcuts({
+    onPalette: () => setPaletteOpen((v) => !v),
+    onJump: jumpTo,
+    onCheatSheet: () => setShortcutsOpen(true),
+    onFocusInput: () => {
+      const el = document.querySelector<HTMLInputElement>(
+        'input[aria-label="GitHub repository URL"]',
+      );
+      el?.focus();
+    },
+  });
+
   const showLoading =
     state.kind === "fetching" ||
     state.kind === "auditing" ||
@@ -580,6 +623,17 @@ export default function App() {
           void startAudit(fullName);
         }}
         tick={historyTick}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={commands}
+      />
+
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
 
       <CompareDialog
