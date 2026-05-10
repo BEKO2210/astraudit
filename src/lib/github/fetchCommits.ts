@@ -15,8 +15,11 @@ export async function fetchCommits(
   branch: string,
   signal?: AbortSignal,
 ): Promise<CommitInfo[]> {
+  // 100 is the GitHub API max for a single page. We already pay for
+  // one network round-trip; bumping the page size widens the activity
+  // heatmap window without adding API cost.
   const data = await githubFetchSafe<RawCommit[]>(
-    `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&per_page=15`,
+    `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&per_page=100`,
     { signal },
   );
   if (!data) return [];

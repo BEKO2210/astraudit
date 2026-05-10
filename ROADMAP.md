@@ -408,9 +408,39 @@ section id, and `isEditableTarget` correctly treats input / textarea
 / select / contenteditable nodes as editable. **Total suite: 139
 tests across 18 files.**
 
-### 2.6 · Activity heatmap
-Visualize the recent commit dates as a small calendar heatmap. We
-already fetch the data — we just don't show it.
+### 2.6 · Activity heatmap ✅ shipped
+The Maintenance section now opens with a GitHub-style commit
+heatmap covering the **last 12 weeks (84 days)** — 12 columns × 7
+rows, Monday-aligned, ending on the current week's Sunday. Each
+cell is hover-titled with `Mon, May 5 — 3 commits` and uses one of
+five aurora-mint intensities scaled against the day-with-the-most.
+A tiny "Less / More" legend sits in the bottom-right.
+
+To make the window meaningful we bumped `fetchCommits` from 15 to
+**100 (the GitHub API max for a single page)** — same number of
+HTTP round-trips, just a wider payload, so it costs no extra rate
+limit budget.
+
+Implementation:
+
+- `src/lib/audit/activityHeatmap.ts`:
+  - `toIsoDay`, `monIndex`, `countCommitsByDay` — pure helpers,
+    UTC-based, immune to time-zone surprises.
+  - `buildHeatmapGrid(commits, now?)` returns exactly
+    `HEATMAP_DAYS` cells aligned to Monday columns ending Sunday,
+    with `total / max / uniqueDays` summary.
+  - `intensityBucket(count, max)` maps a per-cell count into 0..4.
+
+- `src/components/ActivityHeatmap.tsx`: column-major grid render
+  with row labels (Mon/Wed/Fri visible) and a sparse month banner
+  on top. Mounted inside `MaintenancePanel` above the existing
+  "Recent commits" list. Print-friendly: `break-inside: avoid`.
+
+Tests: 14 new cases in `tests/lib/audit/activityHeatmap.test.ts`
+covering ISO formatting, Monday-indexed weekdays, per-day counts
+(including duplicate dates and bad input), grid alignment to
+Sunday, empty-input behaviour, and every intensity-bucket
+boundary. **Total suite: 153 tests across 19 files.**
 
 ### 2.7 · Astraudit badge (SVG)
 A maintainer can embed a generated SVG badge in their own README:

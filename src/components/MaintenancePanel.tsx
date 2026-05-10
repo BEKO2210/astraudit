@@ -1,6 +1,7 @@
 import { Activity, GitCommit, GitPullRequest, Tag } from "lucide-react";
 import type { RepoBundle } from "../types/github";
 import { formatDate, formatRelative } from "../lib/utils/formatDate";
+import { ActivityHeatmap } from "./ActivityHeatmap";
 import { CopyButton } from "./CopyButton";
 
 interface MaintenancePanelProps {
@@ -35,6 +36,10 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
               : "PR count unavailable"
           }
         />
+      </div>
+
+      <div className="mt-5">
+        <ActivityHeatmap commits={bundle.recentCommits} />
       </div>
 
       {bundle.recentCommits.length > 0 ? (
