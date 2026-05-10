@@ -58,7 +58,7 @@ export function SectionNav({ sections }: SectionNavProps) {
   };
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-white/5 bg-ink-950/85 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-white/5 bg-ink-950/85 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 print:hidden">
       <div className="relative">
         {/* Right-edge fade hint when there's more to scroll */}
         <div

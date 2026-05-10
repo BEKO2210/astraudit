@@ -142,9 +142,42 @@ Wired into `package.json` as `npm test`, `npm run test:watch`, and
 `npm run test:ui`. Added to `.github/workflows/deploy.yml` as a CI
 step so a failing test blocks deploys to GitHub Pages.
 
-### 1.7 · Print / PDF stylesheet
-A `@media print` stylesheet so users can save the audit as a clean PDF
-straight from the browser. Zero infra — the browser does the work.
+### 1.7 · Print / PDF stylesheet ✅ shipped
+A comprehensive `@media print` block in `src/styles/globals.css`
+converts the dashboard to a paper-friendly layout when the user hits
+**Save as PDF** (the new button next to the Astraudit verdict) or
+their browser's print shortcut. Zero infra — the browser does the
+work.
+
+What changes on print:
+- The dark theme inverts to high-contrast on white. Glass cards
+  flatten to plain bordered boxes. Aurora gradients and the body's
+  background overlay disappear.
+- The sticky `SectionNav`, the Settings/PAT button, the `Show more`
+  / `View full README` toggles, and the findings filter dropdowns
+  are hidden via `print:hidden` — they have no meaning on a static
+  page.
+- The interactive React Flow `AuditGraph` is hidden and a static
+  `PrintGraphSummary` table takes its place. The table lists every
+  graph node with its status and recommendation in three columns,
+  with `page-break-inside: avoid` per row.
+- Major sections (`Findings`, `Onboarding`, `Next steps`) start on
+  a new page; smaller sections (`Overview`, `Score`, `Story`) avoid
+  splitting across pages.
+- External links print with their resolved URL so a printed PDF
+  remains useful offline (`a[href^="http"]::after` rule); in-page
+  anchors stay quiet.
+- A print-only header line at the top of the dashboard prints the
+  full repo name plus the audit timestamp on every page.
+- Code blocks switch to wrapping (`white-space: pre-wrap`) so long
+  lines stay inside the page margin.
+- `@page` set to A4 with 14–18 mm margins. Page color adjustments
+  use `print-color-adjust: exact` so the score ring and accent pills
+  retain their tints.
+
+Verified by build + the full vitest suite (92 tests still green).
+Bundle delta: +0.7 KB gz CSS, ~0.2 KB gz JS for the two new
+components.
 
 ### 1.8 · "Copy" buttons everywhere
 Every command block, every URL, every finding ID gets a one-click copy

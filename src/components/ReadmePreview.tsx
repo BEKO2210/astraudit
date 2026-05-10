@@ -41,7 +41,7 @@ export function ReadmePreview({
           <FileText className="h-4 w-4 text-aurora-cyan" />
           <h3 className="text-sm font-semibold text-white">README preview</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           {isTruncated || expanded ? (
             <button
               type="button"
