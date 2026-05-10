@@ -30,6 +30,11 @@ import {
   ownershipShape,
   type ParsedCodeowners,
 } from "../lib/audit/codeownersParser";
+import {
+  formatChannelKind,
+  formatPolicyQuality,
+  type ParsedSecurityPolicy,
+} from "../lib/audit/securityPolicyParser";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -236,6 +241,14 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
             sub={buildCodeownersSub(insights.codeowners)}
           />
         ) : null}
+        {insights.securityPolicy ? (
+          <Card
+            icon={ShieldCheck}
+            label="Security policy"
+            value={buildSecurityPolicyValue(insights.securityPolicy)}
+            sub={buildSecurityPolicySub(insights.securityPolicy)}
+          />
+        ) : null}
         <Card
           icon={ShieldCheck}
           label="Trust signal score"
@@ -327,6 +340,42 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the SECURITY.md card's primary value: a coarse quality
+ * label + the top contact channel kind, e.g. `complete with timeline · Email`.
+ * Phase 3.4.
+ */
+function buildSecurityPolicyValue(p: ParsedSecurityPolicy): string {
+  const quality = formatPolicyQuality(p.quality);
+  if (p.channels.length === 0) return quality;
+  // Surface the most "trusted" channel — coordinated-disclosure
+  // services first, then email, then PGP, then a generic URL.
+  const order = ["ghsa", "hackerone", "bugcrowd", "openbugbounty", "email", "pgp", "url"] as const;
+  const sorted = [...p.channels].sort(
+    (a, b) => order.indexOf(a.kind) - order.indexOf(b.kind),
+  );
+  return `${quality} · ${formatChannelKind(sorted[0].kind)}`;
+}
+
+/**
+ * Format the SECURITY.md card's subline: distinct channel count, word
+ * count, and a hint about timeline / supported-versions presence.
+ * Phase 3.4.
+ */
+function buildSecurityPolicySub(p: ParsedSecurityPolicy): string {
+  const parts: string[] = [];
+  parts.push(
+    `${p.channels.length} channel${p.channels.length === 1 ? "" : "s"}`,
+  );
+  parts.push(`${p.words.toLocaleString("en-US")} words`);
+  const cues: string[] = [];
+  if (p.hasTimeline) cues.push("timeline");
+  if (p.mentionsSupportedVersions) cues.push("supported versions");
+  if (p.hasVulnTerminology && !p.hasTimeline) cues.push("vulnerability terms");
+  if (cues.length) parts.push(cues.join(" + "));
+  return parts.join(" · ");
 }
 
 /**

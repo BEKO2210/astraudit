@@ -7,6 +7,7 @@ import type { MaintenanceSignals } from "./maintenanceDetector";
 import type { SecuritySignals } from "./securityDetector";
 import type { ParsedDependabot } from "./dependabotParser";
 import type { ParsedCodeowners } from "./codeownersParser";
+import type { ParsedSecurityPolicy } from "./securityPolicyParser";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -110,6 +111,11 @@ export interface DerivedInsights {
    * absent or empty. Phase 3.3.
    */
   codeowners: ParsedCodeowners | null;
+  /**
+   * Parsed SECURITY.md with contact channels + OpenSSF-style quality
+   * grade. Null when the file is absent or empty. Phase 3.4.
+   */
+  securityPolicy: ParsedSecurityPolicy | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -591,6 +597,7 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     workflows,
     dependabot: security.dependabotConfig,
     codeowners: security.codeownersConfig,
+    securityPolicy: security.securityPolicy,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,

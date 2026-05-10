@@ -5,10 +5,19 @@ import {
   parseCodeowners,
   type ParsedCodeowners,
 } from "./codeownersParser";
+import {
+  parseSecurityPolicy,
+  type ParsedSecurityPolicy,
+} from "./securityPolicyParser";
 
 export interface SecuritySignals {
   hasLicense: boolean;
   hasSecurityPolicy: boolean;
+  /**
+   * Parsed SECURITY.md with contact channels + OpenSSF-style quality
+   * grade. Null when the file is absent or empty. Phase 3.4.
+   */
+  securityPolicy: ParsedSecurityPolicy | null;
   hasCodeowners: boolean;
   /**
    * Parsed CODEOWNERS file with rules, distinct owners, ownership
@@ -62,6 +71,12 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
     "COPYRIGHT.md",
   );
 
+  // Parse SECURITY.md when present so we can grade the policy quality
+  // (does it actually give a reporter a channel?). Defined as a `let`
+  // because the file lookup happens after `securityHit` is resolved
+  // below; we attach the parsed result to the returned signals.
+  let securityPolicy: ParsedSecurityPolicy | null = null;
+
   const securityHit = has(
     "SECURITY.md",
     "SECURITY.markdown",
@@ -74,6 +89,15 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
     "doc/SECURITY.md",
     "documentation/SECURITY.md",
   );
+
+  if (securityHit) {
+    const file =
+      classified.importantFileMap.get(securityHit) ??
+      classified.importantFileMap.get(securityHit.toLowerCase());
+    if (file?.content) {
+      securityPolicy = parseSecurityPolicy(file.content);
+    }
+  }
 
   const codeownersHit = has(
     "CODEOWNERS",
@@ -153,6 +177,7 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
   return {
     hasLicense: !!licenseHit || !!licenseFolderHit,
     hasSecurityPolicy: !!securityHit,
+    securityPolicy,
     hasCodeowners: !!codeownersHit,
     codeownersConfig,
     hasDependabot: !!dependabotHit,
