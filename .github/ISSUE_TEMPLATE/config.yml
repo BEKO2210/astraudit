@@ -1,0 +1,15 @@
+# GitHub issue-picker config. Disabling blank issues forces
+# contributors to pick the bug or feature template, which gets us
+# enough context to triage without a back-and-forth.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security report
+    url: https://github.com/BEKO2210/astraudit/security/advisories/new
+    about: Suspect a security issue? Open a private advisory instead — see SECURITY.md.
+  - name: Discussion / question
+    url: https://github.com/BEKO2210/astraudit/discussions
+    about: For open-ended questions, ideas, and "how should I think about X?" — issues are for actionable bugs and features.
+  - name: Rule book
+    url: https://beko2210.github.io/astraudit/#/rules
+    about: What every Astraudit detector triggers on, in plain language. Read this before reporting "Astraudit got X wrong".

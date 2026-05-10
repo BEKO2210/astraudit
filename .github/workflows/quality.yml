@@ -7,7 +7,7 @@ name: Quality gates (Phase 4.2)
 #      violations on the home page or the legal pages.
 #
 # These gates are separate from the visual regression workflow
-# (`.github/workflows/visual.yml`) so a flaky snapshot can't mask a
+# (`.github/workflows/playwright.yml`) so a flaky snapshot can't mask a
 # real accessibility / performance regression.
 
 on:
