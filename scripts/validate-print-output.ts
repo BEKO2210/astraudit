@@ -392,20 +392,34 @@ async function main(): Promise<void> {
     console.log(`\n✓ All expected section headings present.`);
   }
 
-  // Gap heuristic: a page with <300 chars after the first page is
-  // suspicious — usually means a tall card straddled the boundary
-  // and the next page started near-empty.
-  const sparsePages = inspect.perPageTextLen
+  // Gap heuristic. We split into two tiers because a 103-char page
+  // is usually a 2-line "releases + footnote" orphan (cosmetic) while
+  // a < 80-char page is a true layout failure (just a stray line and
+  // 99% blank). Cosmetic orphans get listed; truly-empty pages are
+  // the only thing the validator considers a regression.
+  const orphanPages = inspect.perPageTextLen
     .map((len, i) => ({ page: i + 1, len }))
-    .filter((p) => p.page > 1 && p.len < 300);
-  if (sparsePages.length > 0) {
+    .filter((p) => p.page > 1 && p.len < 300 && p.len >= 80);
+  const trulyEmptyPages = inspect.perPageTextLen
+    .map((len, i) => ({ page: i + 1, len }))
+    .filter((p) => p.page > 1 && p.len < 80);
+  const sparsePages = trulyEmptyPages;
+  if (orphanPages.length > 0) {
     console.log(
-      `\n⚠  Sparse pages (likely page-break gaps): ${sparsePages
+      `\nℹ  Cosmetic orphans (trailing-content pages, < 300 chars): ${orphanPages
         .map((p) => `p${p.page}=${p.len} chars`)
         .join(", ")}`,
     );
+  }
+  if (sparsePages.length > 0) {
+    console.log(
+      `\n⚠  Truly empty pages (< 80 chars, this IS a layout regression): ${sparsePages
+        .map((p) => `p${p.page}=${p.len} chars`)
+        .join(", ")}`,
+    );
+    process.exitCode = 1;
   } else {
-    console.log(`\n✓ No sparse pages — page-breaks look clean.`);
+    console.log(`\n✓ No truly-empty pages — page-breaks look clean.`);
   }
 
   // Save a short text dump for the user to read at leisure.

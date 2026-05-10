@@ -592,8 +592,14 @@
      screen reading order. Sections that ALWAYS start a fresh
      page get `break-before: page`; those that just shouldn't be
      split mid-card get `break-inside: avoid`. */
+  /* Phase 5.7 follow-up: only sections that benefit from a clean
+     fresh page get the forced break. `onboarding` was originally on
+     this list but the printed output put it on a near-empty page
+     after maintenance left ~2 lines of content; letting it flow
+     naturally is cleaner. `topic-checks` and `registry` are still
+     pinned because they're long structured tables that read better
+     starting at the top of a page. */
   section[id="findings"],
-  section[id="onboarding"],
   section[id="next"],
   section[id="topic-checks"],
   section[id="registry"] {
