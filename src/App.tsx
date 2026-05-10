@@ -14,6 +14,8 @@ import { HistoryDialog } from "./components/HistoryDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
+import { Impressum } from "./components/legal/Impressum";
+import { Datenschutzerklaerung } from "./components/legal/Datenschutzerklaerung";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -41,6 +43,16 @@ import type {
 import type { RepoBundle, RepoCoordinates } from "./types/github";
 
 type CompareSide = "left" | "right";
+
+/** Map a hash fragment to one of the legal-page slugs (or null). */
+function routeFromHash(hash: string): "impressum" | "datenschutz" | null {
+  const normalized = hash.replace(/^#\/?/, "").toLowerCase();
+  if (normalized === "impressum") return "impressum";
+  if (normalized === "datenschutz" || normalized === "datenschutzerklaerung") {
+    return "datenschutz";
+  }
+  return null;
+}
 
 type AppState =
   | { kind: "idle" }
@@ -80,6 +92,20 @@ export default function App() {
   // but density has no toggle in the header so we wire it here.
   useEffect(() => {
     applyDensity(loadDensity());
+  }, []);
+
+  // Routing for the German legal pages. We keep this as a tiny
+  // hash-based router rather than touching the existing audit/compare
+  // hash logic — the legal hashes are independent and never overlap.
+  const [legalRoute, setLegalRoute] = useState<
+    "impressum" | "datenschutz" | null
+  >(() => routeFromHash(typeof window !== "undefined" ? window.location.hash : ""));
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setLegalRoute(routeFromHash(window.location.hash));
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
   }, []);
 
   useEffect(() => {
@@ -554,6 +580,13 @@ export default function App() {
     state.kind === "fetching" ||
     state.kind === "auditing" ||
     state.kind === "comparing";
+
+  // Legal pages take precedence over the audit UI. We render them as a
+  // stand-alone view so the user can read them undistracted and so deep
+  // links work. The audit state is preserved in memory but unmounted
+  // visually — clicking "Zurück zur App" returns to it intact.
+  if (legalRoute === "impressum") return <Impressum />;
+  if (legalRoute === "datenschutz") return <Datenschutzerklaerung />;
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
