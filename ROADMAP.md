@@ -2623,21 +2623,70 @@ the policy from `expressjs/.github/SECURITY.md`.
   spring-boot, elasticsearch, vscode, homebrew/brew, sveltejs,
   actix.
 
-### 5.6 · Error & rate-limit messaging review
-Every error path users can hit: invalid repo input, 404, 403
-(GitHub unauthenticated rate limit), 403 (PAT scope), abort,
-parse failure, registry timeout. Each gets reviewed for:
-clarity (no jargon), actionability (what should the user *do*?),
-recovery affordance (retry / open settings / clear cache), and
-consistency with the Phase 2.8.1 toast tone system. Includes a
-"What does this error mean?" companion section in the docs.
+### 5.6 · Error & rate-limit messaging review ✅ shipped
+Every user-visible error path got reviewed for clarity, actionability,
+and recovery affordance.
 
-### 5.7 · Print stylesheet v2
-Re-walk every panel under `@media print` — every detector card,
-every Insight pill, the new Topic Checks + Registry panels added
-in Phase 3, plus the legal pages. The print stylesheet has grown
-ad-hoc since 1.7; v2 audits it with real sample audits and locks
-the contract down with a Playwright print-preview snapshot run.
+**What shipped:**
+- New `mapAuditError(err)` central helper
+  (`src/lib/github/auditErrorView.ts`) returns a structured
+  `AuditErrorView { kind, title, message, actions[], resetAtSeconds,
+  unauthenticated }`. Replaces two near-identical 4-arm if-else
+  ladders that had drifted between `runAudit` and `loadBundleFor`.
+- `RateLimitError` now captures the `x-ratelimit-reset` header so
+  the UI can render a live countdown ("Resets in 23 min"), and the
+  `unauthenticated` flag so the copy can recommend "Open Settings →
+  add a PAT" specifically when a token would help (vs the
+  unhelpful "wait it out" we showed authenticated users).
+- `<ErrorState />` rewritten as a renderer over `AuditErrorView`:
+  per-kind icon (Clock for rate-limit, Search for 404, WifiOff for
+  network, etc.), live-ticking countdown, and a variable-length
+  CTA cluster. Primary action is now context-aware:
+    - Anonymous rate-limit → **Open Settings** (add a token)
+    - Authenticated rate-limit → **Retry** (window will reset)
+    - GitHub 5xx → **Retry** (transient)
+    - 404 / TooLarge / 4xx → **Try a different repository** (terminal)
+    - Network → **Retry** (most are transient)
+- Audit state now carries `lastInput` so the **Retry** action
+  replays the same parsed coords without forcing the user to
+  retype.
+- 16 vitest cases (`tests/lib/github/auditErrorView.test.ts`) lock
+  the per-kind mapping + the countdown formatter (sub-minute,
+  multi-minute round-up, past-timestamp, missing-timestamp).
+
+### 5.7 · Print stylesheet v2 ✅ shipped
+**Why:** the print stylesheet had grown ad-hoc since 1.7 and the
+Phase 3+ panels (Insights, Topic Checks, Registry) plus the
+Phase 2.x dialogs (Settings/History/Compare/CommandPalette/
+Shortcuts) were never wired into it. Printing an audit yielded
+modal chrome bleeding through, page breaks splitting individual
+findings in half, and the ActivityHeatmap (Phase 5.4) coming out
+as five aurora colours that all printed identically on a B&W
+laser printer.
+
+**What shipped:**
+- New `[role="dialog"]` rule hides every dialog in print —
+  generic enough that future dialogs are covered without
+  per-component plumbing.
+- Page-break hints extended to `topic-checks` + `registry`
+  (start a new page) and `insights` / `readme` / `maintenance` /
+  `stack` (avoid splitting mid-card).
+- New `[data-print-card]` opt-in on per-card primitives
+  (`FindingCard`, recommendation `<li>`, onboarding step,
+  registry row, topic check) so a 6-finding panel never gets
+  split across a page boundary mid-card.
+- ActivityHeatmap cells now emit `data-heat-level={0..4}`; the
+  print stylesheet remaps the aurora palette to a 5-step
+  grayscale (level-0 ≈ #f1f5f9 → level-4 ≈ #334155) so the
+  activity profile stays readable on B&W output. Level-4 also
+  flips text colour to white for contrast.
+- ErrorState gets `print:hidden` — error states aren't part of
+  a printed audit.
+- 11 vitest cases (`tests/styles/printContract.test.ts`) lock
+  the contract by parsing `globals.css` directly: every required
+  `@media print` rule has a regression guard, plus the dual
+  assertion that `.print-only` lives both inside (display: block)
+  and outside (display: none) the print block.
 
 ### 5.8 · Multi-format audit export
 **Why:** Today the audit is read in the browser or printed to PDF

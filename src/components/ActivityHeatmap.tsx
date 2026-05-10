@@ -263,6 +263,10 @@ export function ActivityHeatmap({ commits }: ActivityHeatmapProps) {
                         onFocus={() => setActive({ col: cIdx, row: rIdx })}
                         onClick={() => setActive({ col: cIdx, row: rIdx })}
                         onKeyDown={(e) => handleCellKeyDown(e, cIdx, rIdx)}
+                        // Phase 5.7 — `data-heat-level` lets the print
+                        // stylesheet remap the aurora palette to a
+                        // 5-step grayscale that survives B&W printing.
+                        data-heat-level={bucket}
                         className={`block h-[12px] w-[12px] rounded-[3px] border-0 p-0 transition focus-visible:ring-2 focus-visible:ring-aurora-mint focus-visible:ring-offset-1 focus-visible:ring-offset-ink-900 ${INTENSITY_CLASS[bucket]}`}
                       />
                     );

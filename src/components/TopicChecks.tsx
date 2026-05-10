@@ -71,6 +71,7 @@ export function TopicChecks({ checks }: Props) {
             <li
               key={c.id}
               className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+              data-print-card
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
