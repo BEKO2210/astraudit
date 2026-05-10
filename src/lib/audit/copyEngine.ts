@@ -81,14 +81,14 @@ function describeAudience(insights: DerivedInsights, bundle: RepoBundle): string
 function describeStack(stack: StackSignals, insights: DerivedInsights): string {
   const facts: string[] = [];
   if (stack.language) {
-    facts.push(`Primary language is **${stack.language}** at ${insights.primaryLanguageShare}% of bytes.`);
+    facts.push(`Primary language is ${stack.language} at ${insights.primaryLanguageShare}% of bytes.`);
   }
   if (insights.diversityBucket === "polyglot") {
     facts.push(`The codebase is polyglot — at least three languages share meaningful surface area.`);
   } else if (insights.diversityBucket === "bilingual") {
     facts.push(`A second language carries non-trivial weight, hinting at native bindings, build tooling, or a multi-target setup.`);
   }
-  if (stack.packageManager) facts.push(`Package manager: **${stack.packageManager}**.`);
+  if (stack.packageManager) facts.push(`Package manager: ${stack.packageManager}.`);
   if (stack.buildTools.length) facts.push(`Build: ${stack.buildTools.join(", ")}.`);
   if (stack.testTools.length) facts.push(`Tests: ${stack.testTools.join(", ")}.`);
   if (stack.lintTools.length) facts.push(`Lint/format: ${stack.lintTools.join(", ")}.`);

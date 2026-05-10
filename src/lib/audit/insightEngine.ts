@@ -94,6 +94,26 @@ export interface DerivedInsights {
   formattedAge: string;
 }
 
+/**
+ * Strip the most common Markdown inline syntax so a README heading like
+ *   # [React](https://react.dev/) · [![GitHub license](https://img.shields.io/badge/...)](url)
+ * becomes a clean, human-readable section name.
+ */
+function stripMarkdownInline(input: string): string {
+  return input
+    // images first so the alt-text doesn't get treated as a link label
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    // links: keep the visible label, drop the URL
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    // emphasis, strong, inline code, strikethrough
+    .replace(/[*_`~]/g, "")
+    // collapse whitespace and trim middle dots / pipes / dashes left over
+    .replace(/[·|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\-—–:]+|[\s\-—–:]+$/g, "")
+    .trim();
+}
+
 const PERMISSIVE = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "Unlicense"];
 const WEAK_COPYLEFT = ["LGPL-2.1", "LGPL-3.0", "MPL-2.0", "EPL-2.0", "EPL-1.0"];
 const STRONG_COPYLEFT = ["GPL-2.0", "GPL-3.0", "AGPL-3.0", "CDDL-1.0"];
@@ -340,8 +360,10 @@ function analyzeReadmeMetrics(signals: ReadmeSignals, content: string | null): R
   const sections: string[] = [];
   if (text) {
     const headingLines = text.match(/^#{1,3} .+$/gm) ?? [];
-    for (const line of headingLines.slice(0, 20)) {
-      sections.push(line.replace(/^#+\s*/, "").trim());
+    for (const line of headingLines) {
+      const cleaned = stripMarkdownInline(line.replace(/^#+\s*/, ""));
+      if (cleaned && cleaned.length <= 80) sections.push(cleaned);
+      if (sections.length >= 12) break;
     }
   }
   return {
