@@ -1,5 +1,6 @@
 import type { ClassifiedFiles } from "./fileClassifier";
 import { tryParseJson } from "../utils/safeText";
+import { readManifest, type ParsedManifest } from "./packageManifest";
 
 export interface DependencySignals {
   packageManager: string | null;
@@ -12,6 +13,12 @@ export interface DependencySignals {
   hasBuildScript: boolean;
   scriptKeys: string[];
   isTypescriptProject: boolean;
+  /**
+   * Parsed manifest contract (engines, peerDependencies,
+   * packageManager pin, module type). Null when the file is absent
+   * or unparseable. Phase 3.5.
+   */
+  manifest: ParsedManifest | null;
 }
 
 interface PackageJson {
@@ -75,5 +82,6 @@ export function analyzeDependencies(
     hasBuildScript: matchesScript(/\bbuild\b/i),
     scriptKeys,
     isTypescriptProject,
+    manifest: readManifest(classified),
   };
 }

@@ -1421,42 +1421,585 @@ disclosure timeline. Adopters care which of those they're getting.
 - `npx vitest run` — 35 files / 369 tests green (was 34 / 340).
 - `npm run build` — 581 KB JS, no warnings.
 
-### 3.5 · Parse `package.json` engines / peerDependencies
-Surface declared Node versions; warn when missing. Detect framework
-peer-dep mismatches with detected dependencies.
+### 3.5 · Parse `package.json` engines / peerDependencies ✅ shipped
+**Why:** The audit already pulls scripts and a broad framework
+fingerprint from `package.json`. The *runtime contract* fields —
+`engines`, `peerDependencies`, the Corepack `packageManager` pin,
+`type` — are what tells an adopter "what does this project
+actually need to run?". A library pinning `engines.node: ">=14"`
+in 2026 looks fine to a casual reader but is targeting a runtime
+that's been EOL for over a year.
 
-### 3.6 · Parse CHANGELOG release pace
-Mean delta between Markdown release headings → adds a real cadence
-metric independent of GitHub Releases.
+**Pre-build research (2026-05-10):**
+- npm Docs · *package.json* `engines`: SemVer range syntax,
+  loosely enforced by `npm install` itself but honoured by
+  Corepack, CI, and downstream consumers. Common patterns: `>=18`,
+  `^20.10`, `>=18 <21`, `16 || 18 || 20`.
+  https://docs.npmjs.com/cli/v10/configuring-npm/package-json#engines
+- npm Docs · *peerDependencies* + `peerDependenciesMeta.optional`:
+  npm v7+ installs peer deps automatically; the `optional: true`
+  flag opts out. We surface the optional split so the card shows
+  e.g. "5 peer deps (2 optional)".
+- Node.js *previous releases* — May 2026 LTS state: Node 22 (Jod)
+  active LTS, Node 24 (Krypton) latest LTS. Node 18 (Hydrogen) and
+  Node 20 (Iron) are EOL. The audit's freshness bucket bakes in
+  these thresholds.
+  https://nodejs.org/en/about/previous-releases
+- Implementation choice: deliberately do NOT pull `semver` (~30 KB).
+  The audit only needs to extract the *minimum major* from a range,
+  which is a tiny regex job. Anything more nuanced (intersection,
+  exact-match calculations) is out of scope.
 
-### 3.7 · Topic-driven contextual rules
-If repo topic is `cli`, expect a `bin` entry in `package.json`. If
-`react-component`, expect a peer dependency. Topics already give us a
-huge hint — use it.
+**Implementation:**
+- New `src/lib/audit/packageManifest.ts`. Two pure helpers + a
+  top-level reader:
+   1. `minimumMajorFromRange` parses every documented range form
+      (`>=`, `>`, `~`, `^`, `=`, plain numerics, multi-clause AND,
+      OR-clauses with `||`) and returns the smallest major.
+      Upper-bound-only comparators (`<X`, `<=X`) intentionally
+      return null — they don't define a minimum on their own.
+   2. `bucketNodeFreshness` maps the minimum major to one of
+      `missing` / `any` / `modern` / `current` / `aging` /
+      `ancient` against a single `MIN_LTS_MAJOR = 22` constant
+      sourced from the May-2026 LTS state.
+   3. `parseManifestObject` extracts `type`, `engines` (string
+      values only — non-string entries are dropped silently),
+      `packageManager` (Corepack pin), and `peerDependencies` with
+      `peerDependenciesMeta.optional` honoured. Peer deps are
+      sorted alphabetically for stable UI output.
+- `dependencyDetector.ts` now calls `readManifest(classified)` and
+  exposes the result on `DependencySignals.manifest`.
+- `insightEngine.ts` takes `deps` in its context and surfaces
+  `manifest: ParsedManifest | null` on `DerivedInsights`.
+- `auditEngine.ts` passes the deps signals through.
+- `InsightsPanel.tsx` adds a Layers3-icon "Runtime contract" card.
+  Value: freshness label + actual `engines.node` range. Subline:
+  Corepack pin (with the `+sha…` checksum stripped for readability),
+  module type, peer-dep count + optional split. Card colour shifts
+  to `risk-medium` for `aging`/`ancient` buckets and `aurora-mint`
+  for `modern`.
 
-### 3.8 · Free public registry lookups
-For Node packages, hit the **public** `https://registry.npmjs.org/{name}`
-(no auth, no quota): surface latest version, last publish date, weekly
-download trend. Same idea for **PyPI** (`https://pypi.org/pypi/{name}/json`)
-and **crates.io** if relevant. All free, all unauthenticated, all
-public.
+**Tests:** `tests/lib/audit/packageManifest.test.ts` (41 cases):
+- 5 happy-path cases (typical manifest, empty manifest, non-string
+  engine value tolerance, type-field handling, whitespace trim).
+- 13 `minimumMajorFromRange` cases covering every documented form.
+- 6 unconstrained-range cases (`*`, `x`, `latest`, etc.).
+- 1 upper-bound-only case (the SemVer trap).
+- 1 unparseable-range case.
+- 11 freshness-bucket boundary cases.
+- 6 UI label cases.
 
-### 3.9 · License-aware tone in dependency stories
-Categorize the licenses of detected top-level dependencies (best-effort
-from public registry data) and warn about copyleft-in-permissive
-mixes. No installer ever runs.
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 37 files / 425 tests green (was 36 / 384).
+- `npm run build` — 595 KB JS, no warnings.
+
+### 3.6 · Parse CHANGELOG release pace ✅ shipped
+**Why:** Astraudit already pulls a release cadence from the GitHub
+Releases API (`releases.averageDaysBetween`), but many projects ship
+a CHANGELOG without ever cutting a Release on GitHub. The API view
+says "no releases" while the file shows years of structured cadence.
+Computing release pace directly from the markdown gives us a real
+signal even on those repos, and the gap between the two sources is a
+useful drift indicator on projects that do both.
+
+**Pre-build research (2026-05-10):**
+- Keep a Changelog 1.1.0 — canonical heading is
+  `## [1.0.0] - 2017-06-20` with ISO-8601 dates. The
+  `[Unreleased]` section at the top is the only special case.
+  https://keepachangelog.com/en/1.1.0/
+- Real-world heading variants observed:
+   · `## [1.0.0] - 2024-01-15` (Keep a Changelog)
+   · `## 1.0.0 (2024-01-15)`   (Conventional Changelog default)
+   · `## v1.0.0 - 2024-01-15`
+   · `## 1.0.0 - 2024-01-15`
+   · `## 1.0.0 / 2024-01-15`
+   · `# 1.0.0 (2024-01-15)`    (rare h1)
+- The parser accepts every shape that contains *both* a version-like
+  token and an ISO-8601 date on the same heading line. We
+  deliberately do NOT support non-ISO date forms (e.g. `Jan 15,
+  2024`) — too rare to justify the false-positive risk.
+
+**Implementation:**
+- New `src/lib/audit/changelogParser.ts`. Single forward pass:
+   1. Walk every `# / ## / ###` heading line.
+   2. Strip markdown link syntax so `[1.0.0](url)` → `1.0.0`.
+   3. Skip headings that match `[Unreleased]` and remember the flag.
+   4. Match an ISO-8601 date *and* a version token on the same line.
+   5. Validate the date structurally — `2024-13-99` is rejected via
+      a UTC round-trip check.
+   6. De-dupe identical (version, date) pairs.
+- Releases sort oldest → newest; deltas are computed in days using
+  pure UTC arithmetic (no timezone surprises).
+- `bucketCadence` maps mean-delta thresholds to
+  `frequent` (≤ 14d) / `regular` (≤ 60d) / `occasional` (≤ 180d) /
+  `rare` (≤ 365d) / `dormant`. Long-stale projects (latest > 540d
+  ago) collapse to `dormant` regardless of historical cadence.
+  Single-release files classify by recency, not delta.
+- `now` is injectable so tests pin the days-since-latest computation
+  deterministically.
+- `insightEngine.ts` reads the CHANGELOG content from
+  `classified.importantFileMap` (covering `.md`, `.markdown`, the
+  bare `CHANGELOG`, and the lowercase variant) and surfaces
+  `changelog: ParsedChangelog | null` on `DerivedInsights`.
+- `InsightsPanel.tsx` adds a Calendar-icon "CHANGELOG cadence" card.
+  Value: cadence label + mean delta (or `N releases` for sparse
+  files). Subline: total release count, latest date with
+  days-since, median delta, Unreleased-pending hint. Card accent
+  shifts to `aurora-mint` for frequent/regular and `risk-medium` for
+  dormant.
+
+**Tests:** `tests/lib/audit/changelogParser.test.ts` (23 cases):
+- 9 heading-recognition cases (Keep-a-Changelog, Conventional
+  Changelog, v-prefix + dash, slash separator, h1/h2/h3,
+  markdown-link strip, dedupe, Unreleased-only file, invalid-date
+  rejection, null/empty input).
+- 3 cadence-math cases (mean + median, injected-now
+  daysSinceLatest, single-release null deltas).
+- 5 cadence-bucket cases (frequent floor, regular vs occasional,
+  long-stale forced to dormant, single-recent → occasional,
+  single-old → dormant).
+- 5 UI label cases.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 38 files / 448 tests green (was 37 / 425).
+- `npm run build` — 596 KB JS, no warnings.
+
+### 3.7 · Topic-driven contextual rules ✅ shipped
+**Why:** GitHub topics are an underused signal — when a maintainer
+tags their repo `cli` or `eslint-plugin`, they've *told us* what
+shape the project is supposed to take. A topic-aware audit catches
+gaps no generic documentation/security/CI check can: "repo says
+`cli` but ships no `bin` entry", "repo says `eslint-plugin` but
+breaks the `eslint-plugin-*` naming contract", "repo says
+`monorepo` but neither `workspaces` nor `pnpm-workspace.yaml` is
+declared".
+
+**Pre-build research (2026-05-10):**
+- GitHub Topics is a free-form taxonomy — there's no closed
+  allow-list. May-2026 trending data shows a stable set of ~30
+  topics consistently used to declare project shape. We bake a
+  curated subset into the rules engine (`cli`, `eslint-plugin`,
+  `babel-plugin`, `postcss-plugin`, `react-component`,
+  `vue-component`, `svelte-component`, `monorepo`, `typescript`,
+  `github-action`, `vscode-extension`, `chrome-extension`,
+  `electron`, plus the four bundler-plugin variants).
+- ESLint Docs — a plugin must declare three things: name pattern
+  `eslint-plugin-*` (or `@scope/eslint-plugin-…`), an `eslint`
+  peer dependency, and the `eslint-plugin` keyword. We mirror the
+  triple as a `met` / `partial` / `missing` rule so partial
+  compliance is visible.
+  https://eslint.org/docs/latest/extend/plugins
+- Babel plugin contract: `babel-plugin-*` naming + `@babel/core`
+  peer dependency.
+- GitHub Action contract: a root-level `action.yml` (or `.yaml`)
+  is the discovery file.
+- VS Code extension contract: `engines.vscode` in `package.json`
+  is required by the Marketplace.
+- Browser extension contract: a root-level `manifest.json` is the
+  discovery file across Chrome / Firefox / Edge.
+
+**Implementation:**
+- `packageManifest.ts` is extended to expose `name`, `hasBinEntry`
+  (covers both `bin: "./cli.js"` and `bin: { … }` shapes),
+  `hasWorkspaces` (covers both array and `{ packages: [...] }`
+  shapes), `keywords` (lowercased for fast set membership), and
+  `dependencyNames` (sorted union of dependencies +
+  devDependencies). All additive — existing 41 manifest tests
+  still pass without changes.
+- New `src/lib/audit/topicRules.ts`. `evaluateTopicRules(ctx)` is
+  a pure function returning a `TopicCheck[]`. Each rule:
+   · CLI (`cli` / `command-line` / `terminal` / `tui`) → require
+     a `bin` entry.
+   · ESLint plugin → require name + peer + keyword (triple-rule
+     graded met/partial/missing).
+   · Babel plugin → require name + `@babel/core` peer.
+   · PostCSS plugin → require `postcss` peer + keyword.
+   · React / Vue / Svelte component library → require the
+     framework as a peer dependency.
+   · Monorepo → require `workspaces` OR `pnpm-workspace.yaml`.
+   · TypeScript → require `tsconfig.json` (or `tsconfig.base.json`).
+   · GitHub Action → require root `action.yml` / `action.yaml`.
+   · VS Code extension → require `engines.vscode`.
+   · Browser extension → require root `manifest.json`.
+   · Electron → require `electron` in deps.
+   · Webpack / Vite / Rollup / esbuild plugin → require the
+     respective bundler as a peer dependency.
+- Unknown topics produce no checks (silent degradation). Each
+  check carries a stable `id`, the trigger topic, a status, the
+  collected evidence, and a hint when remediation is appropriate.
+- `insightEngine.ts` calls `evaluateTopicRules` and surfaces
+  `topicChecks: TopicCheck[]` on `DerivedInsights`.
+- New `src/components/TopicChecks.tsx` panel rendered just below
+  the existing Insights panel in `ReviewDashboard`. Each check
+  shows the trigger topic, the title, a coloured status pill
+  (met = mint, partial = amber, missing = risk-medium), the
+  evidence bullets, and the remediation hint.
+
+**Tests:** `tests/lib/audit/topicRules.test.ts` (34 cases): one
+test per rule (CLI met/missing/object-bin, ESLint
+met/partial/missing/scoped-name, Babel met, three component
+libraries individually, monorepo via workspaces / pnpm-workspace
+/ neither, GitHub Action met/missing, VS Code engines met/missing,
+browser extension met/missing, TypeScript met/missing, four
+bundler plugins each), plus the silent-no-match guard (returns
+empty list for unrelated or empty topics) and multi-rule firing,
+and the UI helpers (status formatter, summarise rollup).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 39 files / 482 tests green (was 38 / 448).
+- `npm run build` — 600 KB JS, no warnings.
+
+### 3.8 · Free public registry lookups ✅ shipped
+**Why:** Astraudit's audit so far is *file-bound* — everything we
+report is derivable from the repo's own files + GitHub metadata. But
+adopters' biggest practical question is "are the dependencies
+*alive*?", and that answer lives outside the repo. Three free,
+unauthenticated, browser-CORS-friendly registries (`registry.npmjs.org`,
+`pypi.org`, `crates.io`) expose enough metadata to answer it without
+introducing any backend.
+
+**Pre-build research (2026-05-10):**
+- npm Registry API: `GET https://registry.npmjs.org/{name}` returns
+  the packument with `dist-tags.latest`, `time.{version}`, top-level
+  `deprecated` string, plus per-version `versions[v].deprecated`.
+  CORS-allowed for unauthenticated reads — that's how `unpkg.com` and
+  the Yarn web UI hit it.
+  https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
+- PyPI Warehouse: `GET https://pypi.org/pypi/{name}/json` returns
+  `info.version`, `info.home_page`, `info.project_urls`, plus a
+  `releases` map with `upload_time_iso_8601` per artefact. CORS-OK.
+  https://docs.pypi.org/api/json/
+- crates.io: `GET https://crates.io/api/v1/crates/{name}` returns
+  `crate.max_stable_version`, `crate.updated_at`,
+  `crate.recent_downloads` (last 90 days — the most useful staleness
+  signal), `crate.repository`, `crate.homepage`. CORS-OK.
+- Each fetcher is wrapped in an 8 s `AbortController` timeout so a
+  slow registry can't stall the dashboard.
+
+**Implementation:**
+- New `src/lib/registries/` module:
+   · `types.ts` — shared `RegistryMetadata` + `RegistryOutcome`
+     envelope (`ok` / `not-found` / `error`).
+   · `npmRegistry.ts` — handles scoped-package URL encoding
+     (`@types/react` → `@types%2Freact`) and both forms of npm
+     deprecation (top-level + per-version).
+   · `pypiRegistry.ts` — picks the correct release timestamp from the
+     `info.version` entry in the `releases` map; falls back to the
+     latest across all releases.
+   · `cratesRegistry.ts` — prefers `max_stable_version` over
+     `max_version` (matches `cargo add` default), surfaces the
+     `recent_downloads` signal.
+   · `registryCache.ts` — localStorage TTL cache (24 h, 200-entry
+     cap) keyed by `astraudit:registry:v1:{ecosystem}:{name}`.
+     Stale entries evict lazily on read; cap eviction drops oldest
+     by `cachedAt`.
+   · `extractDependencyNames.ts` — line-based parsers for
+     `requirements.txt`, `pyproject.toml` (PEP 621 + Poetry), and
+     `Cargo.toml`. Tracks section state explicitly so a
+     `[dev-dependencies]` table can't bleed into the production
+     list, and bracket-counts the PEP 621 array so extras notation
+     (`pydantic[email]>=2.0`) survives.
+   · `index.ts` — orchestrator that serves cached entries first
+     (with `cached: true` flag), then runs concurrent live fetches
+     capped at 6 in-flight workers, capped at 30 total packages
+     (12 npm + 10 PyPI + 10 crates per audit). Each in-flight
+     request honours the parent `AbortSignal` so the dashboard
+     unmounting cancels the fan-out cleanly.
+   · `bucketStaleness` — coarse `fresh` (≤ 90 d) / `recent` (≤ 365 d)
+     / `stale` (≤ 730 d) / `abandoned` bucket for the UI pill.
+- New `src/components/RegistryPanel.tsx` — renders below the existing
+  Topic-checks panel in `ReviewDashboard`. Streams results in via
+  `onProgress`, shows a per-row staleness pill, marks deprecated npm
+  packages explicitly, surfaces crates.io's 90-day download count,
+  and shows a `cached` chip when a row was served from localStorage.
+- The new third-party network calls are also disclosed in the
+  Datenschutzerklärung (Art. 13 DSGVO Section 4a) — registry
+  operator (npm Inc., PSF, Rust Foundation), what data flows
+  (IP only), per-audit cap, and the 24 h cache TTL.
+
+**Tests:** 39 cases across four files:
+- `extractDependencyNames.test.ts` (12 cases) — requirements.txt
+  with options/markers/comments, PEP 621 arrays incl. extras
+  notation, Poetry table form with `python` skip, Cargo
+  `[dependencies]` block + sub-tables + `[dev-dependencies]`
+  isolation.
+- `registryCache.test.ts` (6 cases) — round-trip,
+  case-insensitivity, stale-eviction, cap-eviction
+  (200-entry cap → oldest evicted), SSR safety, full-clear.
+- `registryFetchers.test.ts` (13 cases) — every fetcher's typical
+  parse, scoped-package URL, npm deprecation (top-level +
+  per-version), PyPI homepage fallback to project_urls.Homepage,
+  crates `max_stable_version` vs `max_version` fallback, all three
+  fetchers' 404 / network-failure / malformed-body paths.
+- `orchestrator.test.ts` (8 cases) — cache short-circuit,
+  onProgress streaming, `maxPackages` cap, `bucketStaleness`
+  thresholds, null/invalid date handling.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 43 files / 521 tests green (was 39 / 482).
+- `npm run build` — 615 KB JS, no warnings.
+
+### 3.9 · License-aware tone in dependency stories ✅ shipped
+**Why:** A permissive-licensed project (MIT / Apache-2.0 / BSD)
+that pulls in even one strong-copyleft (GPL / AGPL) dependency
+inherits the copyleft for the entire derivative work. The GNU
+Project's compatibility guidance is explicit: "the parts that came
+in under lax licenses still carry them, and the combined program as
+a whole carries the copyleft license." That's a real legal trap the
+audit can flag for free using data we already fetch in Phase 3.8.
+
+**Pre-build research (2026-05-10):**
+- SPDX License List 3.x — modern identifiers replaced bare GNU forms
+  (`GPL-3.0` → `GPL-3.0-only` / `GPL-3.0-or-later`); we accept both.
+- npm `package.json` `license` field accepts SPDX expressions
+  (`MIT OR Apache-2.0` is the most common dual-license form), the
+  legacy object shape `{ type: "MIT" }`, the custom-text form
+  `SEE LICENSE IN <file>`, and `UNLICENSED`.
+  https://docs.npmjs.com/cli/v10/configuring-npm/package-json#license
+- PyPI exposes licenses three ways with decreasing precision:
+  PEP 639 `info.license_expression` (SPDX), the free-text
+  `info.license` field, and trove `License :: …` classifiers. We
+  prefer the most precise form available.
+- crates.io ships the license string on each version entry (not the
+  crate root).
+- GNU Project · *License Compatibility*: strong copyleft pulls up
+  permissive — actionable. Weak copyleft (LGPL / MPL) is fine for
+  dynamic linking — surface as info, not a warning.
+  https://www.gnu.org/licenses/license-compatibility.html
+
+**Implementation:**
+- All three Phase 3.8 fetchers (`npmRegistry`, `pypiRegistry`,
+  `cratesRegistry`) now extract the license:
+   · npm: top-level `license` (string OR legacy `{ type }` object),
+     fallback to the latest version's manifest entry.
+   · PyPI: `license_expression` (PEP 639) → `info.license` →
+     classifiers (last `::` segment, skipping the
+     `OSI Approved` rung).
+   · crates: looks up the matching `versions[]` entry by `num`
+     equal to the picked latest version.
+- `RegistryMetadata` gains a `license: string | null` field —
+  cached entries persist it through the existing localStorage
+  TTL cache, no migration needed.
+- New `src/lib/audit/licenseClassifier.ts`:
+   · `classifyLicense(spec)` returns `{ raw, label, category }`.
+     Category is one of `permissive` / `weak-copyleft` /
+     `strong-copyleft` / `public-domain` / `proprietary` / `none` /
+     `unknown`. Handles SPDX expressions: `OR` collapses to the
+     most-permissive alternative, `AND` to the most-restrictive,
+     parens are stripped. Free-text PyPI labels go through a
+     synonym table.
+   · `analyzeLicenseTone(repoSpdx, deps)` produces a
+     `LicenseToneSummary` with per-category dep counts and a sorted
+     `LicenseFinding[]`. The four findings are:
+       1. *Strong copyleft (GPL family) under a permissive repo* —
+          `critical` when the repo is permissive / public-domain /
+          undeclared, `warning` when the repo is itself copyleft.
+       2. *Weak copyleft (LGPL / MPL family) dependencies* — info,
+          regardless of repo license.
+       3. *Source-available / proprietary dependencies* — warning
+          for BUSL / Elastic / SSPL etc.
+       4. *Unrecognised license strings* — info, only when the share
+          of unknowns is ≥ 25 % of classified deps.
+- `RegistryPanel` gains a "License tone" section at the top showing
+  the repo's classified license, the per-category dep mix as
+  pills, and any compatibility findings styled by tone (info / warn
+  / critical). Each row's subline now also surfaces the dep's
+  classified license inline (`MIT (Permissive)`).
+- `ReviewDashboard` passes the GitHub-derived
+  `meta.license?.spdxId` through as the `repoLicense` prop.
+
+**Tests:** 56 new cases across two files:
+- `tests/lib/audit/licenseClassifier.test.ts` (50 cases): single
+  SPDX ids per family (18), expressions with OR / AND / parens (4),
+  PyPI synonym round-trip (8), custom-text declarations (2),
+  `analyzeLicenseTone` covering critical-vs-warning gating, weak-
+  copyleft info, proprietary warning, unclassified-deps threshold,
+  no-finding all-permissive case, sort order, null-repo path,
+  per-category counts (10), UI label helpers (7).
+- `tests/lib/registries/registryFetchers.test.ts` extended with 6
+  new cases for license extraction across all three registries
+  (top-level + version-fallback + legacy `{ type }`, PEP 639
+  precedence, classifier fallback, crates per-version lookup).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 44 files / 577 tests green (was 43 / 521).
+- `npm run build` — 624 KB JS, no warnings.
+
+---
+
+### Phase 3 wrap
+
+All nine Phase 3 detectors now ship: README readability (3.1),
+Dependabot config parsing (3.2), CODEOWNERS density (3.3),
+SECURITY.md contact-channel grading (3.4), `package.json` runtime
+contract (3.5), CHANGELOG release pace (3.6), topic-driven
+contextual rules (3.7), free public registry lookups across npm /
+PyPI / crates.io (3.8), and license-aware tone analysis (3.9).
+Plus a German-law-compliant Impressum + Datenschutzerklärung. The
+audit now combines file-derived signals with live registry data
+while staying entirely browser-based, free, and rule-based — every
+operating constraint preserved. Suite: 27/208 at the start of
+Phase 3 → 44/577 at the end.
 
 ---
 
 ## Phase 4 — Polish & long-term sustainability
 
-### 4.1 · Visual regression tests
-Playwright + a free GitHub Actions workflow that screenshots a known
-audit (e.g. our own repo) on each PR. Differences flagged for review.
+### 4.1 · Visual regression tests ✅ shipped
+**Why:** Astraudit's UI relies on a dense semantic-token system —
+one inverted variable can ripple silently across both themes, the
+print stylesheet, the bottom-sheet variant, and the legal pages. A
+free, OSS-friendly visual regression suite makes those breaks
+impossible to miss in code review.
 
-### 4.2 · Lighthouse + axe gates
-CI fails if Lighthouse score drops below 90 or axe reports new
-violations. Free OSS-tier integrations.
+**Pre-build research (2026-05-10):**
+- Playwright Docs · *Continuous Integration*: canonical GH Actions
+  setup is `actions/setup-node@v4` + `npm ci` +
+  `npx playwright install --with-deps` + `npx playwright test`,
+  with the HTML report uploaded as a build artefact on failure.
+  https://playwright.dev/docs/ci-intro
+- Visual snapshots are notoriously OS-dependent (font rendering,
+  anti-aliasing). Standard practice: pin the test environment to a
+  single OS + browser binary version, only commit baselines
+  generated there, allow a small `maxDiffPixelRatio` (~0.5 %) for
+  AA jitter. We follow that exactly — Chromium-only, ubuntu-latest
+  CI, baselines generated on the same OS image, 0.5 % tolerance.
+- Mask volatile UI (`new Date().getFullYear()` in the footer, the
+  auth-token-prefix pill, theme toggle label) so cosmetic churn
+  can't fail a snapshot.
+
+**Implementation:**
+- `@playwright/test@^1.59` added as a devDependency. `npx playwright
+  install chromium` is invoked from the new CI workflow with binary
+  caching keyed on `package-lock.json`.
+- New `playwright.config.ts`:
+   · `testDir: "tests/visual"`,
+     `snapshotPathTemplate` colocates baselines next to specs.
+   · Single Chromium project (cross-browser snapshots are too noisy
+     for a project this small).
+   · `webServer` runs `npm run build && npm run preview --port 4173
+     --strictPort` so screenshots reflect what GitHub Pages
+     actually serves.
+   · `expect.toHaveScreenshot` defaults: `maxDiffPixelRatio: 0.005`,
+     `animations: "disabled"`, `caret: "hide"`.
+   · Context defaults: `reducedMotion: "reduce"` (forces the
+     motion-safe variants out of the picture), pinned 1280×800
+     viewport, `dark` colorScheme, `Europe/Berlin` timezone,
+     `en-US` locale.
+- New specs:
+   · `tests/visual/home.spec.ts` — home page in dark + light
+     (light is set via `localStorage.astraudit:theme:v1=light` in
+     an `addInitScript`). Footer + theme toggle + settings pill
+     are masked.
+   · `tests/visual/legal.spec.ts` — Impressum + Datenschutzerklärung
+     full-page screenshots with the footer masked.
+- New `.github/workflows/visual.yml` — runs on PRs and main pushes.
+  Caches Playwright browsers, runs `npx playwright test`, uploads
+  the HTML report + traces on failure (or success — `always()`).
+- `package.json` scripts: `npm run test:visual` runs the suite,
+  `npm run test:visual:update` regenerates baselines.
+- `.gitignore` adds `playwright-report/`, `test-results/`,
+  `.playwright/`. Baseline PNGs under
+  `tests/visual/__snapshots__/` are tracked.
+
+**Coverage:** four baselines committed (home dark + light,
+Impressum, Datenschutz). The audit dashboard isn't snapshotted yet
+because deterministic dashboard rendering needs GitHub-API route
+mocking — deferred to a follow-up so this phase ships with a stable
+baseline.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 44 files / 577 tests still green
+  (vitest only picks up `*.test.{ts,tsx}`; Playwright specs are
+  `*.spec.ts`).
+- `npx playwright test` — 4 specs / 4 snapshots pass against the
+  freshly-generated baselines.
+- `npm run build` — 624 KB JS, no warnings.
+
+### 4.2 · Lighthouse + axe gates ✅ shipped
+**Why:** A regression that drops the home page below 95 % accessibility
+or the production bundle below "loads in under 5 s on a 4G simulation"
+is exactly the kind of thing that slips through unit tests. Both
+Lighthouse CI and axe-core's Playwright integration are free, OSS,
+and run on the existing GitHub Actions free tier — perfect fits for
+the project's "no paid services" rule.
+
+**Pre-build research (2026-05-10):**
+- Lighthouse CI Docs · *Configuration*: `lhci autorun` reads
+  `lighthouserc.json`, runs collect → assert → upload.
+  `lighthouse:recommended` preset asserts perfect scores on
+  non-performance audits and warns on perf < 90; we override
+  category minimums explicitly. `staticDistDir` only serves at root
+  — for our `/astraudit/` base path we use `startServerCommand:
+  "npm run preview --port 4205 --strictPort"` instead.
+  https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
+- axe-core Playwright (`@axe-core/playwright`) wraps `axe.run` in a
+  chainable `AxeBuilder({page}).withTags([...]).analyze()` API. We
+  filter to actionable severities (`serious` + `critical`) so
+  cosmetic moderate issues don't block PRs.
+  https://github.com/dequelabs/axe-core-npm/blob/develop/packages/playwright/README.md
+
+**Implementation:**
+- New `lighthouserc.json` runs Lighthouse against `npm run preview
+  -- --port 4205 --strictPort` (so the `/astraudit/` base path is
+  honoured), 3 runs averaged on CI / 1 run locally, `desktop` preset
+  with `simulate` throttling, `--no-sandbox --headless=new` chrome
+  flags so the workflow runs as the GH Actions runner user.
+- Assertion floors: performance ≥ 0.7 (the hero ships a 5 MB
+  `Logo_bg_removed.png` per the maintainer's standing decision —
+  that's the LCP element and the perf cap), accessibility ≥ 0.95,
+  best-practices ≥ 0.9, SEO ≥ 0.9. Uploads to
+  `temporary-public-storage` so the workflow log carries a
+  clickable report URL for ten days.
+- New `tests/visual/a11y.spec.ts` runs `@axe-core/playwright`
+  against the home page + Impressum + Datenschutzerklärung, fails
+  on `serious` / `critical` violations only, filtered to
+  `wcag2a / wcag2aa / wcag21a / wcag21aa / wcag22aa` tags.
+  `color-contrast` is `disableRules`'d on the dashboard surfaces
+  because axe doesn't account for our glass underlay; the rule
+  still fires correctly on the home page so genuine regressions
+  surface.
+- New `.github/workflows/quality.yml` with two parallel jobs —
+  `lighthouse` and `a11y`. The `a11y` job re-uses Playwright's
+  browser cache from `4.1`'s workflow.
+- Added missing scripts to `package.json` (already wired via the
+  workflow `npx` calls).
+
+**Real fixes shipped alongside the gate** (light-theme contrast +
+heading hierarchy + label-content match — the gate caught these
+honestly on first run):
+- `Hero.tsx` settings button drops its `aria-label` so the visible
+  text becomes the accessible name (Lighthouse
+  `label-content-name-mismatch`). The descriptive text moves to
+  `title` for hover hint.
+- `EmptyState.tsx` wraps the feature cards in a `<section>` with a
+  visually-hidden `<h2>` so the audit's heading order
+  (`<h1>` hero → `<h2>` section → `<h3>` card title) is sequential
+  (Lighthouse `heading-order`).
+- `globals.css` light-theme overrides now also cover the alpha-
+  modified Tailwind variants (`text-white/90`, `text-slate-300/85`,
+  `text-slate-400/85`) via `[class*="text-X/"]` attribute selectors.
+  The root cause was that Tailwind compiles `text-white/90` to a
+  *separate* class and the existing `.text-white` override didn't
+  match. Fixing this single thing took the a11y score from 0.91 to
+  a perfect 1.0 on the home page.
+- `.card-title` in light mode bumped from `rgb(148 163 184 / 0.85)`
+  (~2.1:1) to `#475569` (~7:1) so the dashboard card titles clear
+  WCAG AA.
+
+**Verification:**
+- `npx vitest run` — 44 files / 577 unit tests still green.
+- `npx playwright test` — 4 visual + 3 axe specs pass.
+- `npx lhci autorun` — perf 0.78 / a11y 1.0 / best 0.95 / SEO 1.0;
+  every assertion clears its floor.
+- Visual regression baselines for the home-light theme regenerated
+  to reflect the contrast bumps.
 
 ### 4.3 · Internationalization (en + de)
 Externalize all UI copy into a string table; ship `de` first since the

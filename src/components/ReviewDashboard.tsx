@@ -22,6 +22,8 @@ import { SecurityPanel } from "./SecurityPanel";
 import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
+import { TopicChecks } from "./TopicChecks";
+import { RegistryPanel } from "./RegistryPanel";
 import { CopyButton } from "./CopyButton";
 import { OnboardingPanel } from "./OnboardingPanel";
 import { PrintButton } from "./PrintButton";
@@ -207,6 +209,12 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
 
       <section id="insights">
         <InsightsPanel insights={result.insights} stack={result.stack} />
+        <TopicChecks checks={result.insights.topicChecks} />
+        <RegistryPanel
+          manifest={result.insights.manifest}
+          importantFiles={result.bundle.importantFiles}
+          repoLicense={result.bundle.metadata.license?.spdxId ?? null}
+        />
       </section>
 
       <section id="graph">

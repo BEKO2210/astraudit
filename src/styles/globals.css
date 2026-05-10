@@ -656,16 +656,39 @@ html[data-theme="light"] .glass-strong {
     0 16px 40px -16px rgba(15, 23, 42, 0.16) !important;
 }
 
-/* Text token remap. */
+/* Text token remap. The alpha-modified variants (`text-white/90`,
+   `text-slate-300/85`, …) compile to a Tailwind class containing a
+   literal slash; the DOM class attribute is just `text-white/90` so
+   the attribute selector uses a single forward slash, NOT an
+   escaped one. Without these, Lighthouse + axe both flag the hero
+   wordmark and subtitle as failing 4.5:1 contrast against the
+   near-white surface. */
 html[data-theme="light"] .text-white,
 html[data-theme="light"] .text-slate-100,
-html[data-theme="light"] .text-slate-200 {
+html[data-theme="light"] .text-slate-200,
+html[data-theme="light"] [class*="text-white/"] {
   color: #0f172a !important;
 }
-html[data-theme="light"] .text-slate-300 { color: #1f2937 !important; }
-html[data-theme="light"] .text-slate-400 { color: #475569 !important; }
-html[data-theme="light"] .text-slate-500 { color: #64748b !important; }
-html[data-theme="light"] .text-slate-600 { color: #94a3b8 !important; }
+html[data-theme="light"] .text-slate-300,
+html[data-theme="light"] [class*="text-slate-300/"] {
+  color: #1f2937 !important;
+}
+html[data-theme="light"] .text-slate-400,
+html[data-theme="light"] [class*="text-slate-400/"] {
+  color: #334155 !important;
+}
+html[data-theme="light"] .text-slate-500,
+html[data-theme="light"] [class*="text-slate-500/"] {
+  color: #475569 !important;
+}
+html[data-theme="light"] .text-slate-600 { color: #64748b !important; }
+
+/* The `.card-title` class uses `rgb(148 163 184 / 0.85)` which lands
+   at #a3b0c2 on a near-white surface — fails 4.5:1 (Lighthouse
+   `color-contrast`). Bump it to a darker slate in light mode. */
+html[data-theme="light"] .card-title {
+  color: #475569 !important;
+}
 
 html[data-theme="light"] .text-aurora-mint { color: #047857 !important; }
 html[data-theme="light"] .text-aurora-cyan { color: #0e7490 !important; }

@@ -14,3 +14,13 @@ coverage
 .audit-cache
 audit-results.log
 
+# Phase 4.1 — Playwright artefacts. Snapshots themselves are
+# committed under tests/visual/__snapshots__/; reports + traces +
+# test-results are ephemeral CI output.
+playwright-report
+test-results
+.playwright
+
+# Phase 4.2 — Lighthouse CI dumps reports + manifest into this dir.
+.lighthouseci
+

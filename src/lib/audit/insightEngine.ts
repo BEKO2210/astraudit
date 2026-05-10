@@ -8,6 +8,10 @@ import type { SecuritySignals } from "./securityDetector";
 import type { ParsedDependabot } from "./dependabotParser";
 import type { ParsedCodeowners } from "./codeownersParser";
 import type { ParsedSecurityPolicy } from "./securityPolicyParser";
+import type { DependencySignals } from "./dependencyDetector";
+import type { ParsedManifest } from "./packageManifest";
+import { evaluateTopicRules, type TopicCheck } from "./topicRules";
+import { parseChangelog, type ParsedChangelog } from "./changelogParser";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -116,6 +120,27 @@ export interface DerivedInsights {
    * grade. Null when the file is absent or empty. Phase 3.4.
    */
   securityPolicy: ParsedSecurityPolicy | null;
+  /**
+   * Parsed package.json runtime contract — engines, peerDependencies,
+   * packageManager pin, module type. Null when the file is absent or
+   * unparseable. Phase 3.5.
+   */
+  manifest: ParsedManifest | null;
+  /**
+   * Parsed CHANGELOG release pace — releases (oldest→newest), mean +
+   * median delta, days-since-latest, and a cadence bucket. Independent
+   * of GitHub Releases (the API source on `releases` above). Null when
+   * no CHANGELOG with dated headings is present. Phase 3.6.
+   */
+  changelog: ParsedChangelog | null;
+  /**
+   * Topic-driven contextual checks. Each entry is a focused
+   * "what the topic implies" rule against the repo (CLI → bin entry,
+   * eslint-plugin → contract triple, monorepo → workspace config,
+   * etc.). Empty array when no recognised topics fire any rule.
+   * Phase 3.7.
+   */
+  topicChecks: TopicCheck[];
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -498,10 +523,11 @@ interface InsightsContext {
   stack: StackSignals;
   maintenance: MaintenanceSignals;
   security: SecuritySignals;
+  deps: DependencySignals;
 }
 
 export function deriveInsights(ctx: InsightsContext): DerivedInsights {
-  const { bundle, classified, readme, ci, stack, maintenance, security } = ctx;
+  const { bundle, classified, readme, ci, stack, maintenance, security, deps } = ctx;
   const meta = bundle.metadata;
 
   const ageDays =
@@ -544,6 +570,20 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
   const readmeMetrics = analyzeReadmeMetrics(readme, readmeContent);
   const commits = analyzeCommits(bundle.recentCommits);
   const releases = analyzeReleases(bundle.releases);
+
+  // CHANGELOG cadence is computed file-side (independent of the
+  // GitHub Releases API surfaced on `releases` above). Some projects
+  // ship a CHANGELOG without ever cutting a Release, and the gap
+  // between the two is itself a useful signal.
+  const changelogFile =
+    classified.importantFileMap.get("CHANGELOG.md") ??
+    classified.importantFileMap.get("CHANGELOG.markdown") ??
+    classified.importantFileMap.get("CHANGELOG") ??
+    classified.importantFileMap.get("changelog.md") ??
+    null;
+  const changelog = changelogFile?.content
+    ? parseChangelog(changelogFile.content)
+    : null;
   const workflows = analyzeWorkflows(ci);
   workflows.hasDependabot = !!classified.hasFile(
     ".github/dependabot.yml",
@@ -598,6 +638,14 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     dependabot: security.dependabotConfig,
     codeowners: security.codeownersConfig,
     securityPolicy: security.securityPolicy,
+    manifest: deps.manifest,
+    changelog,
+    topicChecks: evaluateTopicRules({
+      topics: meta.topics,
+      manifest: deps.manifest,
+      classified,
+      stack,
+    }),
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
