@@ -64,9 +64,9 @@ export function buildFindings(ctx: RiskContext): Finding[] {
       id: id("suspicious"),
       title: "Potentially sensitive filename detected",
       category: "security",
-      severity: "high",
+      severity: "medium",
       description:
-        "One or more filenames match patterns commonly associated with secrets or credentials. This is a filename match, not a content scan.",
+        "One or more filenames match patterns commonly associated with secrets or credentials. This is a filename match, not a content scan, and may be a false positive.",
       evidence: ctx.security.suspiciousFiles.slice(0, 6).join(", "),
       recommendation:
         "Verify each file. If it does contain secrets, remove from history, rotate, and update .gitignore.",

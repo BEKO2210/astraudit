@@ -21,7 +21,13 @@ function describeProject(ctx: StoryContext): string {
     stack.frameworks.length > 0
       ? ` using ${stack.frameworks.slice(0, 3).join(", ")}`
       : "";
-  const runtimeStr = stack.runtime ? ` on ${stack.runtime}` : "";
+  const langLower = stack.language?.toLowerCase() ?? "";
+  const runtimeLower = stack.runtime?.toLowerCase() ?? "";
+  const runtimeMirrorsLanguage =
+    !!runtimeLower &&
+    (runtimeLower === langLower || runtimeLower.startsWith(`${langLower} `));
+  const runtimeStr =
+    stack.runtime && !runtimeMirrorsLanguage ? ` running on ${stack.runtime}` : "";
   parts.push(
     `This appears to be a ${langStr} project${frameworkStr}${runtimeStr}.`,
   );
