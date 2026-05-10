@@ -31,12 +31,35 @@ function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
+function isNodeProcess(): boolean {
+  return (
+    typeof process !== "undefined" &&
+    process != null &&
+    typeof process.env === "object"
+  );
+}
+
+/**
+ * Reads the active GitHub token.
+ *
+ * Browser path (SPA): pulled once from `localStorage`, cached on the
+ * module. `saveToken()` / `clearToken()` keep the cache in sync.
+ *
+ * Node path (CLI / MCP server): read from `process.env.GITHUB_TOKEN`
+ * or `process.env.GH_TOKEN` on EVERY call so the MCP server can
+ * scope a token per-tool-invocation without restarting the process.
+ * Not cached. Returns `null` when neither env var is set.
+ */
 export function loadToken(): string | null {
-  if (cachedToken !== undefined) return cachedToken;
   if (!isBrowser()) {
-    cachedToken = null;
+    if (isNodeProcess()) {
+      const fromEnv =
+        process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
+      return fromEnv.length > 0 ? fromEnv : null;
+    }
     return null;
   }
+  if (cachedToken !== undefined) return cachedToken;
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     cachedToken = v && v.length > 0 ? v : null;

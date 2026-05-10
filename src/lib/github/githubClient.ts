@@ -3,9 +3,20 @@ import { isGithubUrl, loadToken } from "../auth/tokenStore";
 const GITHUB_API = "https://api.github.com";
 const GITHUB_RAW = "https://raw.githubusercontent.com";
 
-function withAuthHeader(headers: Record<string, string>, url: string): Record<string, string> {
+/**
+ * Optional per-call token override. The browser path (SPA) leaves
+ * this undefined and `loadToken()` reads from localStorage; the
+ * Node path (CLI / MCP server) passes the token through `ApiOptions`
+ * so each fetch carries the right credential without ever mutating
+ * a process-global. See `bin/mcp-server.ts` for the consumer.
+ */
+function withAuthHeader(
+  headers: Record<string, string>,
+  url: string,
+  tokenOverride?: string | null,
+): Record<string, string> {
   if (!isGithubUrl(url)) return headers;
-  const token = loadToken();
+  const token = tokenOverride ?? loadToken();
   if (!token) return headers;
   if (headers.Authorization || headers.authorization) return headers;
   return { ...headers, Authorization: `Bearer ${token}` };
@@ -61,6 +72,13 @@ export class TooLargeError extends GithubError {
 export interface ApiOptions {
   acceptRaw?: boolean;
   signal?: AbortSignal;
+  /**
+   * Optional GitHub PAT to authenticate this specific request.
+   * When undefined the browser path falls back to `loadToken()`
+   * (localStorage); the MCP / CLI paths pass the token explicitly
+   * so concurrent invocations stay isolated.
+   */
+  tokenOverride?: string | null;
 }
 
 async function readBody(response: Response, raw: boolean): Promise<unknown> {
@@ -87,7 +105,7 @@ export async function githubFetch<T>(
       : "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
-  const headers = withAuthHeader(baseHeaders, url);
+  const headers = withAuthHeader(baseHeaders, url, options.tokenOverride);
 
   let response: Response;
   try {
@@ -115,7 +133,7 @@ export async function githubFetch<T>(
           resetAtSeconds && Number.isFinite(resetAtSeconds)
             ? resetAtSeconds
             : null,
-        unauthenticated: !loadToken(),
+        unauthenticated: !(options.tokenOverride ?? loadToken()),
       });
     }
     throw new GithubError(
@@ -159,10 +177,11 @@ export async function fetchRawFile(
   branch: string,
   path: string,
   signal?: AbortSignal,
+  tokenOverride?: string | null,
 ): Promise<string | null> {
   const url = `${GITHUB_RAW}/${owner}/${repo}/${branch}/${path}`;
   try {
-    const headers = withAuthHeader({}, url);
+    const headers = withAuthHeader({}, url, tokenOverride);
     const response = await fetch(url, { signal, headers });
     if (!response.ok) return null;
     return await response.text();

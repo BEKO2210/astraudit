@@ -32,6 +32,15 @@ export function Footer() {
         </a>
         <span className="text-slate-700">·</span>
         <a
+          href="https://github.com/BEKO2210/astraudit/blob/main/docs/mcp.md"
+          target="_blank"
+          rel="noreferrer"
+          className="text-slate-500 transition hover:text-aurora-cyan hover:underline"
+        >
+          Use from your AI
+        </a>
+        <span className="text-slate-700">·</span>
+        <a
           href={`${base}#/impressum`}
           className="text-slate-500 transition hover:text-aurora-cyan hover:underline"
         >
