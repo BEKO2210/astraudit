@@ -49,13 +49,52 @@ const FOCUSABLE_SELECTOR = [
 ].join(",");
 
 let openDialogCount = 0;
-let savedBodyOverflow: string | null = null;
+let savedBodyStyles: {
+  overflow: string;
+  position: string;
+  top: string;
+  width: string;
+  scrollY: number;
+} | null = null;
 
+/**
+ * Phase 5.x bugfix — body lock for iOS Safari + Android Chrome.
+ *
+ * `document.body.style.overflow = "hidden"` is what every desktop
+ * tutorial recommends, and it works flawlessly on Chrome/Firefox
+ * desktop. iOS Safari and Android Chrome's touch event pipeline,
+ * however, doesn't always honour it — touch-drag inside a modal
+ * frequently bubbles up and scrolls the body anyway, AND the
+ * overlay's own `overflow-y-auto` stops responding because iOS
+ * thinks the body is the only scrollable element.
+ *
+ * The robust workaround (used by react-modal, headlessui, radix):
+ * pin the body to the current scroll position with
+ * `position: fixed; top: -<scrollY>; width: 100%`. That genuinely
+ * freezes the page (no chaining), and we restore the scroll
+ * position on close so the user lands exactly where they were.
+ *
+ * The maintainer screenshot bug: opening the badge dialog on a
+ * phone made the popup un-scrollable AND let the page underneath
+ * scroll instead. Both symptoms have the same root cause —
+ * iOS dropping the overflow:hidden contract under touch.
+ */
 function lockBodyScroll(): void {
   if (typeof document === "undefined") return;
   if (openDialogCount === 0) {
-    savedBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    const body = document.body;
+    savedBodyStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      scrollY,
+    };
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
   }
   openDialogCount += 1;
 }
@@ -63,9 +102,20 @@ function lockBodyScroll(): void {
 function unlockBodyScroll(): void {
   if (typeof document === "undefined") return;
   openDialogCount = Math.max(0, openDialogCount - 1);
-  if (openDialogCount === 0) {
-    document.body.style.overflow = savedBodyOverflow ?? "";
-    savedBodyOverflow = null;
+  if (openDialogCount === 0 && savedBodyStyles) {
+    const body = document.body;
+    const { overflow, position, top, width, scrollY } = savedBodyStyles;
+    body.style.overflow = overflow;
+    body.style.position = position;
+    body.style.top = top;
+    body.style.width = width;
+    // Restore scroll AFTER the styles flip so the browser doesn't
+    // clamp scrollTop to the (now-tall again) document. Using the
+    // legacy two-argument form (always synchronous and instant)
+    // because some browsers ignore `behavior: "instant"` and fall
+    // back to smooth, which races with focus-restore.
+    window.scrollTo(0, scrollY);
+    savedBodyStyles = null;
   }
 }
 

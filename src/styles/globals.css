@@ -718,6 +718,19 @@ html[data-theme="light"] .glass-strong {
     0 16px 40px -16px rgba(15, 23, 42, 0.16) !important;
 }
 
+/* Dialog scroll containment — Phase 5.x mobile bugfix.
+
+   Every modal in Astraudit uses the `role="dialog"` attribute (the
+   same anchor the print stylesheet uses to hide them on paper).
+   Adding `overscroll-behavior: contain` here keeps a touch swipe
+   that exhausts the dialog's own scroll from chaining up to the
+   page underneath. Combined with the position:fixed body lock in
+   useDialog.ts, this kills the "background scrolls when I swipe
+   inside the popup" bug on iOS / Android touch devices. */
+[role="dialog"] {
+  overscroll-behavior: contain;
+}
+
 /* SpeedDialFAB tokens — Phase 5.12 follow-up bugfix.
 
    Two surfaces inside the FAB use `text-white` intentionally on a
@@ -995,6 +1008,13 @@ html[data-theme="light"] select option {
        the device's safe-area padding on top. */
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
+    /* Phase 5.x bugfix — without `overscroll-behavior: contain`,
+       scrolling past the top or bottom of the sheet on iOS Safari
+       chains up to the body, which lets the page underneath scroll
+       (the maintainer screenshot bug — "der Hintergrund scrollt").
+       `contain` keeps the touch stream inside this scrollable
+       region. */
+    overscroll-behavior: contain;
     /* iOS Safari momentum scrolling. */
     -webkit-overflow-scrolling: touch;
   }

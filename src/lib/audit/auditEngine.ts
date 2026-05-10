@@ -94,7 +94,7 @@ export function runAudit(
 
   const score = totalScore(categories);
   const grade = gradeFromScore(score);
-  const verdict = buildVerdict(score, grade);
+  const verdict = buildVerdict(score, grade, categories);
 
   emit("graph");
   const graph = buildGraph({

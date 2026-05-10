@@ -479,12 +479,20 @@ function bucketTriage(openIssues: number, openPRs: number | null, stars: number)
 }
 
 function describeAudience(stars: number, ageDays: number | null): string {
+  // Phase 5.x bugfix — the headline composes audienceLabel with a
+  // separate age clause ("recently published"). Returning "newly
+  // published project" here used to produce "for a recently
+  // published, recently active newly published project" — the same
+  // age signal stated twice. Audience is now strictly about
+  // popularity / footprint; age stays the responsibility of the
+  // ageClause in copyEngine. We also need to differentiate "no
+  // stars but established" from "no stars and brand-new".
+  void ageDays;
   if (stars >= 100_000) return "household-name OSS project";
   if (stars >= 25_000) return "category-leading OSS project";
   if (stars >= 5_000) return "well-known OSS project";
   if (stars >= 1_000) return "popular community project";
   if (stars >= 100) return "growing community project";
-  if (ageDays !== null && ageDays < 60) return "newly published project";
   return "small or niche project";
 }
 

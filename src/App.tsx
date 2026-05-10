@@ -17,7 +17,7 @@ import { ToastHost } from "./components/ToastHost";
 import { Impressum } from "./components/legal/Impressum";
 import { Datenschutzerklaerung } from "./components/legal/Datenschutzerklaerung";
 import { RuleBook } from "./components/legal/RuleBook";
-import { readBundle, writeBundle } from "./lib/cache/auditCache";
+import { readBundle, removeBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
 import { buildCommands } from "./lib/commands/buildCommands";
@@ -202,7 +202,10 @@ export default function App() {
   }, []);
 
   const startAudit = useCallback(
-    async (rawInput: string, options: { fromHash?: boolean } = {}) => {
+    async (
+      rawInput: string,
+      options: { fromHash?: boolean; forceFresh?: boolean } = {},
+    ) => {
       const parsed = parseRepoInput(rawInput);
       if (!parsed.ok || !parsed.coords) {
         setValidationError(parsed.error ?? "Invalid input.");
@@ -224,7 +227,16 @@ export default function App() {
       const repoLabel = `${parsed.coords.owner}/${parsed.coords.repo}`;
       setState({ kind: "fetching", repoLabel, step: "metadata" });
 
-      let bundle: RepoBundle | null = readBundle(parsed.coords);
+      // forceFresh: caller wants a brand-new fetch (e.g. user clicked
+      // "Re-audit" because a deploy went out and the cached bundle is
+      // 12h stale). Drop the cached entry first so the fetch path
+      // doesn't fall back into the early-return below.
+      if (options.forceFresh) {
+        removeBundle(parsed.coords);
+      }
+      let bundle: RepoBundle | null = options.forceFresh
+        ? null
+        : readBundle(parsed.coords);
       if (bundle) {
         // Cache hit — skip the network entirely. Move straight to auditing.
         setState({ kind: "auditing", repoLabel, step: "metadata" });
@@ -637,6 +649,13 @@ export default function App() {
         <ReviewDashboard
           result={state.result}
           onOpenCompare={openCompare}
+          onReaudit={() => {
+            const r = state.result;
+            void startAudit(
+              `${r.bundle.metadata.owner.login}/${r.bundle.metadata.name}`,
+              { forceFresh: true },
+            );
+          }}
         />
       ) : null}
 
