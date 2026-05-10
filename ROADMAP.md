@@ -20,12 +20,17 @@ require violating any of them, we drop it instead of compromising.
 Low risk, high value. Most of these are improvements to detection
 accuracy and basic UX polish.
 
-### 1.1 · Optional user-provided GitHub PAT (localStorage only)
+### 1.1 · Optional user-provided GitHub PAT (localStorage only) ✅ shipped
 Today every visitor shares the per-IP **60 req/h** unauthenticated
 limit. A small "Settings" dialog lets a user paste their own
 **read-only** PAT. The token lives in `localStorage` only and is sent
-exclusively to `api.github.com`. Their browser jumps to **5,000 req/h**
-without Astraudit ever seeing the token.
+exclusively to `api.github.com` and `raw.githubusercontent.com` (host
+allow-list enforced in `src/lib/auth/tokenStore.ts`). Their browser
+jumps to **5,000 req/h** without Astraudit ever seeing the token.
+
+The dialog also runs a live `/rate_limit` probe so the user can confirm
+the token works and watch the remaining budget in real time, plus a
+one-click "Remove token" path.
 
 ### 1.2 · localStorage audit cache
 Cache full audit results keyed by `owner/repo + default-branch SHA`

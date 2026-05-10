@@ -1,5 +1,15 @@
+import { isGithubUrl, loadToken } from "../auth/tokenStore";
+
 const GITHUB_API = "https://api.github.com";
 const GITHUB_RAW = "https://raw.githubusercontent.com";
+
+function withAuthHeader(headers: Record<string, string>, url: string): Record<string, string> {
+  if (!isGithubUrl(url)) return headers;
+  const token = loadToken();
+  if (!token) return headers;
+  if (headers.Authorization || headers.authorization) return headers;
+  return { ...headers, Authorization: `Bearer ${token}` };
+}
 
 export class GithubError extends Error {
   status: number;
@@ -54,12 +64,13 @@ export async function githubFetch<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const url = path.startsWith("http") ? path : `${GITHUB_API}${path}`;
-  const headers: Record<string, string> = {
+  const baseHeaders: Record<string, string> = {
     Accept: options.acceptRaw
       ? "application/vnd.github.raw"
       : "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
+  const headers = withAuthHeader(baseHeaders, url);
 
   let response: Response;
   try {
@@ -126,11 +137,54 @@ export async function fetchRawFile(
 ): Promise<string | null> {
   const url = `${GITHUB_RAW}/${owner}/${repo}/${branch}/${path}`;
   try {
-    const response = await fetch(url, { signal });
+    const headers = withAuthHeader({}, url);
+    const response = await fetch(url, { signal, headers });
     if (!response.ok) return null;
     return await response.text();
   } catch (err) {
     if ((err as Error).name === "AbortError") throw err;
+    return null;
+  }
+}
+
+/**
+ * Probe-only call: ask api.github.com for the rate-limit status. Useful
+ * for the Settings dialog to confirm a token is valid. Returns null on
+ * any error so the UI can stay calm.
+ */
+export interface RateLimitProbe {
+  limit: number;
+  remaining: number;
+  used: number;
+  resetSeconds: number;
+  authenticated: boolean;
+}
+
+export async function probeRateLimit(): Promise<RateLimitProbe | null> {
+  try {
+    const headers = withAuthHeader(
+      {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      `${GITHUB_API}/rate_limit`,
+    );
+    const response = await fetch(`${GITHUB_API}/rate_limit`, { headers });
+    if (!response.ok) return null;
+    const json = (await response.json()) as {
+      resources?: { core?: { limit: number; remaining: number; used: number; reset: number } };
+    };
+    const core = json.resources?.core;
+    if (!core) return null;
+    const now = Math.floor(Date.now() / 1000);
+    return {
+      limit: core.limit,
+      remaining: core.remaining,
+      used: core.used,
+      resetSeconds: Math.max(0, core.reset - now),
+      authenticated: core.limit > 60,
+    };
+  } catch {
     return null;
   }
 }

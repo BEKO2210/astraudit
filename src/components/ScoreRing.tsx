@@ -55,12 +55,16 @@ export function ScoreRing({ score, max, grade }: ScoreRingProps) {
           style={{ transition: "stroke-dasharray 600ms ease" }}
         />
       </svg>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+      <div className="pointer-events-none absolute inset-0">
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[2.6rem] text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
           Score
         </span>
-        <span className="mt-1 text-5xl font-semibold text-white">{score}</span>
-        <span className="text-xs text-slate-500">/ {max}</span>
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-semibold leading-none text-white tabular-nums">
+          {score}
+        </span>
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[1.6rem] text-[11px] text-slate-500">
+          / {max}
+        </span>
       </div>
       <div
         className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"

@@ -1,20 +1,63 @@
-import { ShieldCheck, Sparkles, Workflow } from "lucide-react";
+import { Settings, ShieldCheck, Sparkles, Workflow, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
 
-export function Hero() {
+interface HeroProps {
+  onOpenSettings: () => void;
+  /** A tick that bumps whenever the token changes — re-renders the badge. */
+  authTick: number;
+}
+
+export function Hero({ onOpenSettings, authTick }: HeroProps) {
+  const [hasToken, setHasToken] = useState(false);
+  const [prefix, setPrefix] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHasToken(!!loadToken());
+    setPrefix(loadTokenMeta()?.prefix ?? null);
+  }, [authTick]);
+
   return (
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
-      <div className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-violet/40 to-aurora-mint/30 border border-white/10">
-          <Sparkles className="h-4 w-4 text-white" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-violet/40 to-aurora-mint/30 border border-white/10">
+            <Sparkles className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold tracking-wider text-white/90">
+              Astraudit
+            </p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+              Repository intelligence
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold tracking-wider text-white/90">
-            Astraudit
-          </p>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-            Repository intelligence
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+            hasToken
+              ? "border-aurora-mint/40 bg-aurora-mint/10 text-aurora-mint hover:bg-aurora-mint/20"
+              : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"
+          }`}
+          aria-label="Open settings"
+        >
+          {hasToken ? (
+            <>
+              <Zap className="h-3 w-3" />
+              <span className="hidden sm:inline">Auth · 5k/h</span>
+              <span className="sm:hidden">Auth</span>
+              {prefix ? <span className="font-mono">{prefix}…</span> : null}
+            </>
+          ) : (
+            <>
+              <Settings className="h-3 w-3" />
+              <span className="hidden sm:inline">Settings · public 60/h</span>
+              <span className="sm:hidden">Settings</span>
+            </>
+          )}
+        </button>
       </div>
 
       <div className="mt-10 max-w-3xl">
@@ -45,7 +88,9 @@ export function Hero() {
           <ShieldCheck className="h-3.5 w-3.5 text-aurora-mint" />
           Public repos only
         </span>
-        <span className="pill">No tokens · No secrets</span>
+        <span className="pill">
+          {hasToken ? "Local PAT · stays in your browser" : "Optional PAT · stored only locally"}
+        </span>
       </div>
     </header>
   );
