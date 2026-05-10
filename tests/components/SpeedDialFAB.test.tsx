@@ -67,4 +67,39 @@ describe("<SpeedDialFAB />", () => {
     expect(html).toContain("sm:hidden");
     expect(html).toContain("print:hidden");
   });
+
+  it("uses .fab-main-text on the main FAB so the icon stays white in light mode", () => {
+    // Maintainer screenshot bug: the broad light-theme `.text-white`
+    // remap was turning the Plus/X icon into near-black on the
+    // violet/blue gradient. The .fab-main-text token wins specificity.
+    const html = renderToStaticMarkup(<SpeedDialFAB actions={actions} />);
+    expect(html).toContain("fab-main-text");
+  });
+
+  it("uses .fab-mini-default for actions without a custom toneClass", () => {
+    // Same screenshot bug: the default fallback used `bg-ink-800/95
+    // text-white` which rendered as dark-on-dark in light mode.
+    const html = renderToStaticMarkup(<SpeedDialFAB actions={actions} />);
+    expect(html).toContain("fab-mini-default");
+  });
+
+  it("respects a custom toneClass and skips the default fallback", () => {
+    const tonedActions = [
+      {
+        id: "compare",
+        label: "Compare",
+        icon: Share2,
+        onClick: () => {},
+        toneClass: "bg-aurora-cyan/15 text-aurora-cyan border-aurora-cyan/40",
+      },
+    ];
+    const html = renderToStaticMarkup(<SpeedDialFAB actions={tonedActions} />);
+    expect(html).toContain("text-aurora-cyan");
+    expect(html).not.toContain("fab-mini-default");
+  });
+
+  it("uses an env(safe-area-inset-bottom) anchor so the FAB clears the iOS home indicator", () => {
+    const html = renderToStaticMarkup(<SpeedDialFAB actions={actions} />);
+    expect(html).toMatch(/safe-area-inset-bottom/);
+  });
 });
