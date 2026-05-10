@@ -11,3 +11,6 @@ dist-ssr
 coverage
 .tsbuildinfo
 *.tsbuildinfo
+.audit-cache
+audit-results.log
+

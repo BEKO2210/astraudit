@@ -1,3 +1,7 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
+
 import { loadRepoBundle, GithubError, NotFoundError, RateLimitError } from "../src/lib/github/index";
 import { runAudit } from "../src/lib/audit/auditEngine";
 import { parseRepoInput } from "../src/lib/github/parseRepoInput";
@@ -15,22 +19,90 @@ const REPOS = [
   "nodejs/node",
 ];
 
+const CACHE_DIR = join(process.cwd(), ".audit-cache");
+if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true });
+
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
-if (TOKEN) {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = ((input: RequestInfo | URL, init: RequestInit = {}) => {
-    const url = typeof input === "string" ? input : input.toString();
-    if (url.includes("api.github.com") || url.includes("raw.githubusercontent.com")) {
-      const headers = new Headers(init.headers ?? {});
-      if (!headers.has("Authorization")) {
-        headers.set("Authorization", `Bearer ${TOKEN}`);
-      }
-      return originalFetch(input, { ...init, headers });
-    }
-    return originalFetch(input, init);
-  }) as typeof fetch;
-  console.log("Using GITHUB_TOKEN for authenticated requests.\n");
+
+const cacheKey = (url: string, accept: string): string => {
+  return createHash("sha1").update(`${accept}::${url}`).digest("hex");
+};
+
+const cachePath = (key: string) => join(CACHE_DIR, `${key}.json`);
+
+interface CachedResponse {
+  status: number;
+  ok: boolean;
+  body: string;
+  headers: Record<string, string>;
 }
+
+function readCache(url: string, accept: string): CachedResponse | null {
+  const p = cachePath(cacheKey(url, accept));
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, "utf8")) as CachedResponse;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(
+  url: string,
+  accept: string,
+  resp: CachedResponse,
+): void {
+  const p = cachePath(cacheKey(url, accept));
+  mkdirSync(dirname(p), { recursive: true });
+  writeFileSync(p, JSON.stringify(resp), "utf8");
+}
+
+const originalFetch = globalThis.fetch;
+let cacheHits = 0;
+let cacheMisses = 0;
+
+globalThis.fetch = (async (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const url = typeof input === "string" ? input : input.toString();
+  const githubUrl =
+    url.includes("api.github.com") || url.includes("raw.githubusercontent.com");
+  const headers = new Headers(init.headers ?? {});
+  const accept = headers.get("Accept") ?? "default";
+
+  if (githubUrl) {
+    const cached = readCache(url, accept);
+    if (cached) {
+      cacheHits += 1;
+      return new Response(cached.body, {
+        status: cached.status,
+        headers: cached.headers,
+      });
+    }
+    cacheMisses += 1;
+    if (TOKEN && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${TOKEN}`);
+    }
+    if (!headers.has("User-Agent")) {
+      headers.set("User-Agent", "astraudit-tester/1.0");
+    }
+  }
+
+  const response = await originalFetch(input, { ...init, headers });
+
+  if (githubUrl && response.ok) {
+    const headerObj: Record<string, string> = {};
+    response.headers.forEach((v, k) => (headerObj[k] = v));
+    const cloned = response.clone();
+    const body = await cloned.text();
+    writeCache(url, accept, {
+      status: response.status,
+      ok: response.ok,
+      body,
+      headers: headerObj,
+    });
+  }
+
+  return response;
+}) as typeof fetch;
 
 interface Row {
   repo: string;
@@ -47,6 +119,8 @@ interface Row {
   weakest?: string;
   durationMs?: number;
   error?: string;
+  recommendations?: string[];
+  story?: string;
 }
 
 const PAD = (s: string, len: number) =>
@@ -70,6 +144,9 @@ async function auditOne(input: string): Promise<Row> {
     );
     const top = sorted[0];
     const weakest = sorted[sorted.length - 1];
+    const projectStory = result.story.find((s) =>
+      s.heading.includes("appears to be"),
+    );
     return {
       repo: bundle.metadata.fullName,
       ok: true,
@@ -84,6 +161,8 @@ async function auditOne(input: string): Promise<Row> {
       topCategory: `${top.label} (${top.score}/${top.max})`,
       weakest: `${weakest.label} (${weakest.score}/${weakest.max})`,
       durationMs: Date.now() - start,
+      recommendations: result.recommendations.slice(0, 3).map((r) => r.title),
+      story: projectStory?.body,
     };
   } catch (err) {
     let msg = "Unknown error";
@@ -95,10 +174,10 @@ async function auditOne(input: string): Promise<Row> {
   }
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 async function main() {
-  console.log(`Astraudit local test — ${REPOS.length} repositories\n`);
+  if (TOKEN) console.log("Using GITHUB_TOKEN for authenticated requests.\n");
+  console.log(`Astraudit local test — ${REPOS.length} repositories`);
+  console.log(`Cache dir: ${CACHE_DIR}\n`);
   const rows: Row[] = [];
   for (const repo of REPOS) {
     process.stdout.write(`Auditing ${repo}... `);
@@ -111,8 +190,9 @@ async function main() {
     } else {
       console.log(`FAILED — ${row.error}`);
     }
-    await sleep(1500);
   }
+
+  console.log(`\nCache: ${cacheHits} hits, ${cacheMisses} misses`);
 
   console.log("\n=========================== AUDIT REPORT ===========================");
   console.log(
@@ -143,10 +223,14 @@ async function main() {
   console.log("\nPer-repo highlights:");
   for (const r of rows) {
     if (!r.ok) continue;
-    console.log(`• ${r.repo}`);
-    console.log(`    Stars: ${r.stars}`);
+    console.log(`\n• ${r.repo}  ⭐ ${r.stars}`);
+    if (r.story) console.log(`    Story: ${r.story}`);
     console.log(`    Strongest: ${r.topCategory}`);
     console.log(`    Weakest:   ${r.weakest}`);
+    if (r.recommendations) {
+      console.log(`    Top fixes:`);
+      for (const rec of r.recommendations) console.log(`      - ${rec}`);
+    }
   }
 
   const ok = rows.filter((r) => r.ok);
