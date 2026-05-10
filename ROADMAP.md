@@ -323,9 +323,44 @@ default fallback, persistence, garbage rejection, OS resolution for
 "system", concrete `dark/light` resolution, and the
 data-theme attribute toggle. **Total suite: 122 tests across 15 files.**
 
-### 2.4 · Audit history & favorites
-Sidebar: last 20 audits, plus favorites. Stored in `localStorage`.
-Click a favorite to re-audit immediately (cache-aware).
+### 2.4 · Audit history & favorites ✅ shipped
+Every successful audit (including each side of a comparison) is
+recorded into a local `localStorage` history. A new "History" pill
+appears in the Hero as soon as the first entry exists; clicking it
+opens the History dialog with two tabs:
+
+- **Favorites** — entries the user has starred. Pinned to the top
+  regardless of recency. Unlimited count.
+- **Recent** — the last 20 audited repositories ordered by recency.
+
+Each row shows the GitHub avatar, the `owner/repo` slug, the score,
+the grade colour-coded, and the relative time of the last audit.
+Clicking a row re-audits that repo (cache-aware, so a hit reads
+straight from the 24h bundle cache shipped in Phase 1.2).
+Per-row controls toggle the favorite flag or remove the entry; a
+"Clear all" button wipes the whole history.
+
+Implementation:
+
+- `src/lib/history/historyStore.ts` exposes `recordAudit`,
+  `toggleFavorite`, `removeEntry`, `listHistory`,
+  `listFavorites`, `getEntry`, `clearAll`, and `getStats`.
+  Entries are deduped by lowercased `owner/repo`, the favorite flag
+  is preserved across re-audits, and a soft `TOTAL_STORAGE_LIMIT`
+  of 200 prevents unbounded growth (oldest non-favorites evicted
+  first).
+- `App.tsx` calls `recordAudit` whenever the state transitions to
+  `ready` (single audit) or `compared` (records both sides).
+- `HistoryDialog` mirrors the Settings dialog pattern: glass card,
+  Esc-close, click-outside-to-close, scrolling list.
+- `Hero` renders the History pill conditionally when at least one
+  entry exists.
+
+Tests: 9 new cases in `tests/lib/history/historyStore.test.ts` —
+record creates entries, dedupes case-insensitively, preserves the
+favorite flag on update, toggleFavorite is idempotent, listHistory
+floats favorites to the top, removeEntry / clearAll behaviour, and
+the stats counter. **Total suite: 131 tests across 16 files.**
 
 ### 2.5 · Keyboard shortcuts + command palette
 `Cmd/Ctrl+K` opens a palette to jump to any section, switch repo, or

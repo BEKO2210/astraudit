@@ -1,22 +1,39 @@
-import { Settings, ShieldCheck, Sparkles, Workflow, Zap } from "lucide-react";
+import { History, Settings, ShieldCheck, Sparkles, Workflow, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
+import { getStats as getHistoryStats } from "../lib/history/historyStore";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface HeroProps {
   onOpenSettings: () => void;
+  onOpenHistory: () => void;
   /** A tick that bumps whenever the token changes — re-renders the badge. */
   authTick: number;
+  /** A tick that bumps whenever audit history changes. */
+  historyTick: number;
 }
 
-export function Hero({ onOpenSettings, authTick }: HeroProps) {
+export function Hero({
+  onOpenSettings,
+  onOpenHistory,
+  authTick,
+  historyTick,
+}: HeroProps) {
   const [hasToken, setHasToken] = useState(false);
   const [prefix, setPrefix] = useState<string | null>(null);
+  const [historyCount, setHistoryCount] = useState(0);
+  const [favoritesCount, setFavoritesCount] = useState(0);
 
   useEffect(() => {
     setHasToken(!!loadToken());
     setPrefix(loadTokenMeta()?.prefix ?? null);
   }, [authTick]);
+
+  useEffect(() => {
+    const stats = getHistoryStats();
+    setHistoryCount(stats.total);
+    setFavoritesCount(stats.favorites);
+  }, [historyTick]);
 
   return (
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
@@ -36,6 +53,23 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          {historyCount > 0 ? (
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              aria-label="Open audit history"
+              title={`History: ${historyCount}${
+                favoritesCount > 0 ? ` · favorites: ${favoritesCount}` : ""
+              }`}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-slate-400 transition hover:border-white/20 hover:text-white print:hidden"
+            >
+              <History className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline">
+                History · {historyCount}
+              </span>
+              <span className="sm:hidden">{historyCount}</span>
+            </button>
+          ) : null}
         <button
           type="button"
           onClick={onOpenSettings}

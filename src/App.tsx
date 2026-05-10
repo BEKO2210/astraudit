@@ -10,7 +10,9 @@ import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { CompareDashboard } from "./components/CompareDashboard";
 import { CompareDialog } from "./components/CompareDialog";
+import { HistoryDialog } from "./components/HistoryDialog";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
+import { recordAudit } from "./lib/history/historyStore";
 import {
   applyAuditHash,
   applyCompareHash,
@@ -54,7 +56,9 @@ export default function App() {
   const [state, setState] = useState<AppState>({ kind: "idle" });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [authTick, setAuthTick] = useState(0);
+  const [historyTick, setHistoryTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const compareJobRef = useRef<{
@@ -459,6 +463,40 @@ export default function App() {
     };
   }, [state, startAudit, startCompare]);
 
+  // When an audit (single or compare) finishes successfully, persist it
+  // to the local history. Compare mode records both sides.
+  useEffect(() => {
+    if (state.kind === "ready") {
+      const m = state.result.bundle.metadata;
+      recordAudit({
+        coords: { owner: m.owner.login, repo: m.name },
+        fullName: m.fullName,
+        avatarUrl: m.owner.avatarUrl,
+        score: state.result.totalScore,
+        grade: state.result.grade,
+      });
+      setHistoryTick((t) => t + 1);
+    } else if (state.kind === "compared") {
+      const ml = state.compare.left.bundle.metadata;
+      const mr = state.compare.right.bundle.metadata;
+      recordAudit({
+        coords: { owner: ml.owner.login, repo: ml.name },
+        fullName: ml.fullName,
+        avatarUrl: ml.owner.avatarUrl,
+        score: state.compare.left.totalScore,
+        grade: state.compare.left.grade,
+      });
+      recordAudit({
+        coords: { owner: mr.owner.login, repo: mr.name },
+        fullName: mr.fullName,
+        avatarUrl: mr.owner.avatarUrl,
+        score: state.compare.right.totalScore,
+        grade: state.compare.right.grade,
+      });
+      setHistoryTick((t) => t + 1);
+    }
+  }, [state]);
+
   const showLoading =
     state.kind === "fetching" ||
     state.kind === "auditing" ||
@@ -468,7 +506,9 @@ export default function App() {
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
       <Hero
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
         authTick={authTick}
+        historyTick={historyTick}
       />
 
       <RepoInput
@@ -531,6 +571,15 @@ export default function App() {
           setSettingsOpen(false);
           setAuthTick((t) => t + 1);
         }}
+      />
+
+      <HistoryDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onPick={(fullName) => {
+          void startAudit(fullName);
+        }}
+        tick={historyTick}
       />
 
       <CompareDialog
