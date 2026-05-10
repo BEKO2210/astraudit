@@ -1,6 +1,7 @@
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2, PartyPopper, Sparkles } from "lucide-react";
 import type { Recommendation } from "../types/audit";
 import { CopyButton } from "./CopyButton";
+import { EmptyPanelState } from "./ui/EmptyPanelState";
 
 interface RecommendationsPanelProps {
   recommendations: Recommendation[];
@@ -21,6 +22,29 @@ const IMPACT_COLOR: Record<Recommendation["impact"], string> = {
 export function RecommendationsPanel({
   recommendations,
 }: RecommendationsPanelProps) {
+  // Phase 5.5 — coherent empty state. Replaces the previous "render
+  // the panel with an empty <ol>" pattern, which left an awkward
+  // glass card with just the title and the Copy-all button (which
+  // would copy the empty string). Now the user gets a celebratory
+  // "nothing on the to-do list" message instead.
+  if (recommendations.length === 0) {
+    return (
+      <EmptyPanelState
+        icon={PartyPopper}
+        title="No recommended next steps"
+        description={
+          <>
+            Astraudit's rule-based detectors didn't surface any prioritised
+            improvements. That's the rare case where the audit thinks every
+            tracked signal is already strong — keep an eye on the Findings
+            panel for finer-grained issues.
+          </>
+        }
+        accentClass="text-aurora-mint"
+      />
+    );
+  }
+
   const allText = recommendations
     .map(
       (r, i) =>

@@ -1,13 +1,34 @@
-import { Check, Compass } from "lucide-react";
+import { Check, Compass, Sparkles } from "lucide-react";
 import type { OnboardingStep } from "../lib/audit/copyEngine";
 import { CopyButton } from "./CopyButton";
+import { EmptyPanelState } from "./ui/EmptyPanelState";
 
 interface OnboardingPanelProps {
   steps: OnboardingStep[];
 }
 
 export function OnboardingPanel({ steps }: OnboardingPanelProps) {
-  if (steps.length === 0) return null;
+  // Phase 5.5 — was `return null` (silently dropped the section).
+  // Now a coherent empty state so users who scrolled here looking
+  // for setup steps know Astraudit looked and found nothing
+  // automation-worthy, rather than thinking the panel broke.
+  if (steps.length === 0) {
+    return (
+      <EmptyPanelState
+        icon={Sparkles}
+        title="No automated onboarding steps detected"
+        description={
+          <>
+            Astraudit didn't find a recognised package manifest, lockfile, or
+            run-script combination to build a setup recipe from. Check the
+            project's README — its install instructions are likely the
+            authoritative path here.
+          </>
+        }
+        accentClass="text-aurora-cyan"
+      />
+    );
+  }
   return (
     <section className="glass p-5 sm:p-6">
       <div className="flex items-center gap-2">

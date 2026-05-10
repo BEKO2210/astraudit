@@ -87,6 +87,23 @@ export interface ImportantFile {
   truncated?: boolean;
 }
 
+/**
+ * Org-level community-health files inherited from `{owner}/.github`.
+ * GitHub's UI treats these as the effective policy when the target
+ * repo doesn't ship its own. Detectors fall back to these so we don't
+ * report "missing SECURITY.md" on repos like `expressjs/express`.
+ */
+export interface OrgHealthSnapshot {
+  owner: string;
+  hasOrgRepo: boolean;
+  securityPolicyPath: string | null;
+  securityPolicyContent: string | null;
+  codeOfConductPath: string | null;
+  codeOfConductContent: string | null;
+  contributingPath: string | null;
+  contributingContent: string | null;
+}
+
 export interface RepoBundle {
   coords: RepoCoordinates;
   metadata: RepoMetadata;
@@ -98,4 +115,5 @@ export interface RepoBundle {
   recentCommits: CommitInfo[];
   releases: ReleaseInfo[];
   issues: RepoIssuesSnapshot;
+  orgHealth: OrgHealthSnapshot;
 }

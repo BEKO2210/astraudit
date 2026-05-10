@@ -3,6 +3,7 @@ import { fetchRepoMetadata } from "./fetchRepoMetadata";
 import { fetchRepoTree } from "./fetchRepoTree";
 import { fetchReadme } from "./fetchReadme";
 import { fetchImportantFiles } from "./fetchImportantFiles";
+import { fetchOrgHealth } from "./fetchOrgHealth";
 import { fetchLanguages } from "./fetchLanguages";
 import { fetchCommits } from "./fetchCommits";
 import { fetchReleases } from "./fetchReleases";
@@ -92,6 +93,12 @@ export async function loadRepoBundle(
     signal,
   );
 
+  // Org-level community-health probe. We deliberately run this AFTER
+  // the per-repo file fetch so the per-repo path always wins when both
+  // are present; the org probe is a *fallback*, not a merge. Its
+  // failures are silent (network blips just mean no fallback this run).
+  const orgHealth = await fetchOrgHealth(coords.owner, signal);
+
   return {
     coords,
     metadata,
@@ -103,6 +110,7 @@ export async function loadRepoBundle(
     recentCommits,
     releases,
     issues,
+    orgHealth,
   };
 }
 

@@ -21,9 +21,10 @@ import {
   Loader2,
   Network,
   PackageX,
+  RefreshCw,
   Scale,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   bucketStaleness,
   fetchRegistryMetadata,
@@ -147,6 +148,10 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
   );
   const [outcomes, setOutcomes] = useState<RegistryOutcome[]>([]);
   const [done, setDone] = useState(false);
+  // Phase 5.5 — bumping the retry key re-fires the fetch effect
+  // even when `requests` itself hasn't changed (so a network blip
+  // can be retried without leaving + returning to the audit).
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     setOutcomes([]);
@@ -170,7 +175,7 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
       alive = false;
       controller.abort();
     };
-  }, [requests]);
+  }, [requests, retryKey]);
 
   // Phase 3.9 — once we have any classified licenses, compute the
   // tone summary on the fly. We deliberately recompute on every
@@ -191,10 +196,19 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
     [oks, repoLicense],
   );
 
+  // Retry handler must live above any early return (React Hooks rule).
+  const handleRetry = useCallback(() => {
+    setRetryKey((k) => k + 1);
+  }, []);
+
   if (requests.length === 0) return null;
 
   const notFound = outcomes.filter((o) => o.kind === "not-found").length;
   const errored = outcomes.filter((o) => o.kind === "error").length;
+  // Phase 5.5 — when EVERY lookup errored, surface a single banner
+  // explaining the likely cause + a retry CTA, rather than letting
+  // the user infer from N identical "Lookup failed" row hints.
+  const allErrored = done && outcomes.length > 0 && errored === outcomes.length;
 
   return (
     <section
@@ -229,6 +243,41 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
 
       {tone.findings.length > 0 || depCountsHaveSignal(tone.depCounts) ? (
         <LicenseToneSection tone={tone} />
+      ) : null}
+
+      {/* Phase 5.5 — global error banner. Surfaces a single message
+          when every registry lookup failed (network blip, browser
+          offline, rate limit). The retry CTA bumps a key that
+          re-fires the fetch effect; cached entries (none, since they
+          all errored) are skipped naturally. */}
+      {allErrored ? (
+        <div
+          role="alert"
+          className="mt-4 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-risk-medium/40 bg-risk-medium/10 p-3 text-xs text-risk-medium"
+        >
+          <div className="flex min-w-0 items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-risk-medium">
+                Couldn't reach any registry.
+              </p>
+              <p className="mt-0.5 text-slate-300/85">
+                All {errored} lookup{errored === 1 ? "" : "s"} failed —
+                likely a network blip, an offline browser, or one of the
+                registries throttling traffic. The audit itself is still
+                accurate; only the registry enrichment is missing.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-risk-medium/40 bg-risk-medium/10 px-3 py-1 font-medium transition hover:bg-risk-medium/20"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
+        </div>
       ) : null}
 
       <ul className="mt-4 grid gap-3 md:grid-cols-2">

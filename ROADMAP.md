@@ -2576,14 +2576,52 @@ on left), a higher-contrast palette for the missing-data cells in
 light mode, and mobile-friendly cell sizing that doesn't squash
 six months into a thumbnail.
 
-### 5.5 · Empty, loading & error state pass
+### 5.5 · Empty, loading & error state pass ✅ shipped
 Every major panel — Insights, Topic Checks, Registry, Story,
 Findings, Graph, Compare dashboard — gets a coherent loading
 skeleton (matching the dashboard skeleton from 2.8.2), a dignified
 empty state with an icon + one-line explanation, and an
 actionable error state with a retry CTA where it makes sense.
-Today these vary panel-to-panel; this pass aligns them to a
-single visual + accessibility baseline.
+
+**What shipped:**
+- `<EmptyPanelState />` primitive (`src/components/ui/EmptyPanelState.tsx`)
+  with icon + title + optional description in a glass card. Used
+  by `RecommendationsPanel` (celebratory "no fixes needed" copy)
+  and `OnboardingPanel` (replaces a silent `return null` with an
+  honest "couldn't infer setup" explanation).
+- `RegistryPanel` global error banner with a `RefreshCw` retry
+  button that re-fires the fetch effect via a `retryKey` state
+  bump — instead of unmounting the whole panel.
+- 9 vitest cases (`tests/components/emptyPanelState.test.tsx`)
+  lock the primitive's contract + the rewritten panels' empty
+  paths so a regression to `return null` fails CI.
+
+### 5.5.x · Org-level `.github` community-health fallback ✅ shipped
+**Why (express bug report):** GitHub's UI inherits SECURITY.md /
+CODE_OF_CONDUCT.md / CONTRIBUTING.md from `{owner}/.github` when
+the target repo doesn't ship its own. Without mirroring that
+fallback, Astraudit was reporting "missing SECURITY.md" on
+`expressjs/express` even though
+`https://github.com/expressjs/express?tab=security-ov-file` shows
+the policy from `expressjs/.github/SECURITY.md`.
+
+**What shipped:**
+- `fetchOrgHealth.ts` — best-effort probe of `{owner}/.github`
+  for SECURITY.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md, runs
+  AFTER the per-repo file fetch so the per-repo path always wins.
+- `RepoBundle.orgHealth` plumbed through `loadRepoBundle`.
+- `analyzeSecurity` and `analyzeDx` now consume the snapshot and
+  emit a `"repo" | "org-fallback" | null` source per file so the
+  graph + score evidence say "inherited from {owner}/.github"
+  instead of pretending it's a repo-local file.
+- 5 regression tests (`tests/lib/audit/orgHealthFallback.test.ts`).
+- Live validation harness `scripts/validate-org-health.ts` (run
+  with `npx tsx`) that probes 53 popular repos. Results: 14/53
+  (26%) were being false-flagged by at least one community-health
+  file before the fix — including express, eslint, webpack,
+  vercel/next.js, flask, pandas, numpy, rust-lang/rust,
+  spring-boot, elasticsearch, vscode, homebrew/brew, sveltejs,
+  actix.
 
 ### 5.6 · Error & rate-limit messaging review
 Every error path users can hit: invalid repo input, 404, 403
@@ -2626,6 +2664,112 @@ follow `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}` so multiple
 downloads sort nicely on disk. The schema is documented in
 `docs/export-schema.md` and locked with a fixture-based test that
 fails on any unintentional shape change.
+
+### 5.11 · Sticky section-nav light-theme surface fix ✅ shipped
+**Why (maintainer screenshot bug):** in light mode the sticky tab
+strip rendered with `rgba(255, 255, 255, 0.85)` over the
+`#f8fafc` page background — pure white on near-white. The bar
+became visually almost invisible and felt like "die Tabsliste ist
+weg" (the tabs list is gone) when scrolling.
+
+Plus the strip's edge-fade gradients were hard-coded to the dark
+ink colour, so on light mode they showed as opaque dark ribbons
+on each end (visible in the maintainer's screenshot) instead of
+softly blending into the surrounding surface. And the right-edge
+fade was 48 px wide, wide enough to clip the active pill when it
+landed at the rightmost position.
+
+**Fix (shipped):**
+- `globals.css` — `.bg-ink-950/85` light-theme override goes
+  from `rgba(255, 255, 255, 0.85)` (white on near-white) to
+  `rgba(241, 245, 249, 0.92)` (a slate-50 tint that always reads
+  as a surface ABOVE the page) + a darker bottom border
+  (`rgba(15, 23, 42, 0.10)`) so the bar's lower edge is always
+  visible.
+- New `--section-nav-fade` CSS variable + `.section-nav-fade-*`
+  classes that flip per theme. Dark: `rgba(5, 7, 13, 0.92)`.
+  Light: `rgba(248, 250, 252, 0.95)`. Both fade to transparent
+  toward the centre, so the gradient now reads as a soft
+  same-colour fade in either theme — no more dark ribbons.
+- `SectionNav.tsx` shrinks both fade widths to `w-6` (was `w-12`
+  on the right). Active pills no longer live behind the fade.
+- Each fade is now **conditionally rendered** based on actual
+  scroll overflow on its edge — a `useEffect` reads
+  `scrollLeft / scrollWidth / clientWidth` on the nav strip and
+  toggles `overflow.left` / `overflow.right`. When the user has
+  scrolled fully right, the right fade vanishes (no more clipped
+  pill). A `ResizeObserver` watches viewport rotation so the
+  fade state stays accurate.
+
+### 5.10 · Audit graph mobile rendering fix
+**Why:** Maintainer reported that on mobile, scrolling the audit
+dashboard down to the graph section causes the page to wobble and
+stutter. Root cause is almost certainly React Flow's default touch
+handling: `panOnScroll` + the wheel/touchpad gesture handler grabs
+the touch stream and fights the page scroll, producing the jittery
+feel when the graph enters the viewport.
+
+**Plan:**
+- Set `panOnScroll: false`, `zoomOnScroll: false`, and
+  `panOnDrag: false` on the React Flow instance for narrow
+  viewports (< 768 px) so scrolling past the graph hands the
+  touch stream back to the page. Pan/zoom remains accessible via
+  the existing `<Controls>` buttons.
+- Add `touch-action: pan-y` on the graph wrapper at the same
+  breakpoint as a belt-and-suspenders fix.
+- Optional: render a static graph thumbnail (the existing
+  `<PrintGraphSummary>` is already built for this — re-use it on
+  the smallest viewports so users on tiny screens get a readable
+  picture instead of a tiny pannable viewport).
+- Add a Playwright spec that scrolls past the graph on a 360-px
+  viewport and asserts `window.scrollY` actually advanced (i.e.
+  React Flow didn't trap the gesture).
+
+### 5.12 · SEO & social-media cards
+**Why:** Astraudit is shared as a link in pull-request reviews,
+Slack threads, Bluesky / Twitter posts, blog write-ups. Today
+those previews show whatever the user agent guesses — usually the
+generic favicon + the first 160 characters of body text. A
+deliberate set of meta tags lifts the link preview from "what is
+this?" to a recognisable Astraudit card.
+
+**Two surfaces to cover:**
+1. **The website itself** (the SPA's index.html). One canonical
+   set of tags that loads on every URL — title, description,
+   Open Graph (og:title, og:description, og:image, og:url,
+   og:site_name, og:type), Twitter Card (twitter:card,
+   twitter:title, twitter:description, twitter:image), canonical
+   URL, JSON-LD `WebApplication` structured data, plus a static
+   `robots.txt` + `sitemap.xml` so search engines find every
+   route Astraudit serves (the legal pages + rule book).
+2. **Shared audit URLs** (e.g. `#/audit/owner/repo`). Per-repo
+   social cards are *not* technically possible without a backend
+   — Twitter / Facebook / Slack / Discord crawlers don't execute
+   JavaScript, so the OG tags they read are the static ones in
+   `index.html`. We honour the constraint by shipping ONE
+   well-designed Astraudit-brand card that works for every
+   shared link, plus the actual audit URL still resolves into a
+   live audit when clicked. The card describes the tool, not
+   the specific repo — the URL itself does the per-repo
+   identification.
+
+**What ships:**
+- A 1200 × 630 PNG OG image in `public/og-card.png` showing the
+  Astraudit wordmark + tagline + the four constraint pills
+  (browser-only / free / public-only / rule-based).
+- `<head>` block in `index.html` with all OG + Twitter + JSON-LD
+  tags, set up so `<base>` resolves correctly under
+  `/astraudit/` on GitHub Pages.
+- New `public/robots.txt` allowing every page; new
+  `public/sitemap.xml` listing the four canonical routes (`/`,
+  `#/rules`, `#/impressum`, `#/datenschutz`).
+- A vitest (or Playwright) spec that loads `dist/index.html` and
+  asserts each meta tag is present + carries the expected value
+  — locks the contract down so a future build that drops a tag
+  fails CI.
+- ROADMAP entry documents that per-repo cards would require a
+  backend and are explicitly out of scope (lands in the
+  anti-roadmap if anyone proposes them).
 
 ---
 

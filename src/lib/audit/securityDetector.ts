@@ -9,10 +9,19 @@ import {
   parseSecurityPolicy,
   type ParsedSecurityPolicy,
 } from "./securityPolicyParser";
+import type { OrgHealthSnapshot } from "../../types/github";
 
 export interface SecuritySignals {
   hasLicense: boolean;
   hasSecurityPolicy: boolean;
+  /**
+   * Set when the policy was inherited from `{owner}/.github` instead
+   * of being shipped in the repo itself. Lets the UI explain "policy
+   * lives at expressjs/.github" rather than just "present" — and lets
+   * the recommendation engine still nudge the maintainer to ship a
+   * repo-local copy if they want to override it.
+   */
+  securityPolicySource: "repo" | "org-fallback" | null;
   /**
    * Parsed SECURITY.md with contact channels + OpenSSF-style quality
    * grade. Null when the file is absent or empty. Phase 3.4.
@@ -48,7 +57,10 @@ const ENV_REGEX = [
   /(^|\/)\.env\.dev$/,
 ];
 
-export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
+export function analyzeSecurity(
+  classified: ClassifiedFiles,
+  orgHealth?: OrgHealthSnapshot,
+): SecuritySignals {
   const has = classified.hasFile;
   const hasFolder = classified.hasFolder;
 
@@ -76,6 +88,7 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
   // because the file lookup happens after `securityHit` is resolved
   // below; we attach the parsed result to the returned signals.
   let securityPolicy: ParsedSecurityPolicy | null = null;
+  let securityPolicySource: "repo" | "org-fallback" | null = null;
 
   const securityHit = has(
     "SECURITY.md",
@@ -91,12 +104,21 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
   );
 
   if (securityHit) {
+    securityPolicySource = "repo";
     const file =
       classified.importantFileMap.get(securityHit) ??
       classified.importantFileMap.get(securityHit.toLowerCase());
     if (file?.content) {
       securityPolicy = parseSecurityPolicy(file.content);
     }
+  } else if (orgHealth?.securityPolicyContent) {
+    // Org-level fallback: GitHub's UI treats `{owner}/.github`'s
+    // SECURITY.md as the effective policy when the target repo
+    // doesn't ship one. We mirror that so we don't false-flag
+    // `expressjs/express` (and the long tail of orgs that centralize
+    // their policy this way).
+    securityPolicySource = "org-fallback";
+    securityPolicy = parseSecurityPolicy(orgHealth.securityPolicyContent);
   }
 
   const codeownersHit = has(
@@ -176,7 +198,8 @@ export function analyzeSecurity(classified: ClassifiedFiles): SecuritySignals {
 
   return {
     hasLicense: !!licenseHit || !!licenseFolderHit,
-    hasSecurityPolicy: !!securityHit,
+    hasSecurityPolicy: !!securityHit || !!orgHealth?.securityPolicyContent,
+    securityPolicySource,
     securityPolicy,
     hasCodeowners: !!codeownersHit,
     codeownersConfig,
