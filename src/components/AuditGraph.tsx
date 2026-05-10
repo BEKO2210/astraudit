@@ -5,52 +5,135 @@ import {
   Handle,
   Position,
   ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
   type Edge,
   type Node,
   type NodeProps,
 } from "reactflow";
-import { useMemo, useState } from "react";
-import { CircleDot, Network, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  CircleDot,
+  CircleOff,
+  Filter,
+  FileText,
+  FolderTree,
+  GitBranch,
+  Layers3,
+  Network,
+  PackageSearch,
+  Rocket,
+  ScrollText,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Wrench,
+} from "lucide-react";
 import type { GraphNodeData, GraphPayload } from "../types/graph";
+import {
+  countByStatus,
+  failingNodes,
+  hiddenNodeIds,
+  isEdgeHidden,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  toggleStatusInSet,
+} from "./auditGraphHelpers";
+
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                   */
+/* -------------------------------------------------------------------------- */
 
 const STATUS_COLORS: Record<
   GraphNodeData["status"],
-  { ring: string; bg: string; text: string; dot: string }
+  { ring: string; bg: string; text: string; dot: string; edgeStroke: string }
 > = {
   strong: {
     ring: "ring-aurora-mint/40",
     bg: "bg-aurora-mint/[0.08]",
     text: "text-aurora-mint",
     dot: "bg-aurora-mint",
+    edgeStroke: "rgba(66,232,200,0.55)",
   },
   partial: {
     ring: "ring-aurora-violet/40",
     bg: "bg-aurora-violet/[0.08]",
     text: "text-aurora-violet",
     dot: "bg-aurora-violet",
+    edgeStroke: "rgba(122,92,255,0.55)",
   },
   missing: {
-    ring: "ring-risk-critical/40",
+    ring: "ring-risk-critical/50",
     bg: "bg-risk-critical/[0.08]",
     text: "text-risk-critical",
     dot: "bg-risk-critical",
+    edgeStroke: "rgba(239,68,68,0.7)",
   },
   info: {
     ring: "ring-aurora-cyan/40",
     bg: "bg-aurora-cyan/[0.08]",
     text: "text-aurora-cyan",
     dot: "bg-aurora-cyan",
+    edgeStroke: "rgba(58,214,255,0.45)",
   },
   unknown: {
     ring: "ring-white/10",
     bg: "bg-white/[0.04]",
     text: "text-slate-400",
     dot: "bg-slate-500",
+    edgeStroke: "rgba(148,163,184,0.3)",
   },
 };
 
-function GraphNodeView({ data, selected }: NodeProps<GraphNodeData>) {
+/**
+ * Per-node-id icon mapping. Used to give each node a domain-meaningful
+ * glyph instead of a generic dot — drastically improves at-a-glance
+ * scanning for users who already know what an "Audit graph" looks like.
+ * Falls back to `CircleDot` when an id isn't in the map (e.g. future
+ * detector additions before we wire an icon).
+ */
+const NODE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  repo: Network,
+  documentation: FileText,
+  readme: FileText,
+  docs: ScrollText,
+  source: FolderTree,
+  languages: Layers3,
+  structure: FolderTree,
+  tests: CheckCircle2,
+  ci: GitBranch,
+  workflows: GitBranch,
+  security: ShieldCheck,
+  license: ShieldCheck,
+  "security-md": ShieldAlert,
+  quality: Target,
+  maintenance: Activity,
+  releases: Rocket,
+  dx: Wrench,
+  ecosystem: Boxes,
+  deps: PackageSearch,
+  "package-manager": PackageSearch,
+  config: Wrench,
+  risk: AlertTriangle,
+};
+
+/* -------------------------------------------------------------------------- */
+/* Node                                                                        */
+/* -------------------------------------------------------------------------- */
+
+interface AuditNodeData extends GraphNodeData {
+  /** Node id, kept on `data` so the renderer can pick its icon. */
+  nodeId: string;
+}
+
+function GraphNodeView({ data, selected }: NodeProps<AuditNodeData>) {
   const palette = STATUS_COLORS[data.status];
+  const Icon = NODE_ICONS[data.nodeId] ?? CircleDot;
   return (
     <div
       className={`min-w-[180px] rounded-xl border border-white/10 ${palette.bg} ${palette.ring} ring-1 backdrop-blur transition ${
@@ -60,11 +143,12 @@ function GraphNodeView({ data, selected }: NodeProps<GraphNodeData>) {
       <Handle type="target" position={Position.Top} />
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
+          <Icon className={`h-3.5 w-3.5 shrink-0 ${palette.text}`} />
           <span
             className={`inline-block h-2 w-2 rounded-full ${palette.dot}`}
           />
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-            {data.status === "unknown" ? "Not detected" : data.status}
+            {STATUS_LABEL[data.status]}
           </span>
         </div>
         <div className="mt-1 text-sm font-semibold text-white">{data.label}</div>
@@ -76,55 +160,179 @@ function GraphNodeView({ data, selected }: NodeProps<GraphNodeData>) {
 
 const nodeTypes = { auditNode: GraphNodeView };
 
+/* -------------------------------------------------------------------------- */
+/* Inner graph (needs the React Flow Provider context)                         */
+/* -------------------------------------------------------------------------- */
+
 interface AuditGraphProps {
   graph: GraphPayload;
 }
 
-export function AuditGraph({ graph }: AuditGraphProps) {
+function AuditGraphInner({ graph }: AuditGraphProps) {
+  const { fitView } = useReactFlow();
   const [selectedId, setSelectedId] = useState<string | null>("repo");
+  // Status filter — when a status is in the set, nodes with that
+  // status (and edges leading to/from them) are visible. Default
+  // shows everything.
+  const [activeStatuses, setActiveStatuses] = useState<
+    Set<GraphNodeData["status"]>
+  >(() => new Set(STATUS_ORDER));
 
-  const nodes = useMemo<Node<GraphNodeData>[]>(
+  // Status counts drive the summary header. Computed once per graph
+  // payload so re-filtering doesn't re-tally.
+  const counts = useMemo(() => countByStatus(graph.nodes), [graph]);
+
+  // Hidden nodes — anything whose status isn't currently active. The
+  // root `repo` node is always visible regardless of the filter,
+  // otherwise the graph turns into a disconnected mess.
+  const hiddenIds = useMemo(
+    () => hiddenNodeIds(graph.nodes, activeStatuses),
+    [graph, activeStatuses],
+  );
+
+  // Build the React Flow node array — nodes carry `hidden` when the
+  // status filter excludes them, plus we copy the id onto `data` so
+  // the custom node renderer can pick its icon.
+  const nodes = useMemo<Node<AuditNodeData>[]>(
     () =>
       graph.nodes.map((n) => ({
         id: n.id,
         type: "auditNode",
         position: n.position,
-        data: n.data,
+        data: { ...n.data, nodeId: n.id },
         draggable: false,
+        hidden: hiddenIds.has(n.id),
       })),
-    [graph],
+    [graph, hiddenIds],
   );
 
-  const edges = useMemo<Edge[]>(
-    () =>
-      graph.edges.map((e) => ({
+  // Edge stroke is driven by the *target* node's status — that's the
+  // reading direction users naturally follow. Edges leading to a
+  // `missing` node also pulse so the eye is drawn there.
+  const edges = useMemo<Edge[]>(() => {
+    const targetStatusById = new Map<string, GraphNodeData["status"]>();
+    for (const n of graph.nodes) targetStatusById.set(n.id, n.data.status);
+    return graph.edges.map((e) => {
+      const targetStatus = targetStatusById.get(e.target) ?? "unknown";
+      const palette = STATUS_COLORS[targetStatus];
+      return {
         id: e.id,
         source: e.source,
         target: e.target,
-        animated: false,
-        style: { stroke: "rgba(122,92,255,0.45)" },
-      })),
-    [graph],
-  );
+        animated: targetStatus === "missing",
+        style: {
+          stroke: palette.edgeStroke,
+          strokeWidth: targetStatus === "missing" ? 2 : 1.4,
+        },
+        hidden: isEdgeHidden(e, hiddenIds),
+      };
+    });
+  }, [graph, hiddenIds]);
 
   const selected =
     graph.nodes.find((n) => n.id === selectedId) ?? graph.nodes[0];
 
+  const toggleStatus = useCallback((status: GraphNodeData["status"]) => {
+    setActiveStatuses((prev) => toggleStatusInSet(prev, status));
+  }, []);
+
+  const showAll = useCallback(
+    () => setActiveStatuses(new Set(STATUS_ORDER)),
+    [],
+  );
+
+  const focusFailing = useCallback(() => {
+    const failing = failingNodes(graph.nodes);
+    if (failing.length === 0) return;
+    void fitView({
+      nodes: failing.map((n) => ({ id: n.id })),
+      duration: 600,
+      padding: 0.3,
+    });
+    // Pre-select the first failing node so the side panel updates too.
+    setSelectedId(failing[0].id);
+  }, [fitView, graph.nodes]);
+
+  // When the filter changes, refit the visible portion so users always
+  // see what they asked for. Skip on first paint — `fitView` defaults
+  // already handle that case.
+  useEffect(() => {
+    if (activeStatuses.size === STATUS_ORDER.length) return;
+    void fitView({ duration: 400, padding: 0.2 });
+  }, [activeStatuses, fitView]);
+
+  const failingCount = counts.missing + counts.partial;
+
   return (
     <section className="glass overflow-hidden print:hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-aurora-cyan" />
           <h3 className="text-sm font-semibold text-white">Audit graph</h3>
+          <span className="text-[11px] text-slate-500">
+            {graph.nodes.length} nodes
+          </span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <Legend dot="bg-aurora-mint" label="Strong" />
-          <Legend dot="bg-aurora-violet" label="Partial" />
-          <Legend dot="bg-risk-critical" label="Missing" />
-          <Legend dot="bg-aurora-cyan" label="Info" />
-          <Legend dot="bg-slate-500" label="Not detected" />
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={focusFailing}
+            disabled={failingCount === 0}
+            className="inline-flex items-center gap-1.5 rounded-full border border-aurora-amber/40 bg-aurora-amber/10 px-2.5 py-1 text-[11px] font-medium text-aurora-amber transition hover:bg-aurora-amber/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.03] disabled:text-slate-500"
+            title={
+              failingCount === 0
+                ? "Nothing to focus — every category looks healthy."
+                : `Focus the ${failingCount} failing node${failingCount === 1 ? "" : "s"}`
+            }
+          >
+            <Target className="h-3 w-3" />
+            Focus failing
+          </button>
         </div>
       </div>
+
+      {/* Filter chips — one per status. Counts hint how many nodes
+          land in each bucket so users can plan their click. */}
+      <div
+        className="flex flex-wrap items-center gap-1.5 border-b border-white/5 px-6 py-2.5"
+        role="toolbar"
+        aria-label="Filter audit graph by status"
+      >
+        <Filter className="mr-1 h-3.5 w-3.5 text-slate-500" />
+        {STATUS_ORDER.map((status) => {
+          const palette = STATUS_COLORS[status];
+          const active = activeStatuses.has(status);
+          const count = counts[status];
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => toggleStatus(status)}
+              aria-pressed={active}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition ${
+                active
+                  ? `${palette.ring.replace("ring-", "border-")} ${palette.bg} ${palette.text}`
+                  : "border-white/10 bg-white/[0.02] text-slate-500 hover:border-white/20 hover:text-slate-300"
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${palette.dot}`} />
+              {STATUS_LABEL[status]}
+              <span className="font-mono opacity-80">{count}</span>
+            </button>
+          );
+        })}
+        {activeStatuses.size < STATUS_ORDER.length ? (
+          <button
+            type="button"
+            onClick={showAll}
+            className="ml-1 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.02] px-2 py-0.5 text-[11px] font-medium text-slate-400 hover:text-white"
+          >
+            <CircleOff className="h-3 w-3" />
+            Show all
+          </button>
+        ) : null}
+      </div>
+
       <div className="grid gap-0 lg:grid-cols-[1fr,320px]">
         <div className="h-[480px] bg-[radial-gradient(circle_at_50%_50%,rgba(122,92,255,0.08),transparent_60%)]">
           <ReactFlow
@@ -194,16 +402,16 @@ export function AuditGraph({ graph }: AuditGraphProps) {
   );
 }
 
-interface LegendProps {
-  dot: string;
-  label: string;
-}
+/* -------------------------------------------------------------------------- */
+/* Public component                                                            */
+/* -------------------------------------------------------------------------- */
 
-function Legend({ dot, label }: LegendProps) {
+export function AuditGraph({ graph }: AuditGraphProps) {
+  // ReactFlowProvider gives the inner component access to imperative
+  // viewport helpers (`fitView`) outside the `<ReactFlow>` subtree.
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-full ${dot}`} />
-      {label}
-    </span>
+    <ReactFlowProvider>
+      <AuditGraphInner graph={graph} />
+    </ReactFlowProvider>
   );
 }

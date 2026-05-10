@@ -2001,9 +2001,81 @@ honestly on first run):
 - Visual regression baselines for the home-light theme regenerated
   to reflect the contrast bumps.
 
-### 4.3 · Internationalization (en + de)
-Externalize all UI copy into a string table; ship `de` first since the
-maintainer is German-speaking.
+### 4.3 · Audit graph improvements ✅ shipped
+**Why (rescope):** Originally planned as i18n (en + de). The
+maintainer rescoped: English is already the international default
+for technical documentation, and the dependency graph component —
+the centrepiece of the audit dashboard — needed real interactivity.
+A static node-and-edge picture without filters or focus is
+beautiful but only useful at first glance.
+
+**What changed in the graph:**
+- **Status filter chips** — one chip per status
+  (`Missing`/`Partial`/`Strong`/`Info`/`Not detected`) with live
+  counts from the current audit. Clicking a chip hides nodes of
+  every other status (and any edges touching them), so users can
+  zoom in on the failures without panning around. The root `repo`
+  node is always visible — the explicit guard keeps the graph from
+  becoming a disconnected mess.
+- **Per-category icons on every node** — each node id maps to a
+  domain-meaningful Lucide glyph (License → ShieldCheck, CI →
+  GitBranch, Releases → Rocket, Maintenance → Activity, etc.).
+  Replaces the previous lone status dot — much faster to scan.
+- **Edges colour-coded by target status** — edges leading to a
+  `missing` node turn red, pulse via React Flow's `animated: true`,
+  and ship a slightly thicker stroke. Edges to `strong` nodes go
+  mint, `partial` violet, `info` cyan. Eyes are pulled to failures
+  immediately.
+- **"Focus failing" button** — uses `useReactFlow().fitView({nodes})`
+  to imperatively zoom + pan to the missing/partial subset, with a
+  600 ms tween. Disables itself (with a tooltip explanation) when
+  every node is healthy. Pre-selects the first failing node so the
+  side panel updates in lock-step.
+- **Auto-refit on filter change** — when the filter set is reduced,
+  the viewport refits to the visible portion so the user always
+  sees what they asked for.
+- **`<ReactFlowProvider>` wrapping** — required for the `fitView`
+  imperative call from the inner component. Public `<AuditGraph>`
+  API unchanged.
+
+**Implementation:**
+- Pure logic extracted to `src/components/auditGraphHelpers.ts`
+  (`countByStatus`, `hiddenNodeIds`, `isEdgeHidden`,
+  `toggleStatusInSet`, `failingNodes`, `STATUS_ORDER`, `STATUS_LABEL`).
+  Lives in its own file so vitest (node env, no DOM) can exercise
+  the logic without touching React Flow.
+- `AuditGraph.tsx` refactored: split into `<AuditGraph>` (provider
+  wrapper) + `<AuditGraphInner>` (consumes the provider context).
+  All filter/icon/edge-styling state lives in the inner component.
+- New `NODE_ICONS` map — falls back to `CircleDot` for any future
+  detector node before its icon is wired.
+- New `STATUS_COLORS[s].edgeStroke` colour added to the existing
+  status palette so the edge styling stays in one table with the
+  node styling.
+- The "Show all" reset button only appears when at least one chip
+  is unticked — keeps the toolbar quiet by default.
+
+**Tests:** new `tests/components/auditGraphHelpers.test.ts` (17 cases):
+- `countByStatus` over empty + sample graph (2 cases).
+- `hiddenNodeIds` covering full-active, single-active, and the
+  always-visible `repo` invariant (3).
+- `isEdgeHidden` for source-hidden / target-hidden / both-visible (3).
+- `toggleStatusInSet` for add / remove / never-empty / immutability (4).
+- `failingNodes` for sample graph / no failures / info+unknown
+  excluded (3).
+- `STATUS_ORDER` + `STATUS_LABEL` shape guards (2).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 45 files / 594 tests green (was 44 / 577).
+- `npm run build` — 629 KB JS (the +5 KB lift comes from the new
+  Lucide icons + helper module), no warnings.
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+
+**Note on accessibility:** filter chips use `role="toolbar"` +
+`aria-pressed="true|false"` per the WAI-ARIA APG toggle-button
+pattern, so screen-reader users get the same on/off feedback as
+sighted users.
 
 ### 4.4 · Bundle splitting
 Lazy-load React Flow only after the dashboard first paints. The graph
