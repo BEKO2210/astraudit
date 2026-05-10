@@ -1022,11 +1022,85 @@ heuristic, so the user keeps agency over their layout.
 - `npx vitest run` — 30 files / 236 tests green (was 29 / 227).
 - `npm run build` — 577 KB JS / 61.4 KB CSS, no warnings.
 
-#### 2.8.10 · Mobile bottom-sheet dialogs
-The existing dialogs (Settings, History, Compare, Badge, Shortcuts,
-Command palette) become true **bottom-sheets** on phones — anchored
-to the bottom edge, rounded only on top, swipe-friendly height,
-better one-handed reach. Auto-resolves to centred modal on `sm:`+.
+#### 2.8.10 · Mobile bottom-sheet dialogs ✅ shipped
+**Why:** On phones the existing centred dialogs already used
+`items-end justify-center` so they hugged the bottom of the viewport,
+but they still looked like *floating cards* — a 16 px gap on every
+side, rounded corners on the bottom, and no recognisable bottom-sheet
+affordance. Phone users expect modals to feel anchored to the bottom
+edge and reachable with the thumb. Material Design 3, Apple HIG and
+NN/Group all converge on the same primary cue: a small drag-handle pill
+at the top of a sheet that runs viewport-edge-to-viewport-edge with
+only the *top* corners rounded.
+
+**Pre-build research (2026-05-10):**
+- Material Design 3 *Bottom sheets*: anchored to bottom edge, rounded
+  only on top, drag handle (~32 × 4 px) at the top, scrim behind,
+  honour safe-area insets so the iOS home indicator never sits over
+  the primary action. https://m3.material.io/components/bottom-sheets
+- WAI-ARIA APG *Modal dialog*: ARIA stays the same — `role="dialog"`,
+  `aria-modal="true"`, `aria-labelledby`. The bottom-sheet variant
+  doesn't change focus management or keyboard handling, so we don't
+  touch the existing dialog logic.
+  https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
+- MDN *CSS length units*: prefer `svh` over `vh`/`dvh` for mobile sheet
+  max-height. `vh`/`lvh` clip content under expanded mobile chrome,
+  `dvh` causes layout thrash on scroll. `svh` = smallest viewport,
+  always visible. https://developer.mozilla.org/en-US/docs/Web/CSS/length#dvh
+- MDN `env()`: canonical guard for iOS home indicators / Android nav
+  bars is `env(safe-area-inset-bottom, 0px)`. Always pair with a
+  fallback so non-supporting browsers don't end up with empty padding.
+  https://developer.mozilla.org/en-US/docs/Web/CSS/env
+
+**Implementation:**
+- New `globals.css "BOTTOM-SHEET DIALOGS"` block, scoped under
+  `@media (max-width: 639.98px)` (Tailwind's `sm` breakpoint). Above
+  the breakpoint the new class is a no-op — the existing centred
+  dialog layout is preserved exactly.
+- New `.bottom-sheet-card` class. On mobile it:
+   · cancels the parent backdrop's `p-4` via `margin: 0 -1rem -1rem`
+     and `width: calc(100% + 2rem)` so the sheet runs viewport-edge
+     to viewport-edge,
+   · caps height at `92svh` (small-viewport units),
+   · sets `padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px))`
+     so the home indicator never sits over content,
+   · zeroes the bottom-corner radii (rounded only on top),
+   · renders a 36 × 4 px drag-handle pill via `::before` (pure CSS
+     visual cue — we deliberately do NOT add a swipe-to-dismiss
+     gesture handler because Esc + close button already cover the
+     dismiss path and gesture handlers would trap touchmove and break
+     native scroll inside the sheet).
+- `prefers-reduced-motion: reduce` strips `backdrop-filter: blur` —
+  motion-sensitive users have flagged full-screen blur as nausea-
+  inducing.
+- Light-theme override on the drag handle keeps it visible against
+  the near-white sheet surface.
+- Five dialogs opt in: `SettingsDialog`, `HistoryDialog`, `CompareDialog`,
+  `ShortcutsDialog`, `BadgeDialog`. Each just adds `bottom-sheet-card`
+  to the existing `glass-strong … rounded-2xl p-5 sm:p-6` class chain
+  on its card; no other change. `CommandPalette` is intentionally
+  excluded — it is pinned to the top of the viewport
+  (`items-start pt-[8vh] sm:pt-[15vh]`), and turning it into a bottom
+  sheet would jar against that "from above" affordance.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 31 files / 250 tests green (was 30 / 236).
+- `npm run build` — 577 KB JS / 62 KB CSS, no warnings.
+
+---
+
+### Phase 2.8 wrap
+
+All ten phase-2.8 polish runs now ship: toast system (2.8.1),
+content-shaped skeletons (2.8.2), sticky score bar (2.8.3), Speed-Dial
+FAB (2.8.4), celebratory empty state (2.8.5), view transitions
+(2.8.6), universal focus-visible ring (2.8.7), CSS-only tooltip
+primitive (2.8.8), density toggle (2.8.9), and mobile bottom-sheet
+dialogs (2.8.10). Each was researched in advance against current
+WCAG, ARIA APG, and design-system best practice; each ships with
+dedicated tests; the suite grew from 27 / 208 (start of 2.8) to
+31 / 250.
 
 ---
 

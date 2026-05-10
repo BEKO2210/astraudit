@@ -814,6 +814,91 @@ html[data-theme="light"] select option {
 }
 
 /* =========================================================================
+   BOTTOM-SHEET DIALOGS — Phase 2.8.10.
+
+   Below 640 px (Tailwind's `sm` breakpoint), every dialog card carrying
+   the `.bottom-sheet-card` class is repainted as a true bottom sheet:
+   anchored to the bottom edge, rounded only on the top corners, viewport-
+   edge-to-edge full width, and with a small drag-handle pill at the top
+   so the affordance reads as "this came from below". Above `sm` the
+   class is a no-op — the existing centred-card layout is preserved
+   unchanged.
+
+   Pre-build research (2026-05-10):
+   - Material Design 3 *Bottom sheets*: anchor to bottom edge, rounded
+     only on top, drag handle (≈ 32 × 4 px) at the top, scrim behind,
+     respect safe-area insets so iOS home indicator never sits over the
+     primary action. (m3.material.io)
+   - WAI-ARIA APG *Modal dialog*: ARIA stays the same — `role="dialog"`,
+     `aria-modal="true"`, `aria-labelledby`. Bottom-sheet variant does
+     not change focus management or keyboard handling.
+     https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
+   - MDN: prefer `svh` over `vh` / `dvh` for mobile sheet max-height —
+     `svh` = smallest viewport, never gets cut off when the URL bar
+     expands. `dvh` causes layout thrash; `vh`/`lvh` clip content under
+     mobile chrome. https://developer.mozilla.org/en-US/docs/Web/CSS/length#dvh
+   - MDN: `env(safe-area-inset-bottom, 0px)` is the canonical guard for
+     iOS home indicators / Android nav bars. Always pair with a fallback
+     value so non-supporting browsers don't get an empty padding.
+     https://developer.mozilla.org/en-US/docs/Web/CSS/env
+
+   The class is opt-in: each consuming dialog adds `bottom-sheet-card`
+   alongside its existing `glass-strong … rounded-2xl p-5 sm:p-6` chain.
+   Adding the class to the card alone keeps the markup symmetric across
+   dialogs (no per-dialog backdrop overrides). The card cancels the
+   parent backdrop's `p-4` bottom inset via negative margin so it sits
+   flush against the viewport edge.
+   ========================================================================= */
+@media (max-width: 639.98px) {
+  .bottom-sheet-card {
+    /* Cancel the parent backdrop's `p-4` so the card hugs the viewport
+       edges (left, right, bottom). The top stays 16 px below the
+       viewport top so the scrim is visible above the sheet. */
+    margin: 0 -1rem -1rem;
+    width: calc(100% + 2rem);
+    max-width: none;
+    max-height: 92svh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    /* Safe-area-inset-bottom keeps the home indicator / nav bar from
+       sitting over primary actions. The base `1.25rem` corresponds to
+       the card's `p-5`; we keep the same vertical rhythm and just add
+       the device's safe-area padding on top. */
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    /* iOS Safari momentum scrolling. */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Drag-handle pill at the top of the sheet. Pure-CSS visual cue;
+     we do NOT add an actual swipe-to-dismiss gesture because (a) the
+     dialog already has Esc + close button, and (b) gesture handlers
+     trap touchmove and break native scroll. */
+  .bottom-sheet-card::before {
+    content: "";
+    display: block;
+    margin: 0 auto 0.75rem;
+    width: 36px;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  html[data-theme="light"] .bottom-sheet-card::before {
+    background: rgba(15, 23, 42, 0.22);
+  }
+
+  /* When prefers-reduced-motion is set, kill the scrim's blur — heavy
+     blur on full-screen sheets has been called out as nausea-inducing
+     by motion-sensitive users (CSS Tricks accessibility roundup). */
+  @media (prefers-reduced-motion: reduce) {
+    .bottom-sheet-card {
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* =========================================================================
    DENSITY MODES — Phase 2.8.9.
 
    Activated by `<html data-density="compact">`. The default (no
