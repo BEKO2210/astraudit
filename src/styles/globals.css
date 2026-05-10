@@ -600,13 +600,17 @@
     break-before: page;
     page-break-before: always;
   }
+  /* Phase 5.7 follow-up: only the genuinely-small sections get the
+     `break-inside: avoid` treatment. `maintenance` (heatmap + 30
+     recent commits + releases list) and `stack` (multi-card grid)
+     are routinely larger than one page; forcing them not to split
+     just leaves a half-empty page above them, which the print
+     validation harness flagged as a real gap on a 21-page audit. */
   section[id="overview"],
   section[id="score"],
   section[id="story"],
   section[id="insights"],
-  section[id="readme"],
-  section[id="maintenance"],
-  section[id="stack"] {
+  section[id="readme"] {
     break-inside: avoid;
     page-break-inside: avoid;
   }

@@ -2688,31 +2688,45 @@ laser printer.
   assertion that `.print-only` lives both inside (display: block)
   and outside (display: none) the print block.
 
-### 5.8 · Multi-format audit export
-**Why:** Today the audit is read in the browser or printed to PDF
-via 1.7's stylesheet. That covers humans, but downstream tooling
-(static-site indexers, security dashboards, GitOps pipelines,
-internal docs) wants structured output. We add three exports —
-all generated client-side, all browser-safe, no backend:
+### 5.8 · Multi-format audit export ✅ shipped
+**What shipped:**
+- `src/lib/export/auditExport.ts` — three sibling serializers
+  (`exportToJson`, `exportToMarkdown`, `exportToAsciiDoc`) sharing
+  a single `AuditResult` input. JSON carries an explicit
+  `schemaVersion` so downstream tools can validate. Markdown +
+  AsciiDoc render the same content in their respective syntaxes
+  (markdown tables vs `|===` blocks, severity emojis vs plain
+  brackets). All three are pure client-side — no backend, no
+  external library.
+- `<ExportMenu />` component (`src/components/ExportMenu.tsx`)
+  next to ShareButton / PrintButton in the dashboard header.
+  WAI-ARIA menu pattern (`aria-haspopup="menu"`,
+  `role="menuitem"`), Esc + click-outside dismissal, focus
+  return to the trigger. The menu itself is `print:hidden`.
+- `downloadExportFile()` helper triggers a Blob download and
+  revokes the object URL after a 5 s grace.
+- Filename convention: `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}`
+  with owner/repo slugified so Safari's Content-Disposition
+  parser doesn't reject a download with a `/` or space.
+- 19 vitest cases (`tests/lib/export/auditExport.test.ts`) lock
+  the schema (versioned header, every top-level key present, no
+  bundle blob leakage), the Markdown contract (every section
+  heading, severity emojis, table rendering), the AsciiDoc
+  contract (=` headings, `|===` tables), and the filename
+  slugifier.
 
-- **JSON** — the full `AuditResult` (categories, findings, story,
-  insights, derived metrics) with a stable, versioned schema.
-  Drop-in for `jq` or any JSON-aware tool.
-- **Markdown** — a complete narrative report (overview, score
-  breakdown, every finding with severity + recommendation, the
-  Repo Story, next steps). Pasteable into a GitHub issue or a
-  team wiki without further edits.
-- **AsciiDoc** — same content as the Markdown, but in AsciiDoc
-  syntax for users on Antora / Asciidoctor docs pipelines. The
-  three formats share a single intermediate representation so a
-  rule that lands in one always lands in the other two.
-
-Each export is exposed in the existing FAB cluster + Settings
-dialog as a "Download" button, never opens a new tab. File names
-follow `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}` so multiple
-downloads sort nicely on disk. The schema is documented in
-`docs/export-schema.md` and locked with a fixture-based test that
-fails on any unintentional shape change.
+**Print stylesheet follow-up.** During the export work I ran an
+end-to-end PDF validation harness (`scripts/validate-print-output.ts`)
+that builds a rich fixture, renders the dashboard via Playwright
++ Chromium with `media: print`, generates a real PDF, and
+inspects per-page text density + section presence. The first
+run flagged a sparse page (103 chars on p18 of 21). Root cause:
+`section[id="maintenance"]` had `break-inside: avoid` but is
+routinely larger than one A4 page (heatmap + 30 commits +
+releases), so the engine forced a new page early and left the
+previous page half-empty. Fix: relax `break-inside: avoid` to
+only the genuinely-small sections (overview, score, story,
+insights, readme).
 
 ### 5.11 · Sticky section-nav light-theme surface fix ✅ shipped
 **Why (maintainer screenshot bug):** in light mode the sticky tab
