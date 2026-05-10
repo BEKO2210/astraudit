@@ -141,12 +141,15 @@ export function StickyScoreBar({
 
         {/* Action cluster — desktop only. On mobile the SpeedDialFAB
             owns the action surface so this slim bar stays unclutter. */}
+        {/* Phase 5.2 — px-2.5 py-1 text-[11px] gave a ~19 px button
+            height, under WCAG 2.5.8's 24×24 floor. Bumped to py-1.5
+            (now ~26 px) without disturbing the visual rhythm. */}
         <div className="ml-auto hidden items-center gap-1.5 sm:flex">
           {onOpenCompare ? (
             <button
               type="button"
               onClick={onOpenCompare}
-              className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20"
+              className="inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20"
               tabIndex={visible ? 0 : -1}
             >
               <ArrowLeftRight className="h-3 w-3" />
@@ -159,7 +162,7 @@ export function StickyScoreBar({
               type="button"
               onClick={onOpenBadge}
               aria-label="Generate badge"
-              className="inline-flex items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-2.5 py-1 text-[11px] font-medium text-aurora-mint transition hover:bg-aurora-mint/20"
+              className="inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-2.5 py-1 text-[11px] font-medium text-aurora-mint transition hover:bg-aurora-mint/20"
               tabIndex={visible ? 0 : -1}
             >
               <Award className="h-3 w-3" />

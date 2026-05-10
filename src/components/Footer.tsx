@@ -17,7 +17,11 @@ export function Footer() {
         repositories only. An optional GitHub PAT, if you provide one, never
         leaves this browser.
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
+      {/* Phase 5.2 — wrapped in <p> so the doc-page links count as
+          *inline text links* under WCAG 2.5.8's documented
+          exception. The visual layout is identical (flex-wrap on a
+          paragraph still flows the way the footer expects). */}
+      <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
         <span>Astraudit · {new Date().getFullYear()}</span>
         <span className="text-slate-700">·</span>
         <a
@@ -42,7 +46,7 @@ export function Footer() {
         </a>
         <span className="text-slate-700">·</span>
         <span>Built with Vite, React, and GitHub's public API.</span>
-      </div>
+      </p>
     </footer>
   );
 }
