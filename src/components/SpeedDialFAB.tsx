@@ -32,6 +32,7 @@
 
 import { Plus, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ComponentType } from "react";
+import { createPortal } from "react-dom";
 
 export interface SpeedDialAction {
   id: string;
@@ -88,13 +89,26 @@ export function SpeedDialFAB({
   }, [open]);
 
   if (hidden || actions.length === 0) return null;
+  // Phase 5.12 follow-up bug — the FAB was rendered as a child of
+  // the dashboard tree, where an ancestor's transform / filter /
+  // backdrop-filter was creating a new containing block for
+  // `position: fixed`, making the FAB drift with the content
+  // ("er sollte sticky sein und nicht nur ganz unten zu sehen sein").
+  // Portaling to document.body sidesteps the containing-block trap —
+  // `position: fixed` is now anchored to the viewport unconditionally.
+  // SSR / non-DOM test environments (vitest's `node` env) don't have
+  // a `document.body` to portal into, so we fall back to inline
+  // rendering there. Browsers always portal.
+  const canPortal =
+    typeof document !== "undefined" && typeof document.body !== "undefined";
 
-  return (
+  const node = (
     <div
       ref={rootRef}
-      className="fixed bottom-4 right-4 z-30 flex flex-col items-end gap-2 sm:hidden print:hidden"
-      // Speed-dial root never traps focus; we only manage tabIndex on
-      // the mini items so collapsed state stays out of the tab order.
+      // Honour the iOS / Android safe-area inset so the FAB doesn't
+      // sit under the home indicator on a notched device.
+      className="fixed right-4 z-30 flex flex-col items-end gap-2 sm:hidden print:hidden"
+      style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 1rem)" }}
     >
       {/* Mini FAB stack — appears above main FAB on tap. */}
       <div
@@ -124,7 +138,11 @@ export function SpeedDialFAB({
                 setOpen(false);
               }}
               style={{ transitionDelay: delay }}
-              className={`inline-flex h-11 items-center gap-2 rounded-full border border-white/10 px-4 text-sm font-medium text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] backdrop-blur transition-all duration-200 motion-reduce:transition-none active:scale-[0.97] ${action.toneClass ?? "bg-ink-800/95 hover:bg-ink-700/95"}`}
+              // The default fallback now uses `.fab-mini-default` —
+              // a theme-aware token (dark surface in dark mode,
+              // light surface in light mode) so Share + Save-as-PDF
+              // don't end up with text-white on a near-white surface.
+              className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] backdrop-blur transition-all duration-200 motion-reduce:transition-none active:scale-[0.97] ${action.toneClass ?? "fab-mini-default"}`}
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span>{action.label}</span>
@@ -133,7 +151,9 @@ export function SpeedDialFAB({
         })}
       </div>
 
-      {/* Main FAB (toggle) */}
+      {/* Main FAB (toggle). `.fab-main-text` overrides the broad
+          light-theme remap so the icon stays white on the violet/blue
+          gradient background regardless of theme. */}
       <button
         ref={mainRef}
         type="button"
@@ -142,7 +162,7 @@ export function SpeedDialFAB({
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
-        className={`flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-aurora-violet to-aurora-blue text-white shadow-glow transition motion-reduce:transition-none active:scale-95 ${
+        className={`fab-main-text flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-aurora-violet to-aurora-blue shadow-glow transition motion-reduce:transition-none active:scale-95 ${
           open ? "rotate-45" : "rotate-0"
         }`}
       >
@@ -154,4 +174,6 @@ export function SpeedDialFAB({
       </button>
     </div>
   );
+
+  return canPortal ? createPortal(node, document.body) : node;
 }

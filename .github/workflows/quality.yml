@@ -63,6 +63,12 @@ jobs:
       - name: Install Playwright system deps
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+      # Build separately so the Playwright webServer probe (60s) only
+      # has to start `vite preview`, not pack a cold TypeScript +
+      # Vite build into its window. Was the root cause of the
+      # "Timed out waiting 120000ms from config.webServer" failure.
+      - name: Build production bundle
+        run: npm run build
       - name: Run axe-core accessibility tests
         # Filter to the new a11y spec only — visual regression runs in
         # its own workflow.

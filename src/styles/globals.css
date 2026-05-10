@@ -718,6 +718,36 @@ html[data-theme="light"] .glass-strong {
     0 16px 40px -16px rgba(15, 23, 42, 0.16) !important;
 }
 
+/* SpeedDialFAB tokens — Phase 5.12 follow-up bugfix.
+
+   Two surfaces inside the FAB use `text-white` intentionally on a
+   coloured background (the violet/blue gradient on the main FAB; the
+   dark `bg-ink-800/95` fallback on the mini buttons that don't pass
+   a toneClass). The broad light-theme `.text-white` remap below
+   would turn them into near-black ghost glyphs, which is exactly
+   the maintainer-screenshot bug. These tokens win specificity on
+   both themes so the FAB stays legible regardless. */
+.fab-main-text,
+html[data-theme="light"] .fab-main-text {
+  color: #ffffff !important;
+}
+.fab-mini-default {
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.fab-mini-default:hover {
+  background-color: rgba(30, 41, 59, 0.95);
+}
+html[data-theme="light"] .fab-mini-default {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+html[data-theme="light"] .fab-mini-default:hover {
+  background-color: #e2e8f0 !important;
+}
+
 /* Text token remap. The alpha-modified variants (`text-white/90`,
    `text-slate-300/85`, …) compile to a Tailwind class containing a
    literal slash; the DOM class attribute is just `text-white/90` so
