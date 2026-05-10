@@ -11,7 +11,7 @@
  */
 
 import { ArrowLeft } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 export interface DocPageNav {
   /** URL hash slug (without the leading `#/`). */
@@ -37,6 +37,27 @@ export function DocPage({
   children,
 }: DocPageProps) {
   const base = import.meta.env.BASE_URL;
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Phase 5.1 — every time the user navigates to a doc page (from
+  // the home footer, from a cross-link on another doc page, from a
+  // deep link), scroll to the top *and* move keyboard focus to the
+  // page's <h1>. The Gatsby a11y research + WAI-ARIA route-change
+  // guidance both land on "focus the heading" as the most reliable
+  // signal that a screen-reader user can use to know the page
+  // changed. We use `preventScroll: true` because we already did the
+  // scroll explicitly — we don't want focus() to fight it.
+  //
+  // Empty deps: each DocPage is a fresh component instance per
+  // route (Impressum / Datenschutz / RuleBook each return their own
+  // DocPage tree from App.tsx's router), so the effect fires once
+  // per visit, which is exactly what we want.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo(0, 0);
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-10 sm:px-6 lg:px-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
@@ -62,7 +83,17 @@ export function DocPage({
         ) : null}
       </header>
 
-      <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+      {/* tabIndex=-1 makes the heading programmatically focusable
+          (without ever entering the Tab order) so the route-change
+          focus reset above can land here. The browser does NOT fire
+          :focus-visible for synthetic focus on non-interactive
+          elements, so the universal focus ring doesn't paint a
+          jarring outline on the heading. */}
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-3xl font-semibold tracking-tight text-white outline-none sm:text-4xl"
+      >
         {title}
       </h1>
 

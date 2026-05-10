@@ -112,4 +112,14 @@ describe("<RuleBook /> rendering", () => {
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<iframe");
   });
+
+  it("renders exactly ONE <h1> on the page (Phase 5.1 a11y guard)", () => {
+    // The DocPage chrome already provides the page title as <h1>;
+    // the markdown body MUST NOT add a second one. Two <h1>s break
+    // heading hierarchy and confuse SR users about which is the
+    // page name. RuleBook strips the leading `# …` heading from the
+    // markdown source before rendering — this test locks that down.
+    const matches = html.match(/<h1[\s>]/g) ?? [];
+    expect(matches.length).toBe(1);
+  });
 });

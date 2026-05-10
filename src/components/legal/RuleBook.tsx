@@ -32,8 +32,20 @@ import { DocPage } from "./DocPage";
  *  the same XSS-defensive baseline as the README preview. */
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
+/**
+ * Drop the markdown's leading `# Astraudit rule book` heading so
+ * the in-app render has exactly one <h1> — the DocPage title above
+ * the markdown body. Two <h1>s would break the WCAG-required
+ * heading hierarchy and confuse screen readers about what page
+ * they landed on. The GitHub view still gets the heading because
+ * GitHub shows the file's first H1 as the page banner regardless.
+ */
+function stripLeadingH1(source: string): string {
+  return source.replace(/^\s*#[^\n]*\n+/, "");
+}
+
 export function RuleBook() {
-  const html = useMemo(() => md.render(RULES_MD), []);
+  const html = useMemo(() => md.render(stripLeadingH1(RULES_MD)), []);
   return (
     <DocPage
       title="Astraudit rule book"
