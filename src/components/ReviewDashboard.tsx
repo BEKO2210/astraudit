@@ -216,7 +216,13 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
       <ScoreBreakdown categories={result.categories} />
 
       <section id="findings" className="grid gap-6 lg:grid-cols-2">
-        <FindingsPanel findings={result.findings} />
+        <FindingsPanel
+          findings={result.findings}
+          repoFullName={result.bundle.metadata.fullName}
+          score={result.totalScore}
+          maxScore={result.maxScore}
+          onOpenCompare={onOpenCompare}
+        />
         <div id="structure">
           <FileStructurePanel structure={result.fileStructure} />
         </div>

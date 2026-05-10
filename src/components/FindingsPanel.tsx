@@ -3,9 +3,18 @@ import { useMemo, useState } from "react";
 import type { Finding, FindingCategory, Severity } from "../types/finding";
 import { FindingCard } from "./FindingCard";
 import { severityRank } from "../lib/utils/severity";
+import { EmptyFindingsCelebration } from "./EmptyFindingsCelebration";
 
 interface FindingsPanelProps {
   findings: Finding[];
+  /** Repo full name for the celebration announcement. */
+  repoFullName: string;
+  /** Score + max, shown as a re-affirming chip in the celebration. */
+  score: number;
+  maxScore: number;
+  /** Optional CTA — when provided the celebration shows "Compare against
+   *  another repo". */
+  onOpenCompare?: () => void;
 }
 
 const SEVERITY_OPTIONS: Array<{ key: Severity | "all"; label: string }> = [
@@ -29,7 +38,13 @@ const CATEGORY_OPTIONS: Array<{ key: FindingCategory | "all"; label: string }> =
   { key: "dx", label: "DX" },
 ];
 
-export function FindingsPanel({ findings }: FindingsPanelProps) {
+export function FindingsPanel({
+  findings,
+  repoFullName,
+  score,
+  maxScore,
+  onOpenCompare,
+}: FindingsPanelProps) {
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [category, setCategory] = useState<FindingCategory | "all">("all");
 
@@ -39,6 +54,28 @@ export function FindingsPanel({ findings }: FindingsPanelProps) {
       .filter((f) => category === "all" || f.category === category)
       .sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
   }, [findings, severity, category]);
+
+  // Celebratory empty state — when the audit produced zero findings,
+  // the section becomes success feedback rather than an empty list.
+  // Replaces the filter chrome entirely (filters have nothing to do).
+  if (findings.length === 0) {
+    return (
+      <section className="glass p-6">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-aurora-violet" />
+          <h3 className="text-sm font-semibold text-white">Findings (0)</h3>
+        </div>
+        <div className="mt-4">
+          <EmptyFindingsCelebration
+            repoFullName={repoFullName}
+            score={score}
+            max={maxScore}
+            onOpenCompare={onOpenCompare}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="glass p-6">

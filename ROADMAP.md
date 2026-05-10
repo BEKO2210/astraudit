@@ -715,11 +715,66 @@ Sources informing the design:
 - https://danny-payne.medium.com/accessibility-options-for-floating-action-buttons-99bdf8146988
 - https://elaris.software/blog/mobile-ux-thumb-zones-2025/
 
-#### 2.8.5 · Empty-state celebration
+#### 2.8.5 · Empty-state celebration ✅ shipped
 When a repo audits with **zero findings** (rare but real — see
-facebook/react), the Findings section flips to a celebratory
-"All clear" panel with a star burst, the score line, and a hint to
-Compare against another repo.
+facebook/react), the Findings section drops the filter chrome and
+the empty list, and renders an `<EmptyFindingsCelebration />`
+panel: a glowing party-popper medal, a star burst behind it, the
+short headline **"All clear"**, a one-sentence explanation that
+the rule-based detectors found nothing to flag, the score chip,
+and an optional "Compare against another repo" CTA when the
+existing `onOpenCompare` callback is wired through.
+
+Research-driven decisions (Pencil & Paper on the three empty-state
+categories, Eleken on celebratory phrasing, Intuit Content Design,
+UI Deploy 2025 guide, Sara Soueidan + MDN on ARIA live regions,
+catdad/canvas-confetti issue #114 on prefers-reduced-motion):
+
+- **Celebratory category**, not informational. Empty findings means
+  Astraudit's rule-based detectors all came back healthy; the copy
+  ("All clear", "rare and worth celebrating") sells that explicitly
+  rather than surfacing a generic "No findings" placeholder.
+- **CSS-only celebration motion**, no canvas-confetti. Confetti
+  libraries famously ignore `prefers-reduced-motion: reduce` (issue
+  #114), so we lean on the existing `pulseRing` + `floaty`
+  keyframes and wrap every animation utility in `motion-safe:`. A
+  vitest assertion guards the rule.
+- **ARIA live region**: outer card is `role="status"
+  aria-live="polite" aria-atomic="true"`. A `sr-only` sentence
+  carries the same announcement for assistive tech that ignores
+  `role="status"` content updates.
+- **Decorative sparkles** sit inside `aria-hidden` so the four
+  background icons don't pollute the screen-reader output.
+- **Conditional CTA** — Compare button only renders when
+  `onOpenCompare` is provided, so the celebration works in
+  contexts where compare isn't reachable.
+- **Honest hedge**: "Findings are static signals though, not a
+  full security audit." A clean Astraudit report is not a
+  vulnerability scan.
+
+`FindingsPanel` switches to the celebration mode when
+`findings.length === 0` and skips rendering the severity / category
+filter chrome (filters have nothing to operate on). `ReviewDashboard`
+forwards `repoFullName`, `score`, `maxScore`, and `onOpenCompare`
+through.
+
+Tests: 7 new cases in
+`tests/components/EmptyFindingsCelebration.test.tsx` —
+`role="status"` + `aria-live="polite"` + `aria-atomic`, sr-only
+announcement carries the full sentence, score chip has explicit
+`aria-label`, every `animate-*` class lives behind `motion-safe:`,
+decorative sparkles carry `aria-hidden`, the Compare CTA is
+conditional on `onOpenCompare`, and the "No findings" wording is
+explicitly absent ("All clear" wins instead).
+
+**Total suite: 205 tests across 26 files.**
+
+Sources informing the design:
+- https://www.pencilandpaper.io/articles/empty-states
+- https://www.eleken.co/blog-posts/empty-state-ux
+- https://contentdesign.intuit.com/product-and-ui/empty-states/
+- https://github.com/catdad/canvas-confetti/issues/114
+- https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions
 
 #### 2.8.6 · Smooth route transitions
 Add tasteful CSS transitions (`opacity` + tiny `translateY`) when
