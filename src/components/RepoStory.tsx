@@ -15,16 +15,20 @@ export function RepoStory({ story }: RepoStoryProps) {
       <p className="mt-1 text-xs text-slate-500">
         Generated from public metadata, files, and structure. No AI inference.
       </p>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {story.map((section) => (
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {story.map((section, idx) => (
           <div
             key={section.heading}
-            className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
+            className={`rounded-xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-white/10 ${
+              idx === 0 ? "md:col-span-2 xl:col-span-3" : ""
+            }`}
           >
             <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               {section.heading}
             </h4>
-            <p className="mt-2 text-sm text-slate-200/90">{section.body}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-200/90">
+              {section.body}
+            </p>
           </div>
         ))}
       </div>

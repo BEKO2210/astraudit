@@ -1,6 +1,8 @@
 import type { Finding, FindingCategory } from "./finding";
 import type { GraphPayload } from "./graph";
 import type { RepoBundle } from "./github";
+import type { DerivedInsights } from "../lib/audit/insightEngine";
+import type { OnboardingStep } from "../lib/audit/copyEngine";
 
 export type Grade =
   | "Excellent"
@@ -75,6 +77,7 @@ export interface AuditResult {
   maxScore: number;
   grade: Grade;
   verdict: string;
+  headline: string;
   categories: CategoryScore[];
   findings: Finding[];
   story: RepoStorySection[];
@@ -82,6 +85,8 @@ export interface AuditResult {
   stack: StackSignals;
   fileStructure: FileStructureSummary;
   recommendations: Recommendation[];
+  insights: DerivedInsights;
+  onboarding: OnboardingStep[];
   generatedAt: string;
 }
 
