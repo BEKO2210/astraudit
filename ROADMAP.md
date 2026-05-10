@@ -3057,25 +3057,28 @@ this?" to a recognisable Astraudit card.
 
 ### VI · Security hardening
 
-- **6.32 Content-Security-Policy.** The deploy currently has no
-  CSP. Add a strict one to `index.html` (or via meta-refresh):
-  `default-src 'self'; img-src 'self' data: https:;
-  connect-src 'self' https://api.github.com
-  https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'
-  https://fonts.googleapis.com; font-src 'self'
-  https://fonts.gstatic.com; script-src 'self'`. Verify the
-  build still loads.
-- **6.33 Subresource-Integrity (SRI) on Google Fonts links.**
-  Apply `integrity="sha384-..."` to the Inter / JetBrains Mono
-  link tags. They're third-party — SRI prevents a CDN compromise
-  from running arbitrary CSS in the dashboard.
-- **6.34 `dangerouslySetInnerHTML` audit.** Three known sites:
-  the badge SVG preview in BadgeDialog, the rendered README
-  prose, the rule book markdown. Each is fed to a sanitiser
-  (markdown-it with `html: false`) or a hand-rolled escape
-  (`escapeXml` for the badge). Confirm all three with a unit
-  test that injects a `<script>alert(1)</script>` payload and
-  asserts it doesn't render.
+- **6.32 Content-Security-Policy.** ✅ Strict meta-equiv CSP in
+  `index.html` allow-lists the two inline `<script>` blocks
+  (JSON-LD + theme loader) by SHA-256 hash; no `'unsafe-inline'`
+  / `'unsafe-eval'` on `script-src`. `frame-ancestors` deferred
+  to Phase 6.51 (meta-equiv can't carry it). Hash-drift guard
+  in `tests/lib/security/csp.test.ts` re-computes both hashes
+  from the live source on every test run.
+- **6.33 Self-hosted Inter + JetBrains Mono.** ✅ `@fontsource/*`
+  ships latin + latin-ext woff2 subsets via `/assets/`; Google
+  Fonts CSS link + preconnects removed; CSP now drops
+  `https://fonts.googleapis.com` and `https://fonts.gstatic.com`
+  entirely. Replaces the original SRI plan — Google Fonts CSS
+  rotates per User-Agent, so SRI on the link tag wouldn't have
+  worked reliably for many users.
+- **6.34 `dangerouslySetInnerHTML` audit.** ✅ Three sites
+  audited: BadgeDialog (escapeXml-wrapped SVG generator),
+  ReadmePreview (markdown-it + sanitiseHtml allow-list),
+  RuleBook (markdown-it `html: false` over a maintainer-controlled
+  source). Regression file
+  `tests/lib/security/dangerouslySetInnerHTML.test.ts` injects
+  `<script>alert(1)</script>` into every site and asserts the
+  parsed DOM contains zero script elements.
 - **6.35 GitHub PAT handling end-to-end.** The token lives in
   localStorage and is sent ONLY to `api.github.com` /
   `raw.githubusercontent.com`. Verify with a fetch-monitor in
