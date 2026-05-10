@@ -29,12 +29,12 @@ import {
   parseShareHash,
 } from "./lib/share/urlState";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
+import { loadRepoBundle } from "./lib/github";
 import {
-  GithubError,
-  NotFoundError,
-  RateLimitError,
-  loadRepoBundle,
-} from "./lib/github";
+  emptyRepoView,
+  mapAuditError,
+  type AuditErrorView,
+} from "./lib/github/auditErrorView";
 import { buildCompareResult, type CompareResult } from "./lib/compare/diff";
 import type {
   AuditProgressStep,
@@ -78,7 +78,7 @@ type AppState =
       step: AuditProgressStep;
     }
   | { kind: "compared"; compare: CompareResult }
-  | { kind: "error"; title: string; message: string };
+  | { kind: "error"; view: AuditErrorView; lastInput?: string };
 
 export default function App() {
   const [input, setInput] = useState<string>("");
@@ -152,8 +152,12 @@ export default function App() {
         compareJobRef.current = null;
         setState({
           kind: "error",
-          title: "Compare failed",
-          message: message.message,
+          view: {
+            kind: "unknown",
+            title: "Compare failed",
+            message: message.message,
+            actions: [{ kind: "reset", label: "Try a different repository" }],
+          },
         });
         return;
       }
@@ -181,8 +185,12 @@ export default function App() {
       } else if (message.type === "error") {
         setState({
           kind: "error",
-          title: "Audit failed",
-          message: message.message,
+          view: {
+            kind: "unknown",
+            title: "Audit failed",
+            message: message.message,
+            actions: [{ kind: "reset", label: "Try a different repository" }],
+          },
         });
       }
     });
@@ -249,44 +257,12 @@ export default function App() {
         writeBundle(parsed.coords, bundle);
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
-        if (err instanceof RateLimitError) {
-          setState({
-            kind: "error",
-            title: "Rate limited",
-            message: err.message,
-          });
-          return;
-        }
-        if (err instanceof NotFoundError) {
-          setState({
-            kind: "error",
-            title: "Repository not found",
-            message: err.message,
-          });
-          return;
-        }
-        if (err instanceof GithubError) {
-          setState({
-            kind: "error",
-            title: "GitHub error",
-            message: err.message,
-          });
-          return;
-        }
-        setState({
-          kind: "error",
-          title: "Network error",
-          message: (err as Error).message ?? "Unknown failure.",
-        });
+        setState({ kind: "error", view: mapAuditError(err), lastInput: rawInput });
         return;
       }
 
       if (bundle.tree.entries.length === 0) {
-        setState({
-          kind: "error",
-          title: "Empty repository",
-          message: "No analyzable files found.",
-        });
+        setState({ kind: "error", view: emptyRepoView(), lastInput: rawInput });
         return;
       }
 
@@ -295,8 +271,14 @@ export default function App() {
       if (!worker) {
         setState({
           kind: "error",
-          title: "Worker not ready",
-          message: "Audit worker is not available in this environment.",
+          view: {
+            kind: "unknown",
+            title: "Worker not ready",
+            message:
+              "The audit worker isn't available in this browser. Reload the page or try a different browser (Chromium / Firefox / Safari, all current).",
+            actions: [{ kind: "retry", label: "Retry" }],
+          },
+          lastInput: rawInput,
         });
         return;
       }
@@ -314,14 +296,18 @@ export default function App() {
   }, []);
 
   /**
-   * Fetch a single bundle (cache-aware). Returns null if anything
-   * fails along the way so the caller can show a meaningful error.
+   * Fetch a single bundle (cache-aware). Returns the bundle on
+   * success or a structured AuditErrorView on failure so the
+   * compare-mode caller can hand the same view shape to ErrorState
+   * that the main flow uses. Phase 5.6: was previously emitting a
+   * loose `{ title, message }` shape that drifted from the main
+   * path's mapping.
    */
   const loadBundleFor = useCallback(
     async (
       coords: RepoCoordinates,
       signal: AbortSignal,
-    ): Promise<RepoBundle | { error: { title: string; message: string } }> => {
+    ): Promise<RepoBundle | { error: AuditErrorView }> => {
       const cached = readBundle(coords);
       if (cached) return cached;
       try {
@@ -329,26 +315,7 @@ export default function App() {
         writeBundle(coords, bundle);
         return bundle;
       } catch (err) {
-        if ((err as Error).name === "AbortError") {
-          return { error: { title: "Aborted", message: "Audit cancelled." } };
-        }
-        if (err instanceof RateLimitError) {
-          return { error: { title: "Rate limited", message: err.message } };
-        }
-        if (err instanceof NotFoundError) {
-          return {
-            error: { title: "Repository not found", message: err.message },
-          };
-        }
-        if (err instanceof GithubError) {
-          return { error: { title: "GitHub error", message: err.message } };
-        }
-        return {
-          error: {
-            title: "Network error",
-            message: (err as Error).message ?? "Unknown failure.",
-          },
-        };
+        return { error: mapAuditError(err) };
       }
     },
     [],
@@ -401,7 +368,7 @@ export default function App() {
       const errBundle = "error" in leftBundle ? leftBundle : "error" in rightBundle ? rightBundle : null;
       if (errBundle && "error" in errBundle) {
         compareJobRef.current = null;
-        setState({ kind: "error", ...errBundle.error });
+        setState({ kind: "error", view: errBundle.error });
         return;
       }
       if ("error" in leftBundle || "error" in rightBundle) return;
@@ -410,8 +377,13 @@ export default function App() {
       if (!worker) {
         setState({
           kind: "error",
-          title: "Worker not ready",
-          message: "Audit worker is not available in this environment.",
+          view: {
+            kind: "unknown",
+            title: "Worker not ready",
+            message:
+              "The audit worker isn't available in this browser. Reload the page or try a different browser.",
+            actions: [{ kind: "retry", label: "Retry" }],
+          },
         });
         return;
       }
@@ -641,9 +613,23 @@ export default function App() {
 
       {state.kind === "error" ? (
         <ErrorState
-          title={state.title}
-          message={state.message}
+          view={state.view}
           onReset={handleReset}
+          onRetry={
+            state.lastInput
+              ? () => {
+                  // Retry replays the last submitted raw input through
+                  // the same parse + audit path. Cache may still hold
+                  // a fresh bundle for the parsed coords (avoiding the
+                  // network round-trip that just failed); when it
+                  // doesn't, the user gets one more chance — and any
+                  // recovered rate-limit will succeed this time.
+                  const last = state.lastInput;
+                  if (last) void startAudit(last);
+                }
+              : undefined
+          }
+          onOpenSettings={() => setSettingsOpen(true)}
         />
       ) : null}
 

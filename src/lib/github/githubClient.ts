@@ -21,9 +21,26 @@ export class GithubError extends Error {
 }
 
 export class RateLimitError extends GithubError {
-  constructor() {
+  /**
+   * UNIX seconds at which the rate-limit window resets. Captured from
+   * GitHub's `x-ratelimit-reset` header so the UI can show a countdown
+   * ("resets in 23 minutes") instead of just "try again later".
+   * Null when the response didn't carry the header (some auth-failure
+   * 403s don't).
+   */
+  resetAtSeconds: number | null;
+  /** True when the request was sent without a token. Lets the UI
+   *  recommend "Open Settings → add a PAT" specifically, instead of
+   *  the unhelpful "wait for reset" message that authenticated users
+   *  also get.  */
+  unauthenticated: boolean;
+  constructor(
+    options: { resetAtSeconds?: number | null; unauthenticated?: boolean } = {},
+  ) {
     super("GitHub API rate limit reached. Please try again later.", 403);
     this.name = "RateLimitError";
+    this.resetAtSeconds = options.resetAtSeconds ?? null;
+    this.unauthenticated = options.unauthenticated ?? false;
   }
 }
 
@@ -91,7 +108,15 @@ export async function githubFetch<T>(
   if (response.status === 403) {
     const remaining = response.headers.get("x-ratelimit-remaining");
     if (remaining === "0") {
-      throw new RateLimitError();
+      const resetHeader = response.headers.get("x-ratelimit-reset");
+      const resetAtSeconds = resetHeader ? Number(resetHeader) : null;
+      throw new RateLimitError({
+        resetAtSeconds:
+          resetAtSeconds && Number.isFinite(resetAtSeconds)
+            ? resetAtSeconds
+            : null,
+        unauthenticated: !loadToken(),
+      });
     }
     throw new GithubError(
       "GitHub returned 403. The repository may be access-restricted.",

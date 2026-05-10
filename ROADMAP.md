@@ -2623,14 +2623,36 @@ the policy from `expressjs/.github/SECURITY.md`.
   spring-boot, elasticsearch, vscode, homebrew/brew, sveltejs,
   actix.
 
-### 5.6 · Error & rate-limit messaging review
-Every error path users can hit: invalid repo input, 404, 403
-(GitHub unauthenticated rate limit), 403 (PAT scope), abort,
-parse failure, registry timeout. Each gets reviewed for:
-clarity (no jargon), actionability (what should the user *do*?),
-recovery affordance (retry / open settings / clear cache), and
-consistency with the Phase 2.8.1 toast tone system. Includes a
-"What does this error mean?" companion section in the docs.
+### 5.6 · Error & rate-limit messaging review ✅ shipped
+Every user-visible error path got reviewed for clarity, actionability,
+and recovery affordance.
+
+**What shipped:**
+- New `mapAuditError(err)` central helper
+  (`src/lib/github/auditErrorView.ts`) returns a structured
+  `AuditErrorView { kind, title, message, actions[], resetAtSeconds,
+  unauthenticated }`. Replaces two near-identical 4-arm if-else
+  ladders that had drifted between `runAudit` and `loadBundleFor`.
+- `RateLimitError` now captures the `x-ratelimit-reset` header so
+  the UI can render a live countdown ("Resets in 23 min"), and the
+  `unauthenticated` flag so the copy can recommend "Open Settings →
+  add a PAT" specifically when a token would help (vs the
+  unhelpful "wait it out" we showed authenticated users).
+- `<ErrorState />` rewritten as a renderer over `AuditErrorView`:
+  per-kind icon (Clock for rate-limit, Search for 404, WifiOff for
+  network, etc.), live-ticking countdown, and a variable-length
+  CTA cluster. Primary action is now context-aware:
+    - Anonymous rate-limit → **Open Settings** (add a token)
+    - Authenticated rate-limit → **Retry** (window will reset)
+    - GitHub 5xx → **Retry** (transient)
+    - 404 / TooLarge / 4xx → **Try a different repository** (terminal)
+    - Network → **Retry** (most are transient)
+- Audit state now carries `lastInput` so the **Retry** action
+  replays the same parsed coords without forcing the user to
+  retype.
+- 16 vitest cases (`tests/lib/github/auditErrorView.test.ts`) lock
+  the per-kind mapping + the countdown formatter (sub-minute,
+  multi-minute round-up, past-timestamp, missing-timestamp).
 
 ### 5.7 · Print stylesheet v2
 Re-walk every panel under `@media print` — every detector card,
