@@ -13,6 +13,9 @@ import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
 import { OnboardingPanel } from "./OnboardingPanel";
+import { PrintButton } from "./PrintButton";
+import { PrintGraphSummary } from "./PrintGraphSummary";
+import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 
 interface ReviewDashboardProps {
@@ -23,6 +26,7 @@ const SECTIONS: SectionItem[] = [
   { id: "overview", label: "Overview" },
   { id: "score", label: "Score" },
   { id: "story", label: "Story" },
+  { id: "readme", label: "README" },
   { id: "insights", label: "Insights" },
   { id: "graph", label: "Graph" },
   { id: "findings", label: "Findings" },
@@ -40,6 +44,11 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
     <div className="mt-8 space-y-6">
       <SectionNav sections={SECTIONS} />
 
+      <div className="print-only mb-2 border-b border-slate-200 pb-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+        Astraudit · {result.bundle.metadata.fullName} · generated{" "}
+        {new Date(result.generatedAt).toLocaleString()}
+      </div>
+
       <section id="overview">
         <OverviewHeader metadata={result.bundle.metadata} />
       </section>
@@ -54,9 +63,12 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
             />
           </div>
           <div className="flex flex-col justify-center">
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-300">
-              <Award className="h-3.5 w-3.5 text-aurora-mint" />
-              Astraudit verdict
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-300">
+                <Award className="h-3.5 w-3.5 text-aurora-mint" />
+                Astraudit verdict
+              </div>
+              <PrintButton />
             </div>
             <h3 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
               {result.grade}
@@ -80,12 +92,25 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
         <RepoStory story={result.story} />
       </section>
 
+      {result.bundle.readme?.content ? (
+        <section id="readme">
+          <ReadmePreview
+            content={result.bundle.readme.content}
+            owner={result.bundle.metadata.owner.login}
+            repo={result.bundle.metadata.name}
+            branch={result.bundle.metadata.defaultBranch}
+            htmlUrl={result.bundle.metadata.htmlUrl}
+          />
+        </section>
+      ) : null}
+
       <section id="insights">
-        <InsightsPanel insights={result.insights} />
+        <InsightsPanel insights={result.insights} stack={result.stack} />
       </section>
 
       <section id="graph">
         <AuditGraph graph={result.graph} />
+        <PrintGraphSummary graph={result.graph} />
       </section>
 
       <ScoreBreakdown categories={result.categories} />

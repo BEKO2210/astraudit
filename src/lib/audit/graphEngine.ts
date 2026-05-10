@@ -155,9 +155,14 @@ export function buildGraph(ctx: GraphContext): GraphPayload {
     "CI/CD",
     ci.hasWorkflows ? (ciCat?.status === "strong" ? "strong" : "partial") : "missing",
     ci.hasWorkflows
-      ? `${ci.workflowCount} workflow(s) detected.`
-      : "No GitHub Actions workflows detected.",
-    ci.workflowNames.slice(0, 6).map((n) => `Workflow: ${n}`),
+      ? ci.providers.length > 0
+        ? `${ci.providers.map((p) => p.label).join(", ")} detected.`
+        : `${ci.workflowCount} workflow(s) detected.`
+      : "No CI/CD pipeline detected from any supported provider.",
+    [
+      ...ci.providers.map((p) => `Provider: ${p.label}`),
+      ...ci.workflowNames.slice(0, 4).map((n) => `Workflow: ${n}`),
+    ],
     findRecommendation(findings, "ci"),
     { x: 240, y: -300 },
   );
@@ -165,8 +170,13 @@ export function buildGraph(ctx: GraphContext): GraphPayload {
     "workflows",
     "Workflows",
     ci.hasWorkflows ? "info" : "missing",
-    ci.hasWorkflows ? "Workflow files mapped." : "No workflow files.",
-    ci.workflowNames.slice(0, 6),
+    ci.hasWorkflows
+      ? `${ci.workflowCount} workflow file(s) across ${ci.providers.length || 1} provider(s).`
+      : "No workflow files.",
+    [
+      ...ci.providers.map((p) => p.label),
+      ...ci.workflowNames.slice(0, 4),
+    ],
     null,
     { x: 240, y: -460 },
   );

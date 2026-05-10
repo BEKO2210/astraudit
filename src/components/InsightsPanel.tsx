@@ -1,7 +1,9 @@
 import {
   Activity,
+  Bot,
   Calendar,
   CircleDot,
+  ClipboardCheck,
   Clock4,
   FileText,
   GitCommitVertical,
@@ -15,13 +17,16 @@ import {
   Tag,
   Telescope,
   Users,
+  Wrench,
 } from "lucide-react";
 import type { DerivedInsights } from "../lib/audit/insightEngine";
+import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
 
 interface InsightsPanelProps {
   insights: DerivedInsights;
+  stack: StackSignals;
 }
 
 const FRESHNESS_TONE: Record<DerivedInsights["freshnessBucket"], { color: string; word: string }> = {
@@ -49,7 +54,7 @@ const CADENCE_TONE: Record<DerivedInsights["commits"]["bucket"], string> = {
   unknown: "Cadence not measurable",
 };
 
-export function InsightsPanel({ insights }: InsightsPanelProps) {
+export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
   const fresh = FRESHNESS_TONE[insights.freshnessBucket];
   const triage = TRIAGE_TONE[insights.triageHealth];
 
@@ -183,14 +188,26 @@ export function InsightsPanel({ insights }: InsightsPanelProps) {
           icon={Rocket}
           label="CI/CD profile"
           value={
-            insights.workflows.total > 0
-              ? `${insights.workflows.total} workflows`
-              : "No workflows"
+            insights.workflows.providers.length > 0
+              ? insights.workflows.providers
+                  .slice(0, 2)
+                  .map((p) => p.label)
+                  .join(" + ") +
+                (insights.workflows.providers.length > 2
+                  ? ` + ${insights.workflows.providers.length - 2} more`
+                  : "")
+              : "No CI detected"
           }
           sub={
-            insights.workflows.buckets.length
-              ? `Covers ${insights.workflows.buckets.join(", ")}`
-              : "No build/test/deploy patterns detected"
+            insights.workflows.providers.length === 0
+              ? "No pipeline files matched any of the supported providers."
+              : insights.workflows.buckets.length
+                ? `Covers ${insights.workflows.buckets.join(", ")}${
+                    insights.workflows.total > 0
+                      ? ` · ${insights.workflows.total} workflow file${insights.workflows.total === 1 ? "" : "s"}`
+                      : ""
+                  }`
+                : "Pipeline files present, but no build/test/deploy keywords matched their names."
           }
         />
         <Card
@@ -251,6 +268,34 @@ export function InsightsPanel({ insights }: InsightsPanelProps) {
             label="Topic signals"
             value={insights.topicSignals.join(", ")}
             sub="Inferred from repository topics"
+          />
+        ) : null}
+        {stack.aiDevTools.length > 0 ? (
+          <Card
+            icon={Bot}
+            label="AI / agent tooling"
+            value={stack.aiDevTools.slice(0, 3).join(", ") +
+              (stack.aiDevTools.length > 3 ? ` + ${stack.aiDevTools.length - 3}` : "")}
+            sub="Detected from config files committed to the repository."
+            accent="text-aurora-violet"
+          />
+        ) : null}
+        {stack.envManagers.length > 0 ? (
+          <Card
+            icon={Wrench}
+            label="Toolchain pinning"
+            value={stack.envManagers.slice(0, 3).join(", ") +
+              (stack.envManagers.length > 3 ? ` + ${stack.envManagers.length - 3}` : "")}
+            sub="Reproducible local environment via mise / asdf / Nix / Dev Containers etc."
+          />
+        ) : null}
+        {stack.sboms.length > 0 ? (
+          <Card
+            icon={ClipboardCheck}
+            label="Supply chain transparency"
+            value={`${stack.sboms.length} SBOM file${stack.sboms.length === 1 ? "" : "s"}`}
+            sub={stack.sboms.slice(0, 3).join(", ")}
+            accent="text-aurora-mint"
           />
         ) : null}
       </div>

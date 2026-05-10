@@ -9,11 +9,6 @@
     height: 100%;
   }
 
-  html,
-  body {
-    overflow-x: hidden;
-  }
-
   body {
     background-color: #05070d;
     color: rgb(226 232 240 / 0.92);
@@ -25,7 +20,9 @@
   /* Mobile-safety: long unbreakable strings (URLs, file paths, commit
      hashes) must never push a card wider than its container. Defaults
      to "anywhere" which breaks at any character if no whitespace exists,
-     but keeps natural word wrapping otherwise. */
+     but keeps natural word wrapping otherwise. We deliberately do NOT
+     set overflow-x:hidden on html/body because that would break
+     position:sticky on the section nav. */
   p,
   li,
   dd,
@@ -198,4 +195,364 @@
   background: transparent !important;
   color: rgba(148, 163, 184, 0.5) !important;
   font-size: 10px;
+}
+
+/* README preview prose styles. Targets only HTML inside .readme-prose
+   so the rest of the dashboard is unaffected. */
+.readme-prose {
+  color: rgb(226 232 240 / 0.92);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.readme-prose > *:first-child {
+  margin-top: 0;
+}
+.readme-prose > *:last-child {
+  margin-bottom: 0;
+}
+.readme-prose h1,
+.readme-prose h2,
+.readme-prose h3,
+.readme-prose h4,
+.readme-prose h5,
+.readme-prose h6 {
+  color: rgb(255 255 255);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.4em;
+  margin-bottom: 0.6em;
+}
+.readme-prose h1 { font-size: 1.45rem; }
+.readme-prose h2 { font-size: 1.2rem; }
+.readme-prose h3 { font-size: 1.05rem; }
+.readme-prose h4 { font-size: 0.95rem; }
+.readme-prose h5,
+.readme-prose h6 { font-size: 0.85rem; color: rgb(203 213 225 / 0.9); }
+.readme-prose p {
+  margin: 0.6em 0;
+}
+.readme-prose a {
+  color: #3ad6ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(58, 214, 255, 0.4);
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+.readme-prose a:hover {
+  color: #7a5cff;
+  text-decoration-color: rgba(122, 92, 255, 0.6);
+}
+.readme-prose strong { color: rgb(255 255 255); font-weight: 600; }
+.readme-prose em { color: rgb(241 245 249 / 0.92); }
+.readme-prose code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.82em;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #c9d6ff;
+}
+.readme-prose pre {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.readme-prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.82em;
+  color: #d6e1ff;
+}
+.readme-prose ul,
+.readme-prose ol {
+  padding-left: 1.4em;
+  margin: 0.6em 0;
+}
+.readme-prose ul { list-style: disc; }
+.readme-prose ol { list-style: decimal; }
+.readme-prose li {
+  margin: 0.25em 0;
+}
+.readme-prose li::marker {
+  color: rgba(122, 92, 255, 0.6);
+}
+.readme-prose blockquote {
+  border-left: 2px solid rgba(122, 92, 255, 0.5);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.4rem 1rem;
+  margin: 1em 0;
+  color: rgb(203 213 225);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.readme-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.5em 0;
+  display: inline-block;
+}
+.readme-prose hr {
+  border: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 1.6em 0;
+}
+.readme-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.85em;
+  display: block;
+  overflow-x: auto;
+}
+.readme-prose th,
+.readme-prose td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+}
+.readme-prose th {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgb(255 255 255);
+  font-weight: 600;
+}
+.readme-prose details {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.6em 0;
+}
+.readme-prose summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: rgb(255 255 255);
+}
+
+/* =========================================================================
+   PRINT — paper-friendly dashboard. The dark theme is intentionally
+   inverted so a printed PDF has high contrast on white paper without
+   wasting toner, and interactive chrome (sticky nav, settings button,
+   "Show more" toggles, the React-Flow graph) is hidden because it has
+   no meaning on a static page.
+   ========================================================================= */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Kill the aurora/grid overlay so it doesn't shadow the page. */
+  body::before {
+    display: none !important;
+  }
+
+  /* Tighter rhythm on paper. */
+  body {
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #0f172a !important;
+  }
+
+  /* Hide things that don't work on paper. */
+  [data-print-hide="true"],
+  .react-flow,
+  .react-flow__attribution {
+    display: none !important;
+  }
+
+  /* Glass cards become flat, ink-friendly. */
+  .glass,
+  .glass-strong {
+    background: #fff !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Convert dark-theme color classes to print equivalents. */
+  .text-white,
+  .text-slate-100,
+  .text-slate-200,
+  .text-slate-300 {
+    color: #0f172a !important;
+  }
+  .text-slate-400,
+  .text-slate-500,
+  .text-slate-600 {
+    color: #475569 !important;
+  }
+  .text-aurora-mint {
+    color: #047857 !important;
+  }
+  .text-aurora-cyan {
+    color: #0e7490 !important;
+  }
+  .text-aurora-violet,
+  .text-aurora-blue {
+    color: #4f46e5 !important;
+  }
+  .text-aurora-amber {
+    color: #b45309 !important;
+  }
+  .text-risk-critical {
+    color: #b91c1c !important;
+  }
+  .text-risk-high {
+    color: #c2410c !important;
+  }
+  .text-risk-medium {
+    color: #b45309 !important;
+  }
+  .text-risk-low {
+    color: #1d4ed8 !important;
+  }
+  .text-risk-info {
+    color: #475569 !important;
+  }
+
+  /* Accent backgrounds and pills become low-saturation tints. */
+  [class*="bg-aurora-violet"],
+  [class*="bg-aurora-blue"],
+  [class*="bg-aurora-cyan"],
+  [class*="bg-aurora-mint"],
+  [class*="bg-aurora-amber"] {
+    background: #f1f5f9 !important;
+  }
+  [class*="bg-risk-critical"] {
+    background: #fee2e2 !important;
+  }
+  [class*="bg-risk-high"],
+  [class*="bg-risk-medium"] {
+    background: #fef3c7 !important;
+  }
+  [class*="bg-risk-low"] {
+    background: #dbeafe !important;
+  }
+  .pill {
+    background: #f1f5f9 !important;
+    border-color: #d1d5db !important;
+  }
+
+  /* Borders */
+  [class*="border-white"] {
+    border-color: #e5e7eb !important;
+  }
+
+  /* Default white-ish translucent backgrounds become solid white-ish. */
+  [class*="bg-white"] {
+    background: #fafafa !important;
+  }
+  [class*="bg-black"] {
+    background: #f5f5f5 !important;
+  }
+  [class*="bg-ink"] {
+    background: #fff !important;
+  }
+
+  /* Disable gradient overlays — they print as muddy bands. */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r,
+  .bg-gradient-to-l,
+  .bg-gradient-to-t,
+  .bg-gradient-to-b {
+    background: #f8fafc !important;
+  }
+
+  /* Score-ring SVG is fine; just ensure the ring track is visible. */
+  svg circle[stroke^="rgba"] {
+    stroke: #e5e7eb !important;
+  }
+
+  /* Code blocks should still be readable. */
+  code,
+  pre {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border-color: #e5e7eb !important;
+  }
+  pre {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+  }
+
+  /* README prose: drop scroll cap and overflow on paper. */
+  .readme-prose {
+    max-height: none !important;
+    overflow: visible !important;
+    color: #0f172a !important;
+  }
+  .readme-prose a {
+    color: #1d4ed8 !important;
+  }
+  .readme-prose h1,
+  .readme-prose h2,
+  .readme-prose h3,
+  .readme-prose h4,
+  .readme-prose h5,
+  .readme-prose h6,
+  .readme-prose strong {
+    color: #0f172a !important;
+  }
+
+  /* Page-break hints between major sections of the dashboard. */
+  section[id="findings"],
+  section[id="onboarding"],
+  section[id="next"] {
+    break-before: page;
+    page-break-before: always;
+  }
+  section[id="overview"],
+  section[id="score"],
+  section[id="story"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Show full link destinations next to external links so PDF readers
+     can see where they resolve. Anchors stay quiet. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8.5pt;
+    color: #64748b;
+    word-break: break-all;
+    margin-left: 2px;
+  }
+  a[href^="#"]::after,
+  .readme-prose a::after {
+    content: "" !important;
+  }
+
+  /* The print-only legend appears in printed output instead of the
+     interactive React Flow graph — see ReviewDashboard. */
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* By default, print-only elements are not shown on screen. */
+.print-only {
+  display: none;
 }

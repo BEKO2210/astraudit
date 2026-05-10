@@ -49,7 +49,7 @@ export function FindingsPanel({ findings }: FindingsPanelProps) {
             Findings ({findings.length})
           </h3>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 print:hidden">
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as Severity | "all")}

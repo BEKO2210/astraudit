@@ -32,49 +32,152 @@ The dialog also runs a live `/rate_limit` probe so the user can confirm
 the token works and watch the remaining budget in real time, plus a
 one-click "Remove token" path.
 
-### 1.2 · localStorage audit cache
-Cache full audit results keyed by `owner/repo + default-branch SHA`
-for 24 hours. Re-auditing the same repo becomes instant and the
-GitHub API budget shrinks dramatically.
+### 1.2 · localStorage audit cache ✅ shipped
+Bundles fetched from the GitHub API are cached in `localStorage`
+keyed by `owner/repo` for 24 hours. A cache hit skips the network
+entirely; the audit engine still runs in the current code path so
+audit-rule improvements apply immediately. Per-entry size cap (~1.5 MB
+JSON), 30-entry total cap, oldest-first eviction on quota errors. The
+Settings dialog shows the cache size, the most recent entries, and a
+one-click "Clear" button. See `src/lib/cache/auditCache.ts`.
 
-### 1.3 · Markdown rendering for README excerpts
-Render the first ~1,500 chars of the README using `markdown-it`
-(~30 KB gz) so headings, links, lists, and fenced code show up
-properly. The current text-only preview hides the actual README feel.
+### 1.3 · Markdown rendering for README excerpts ✅ shipped
+A new "README" section renders the first ~1,800 chars (expandable to
+~8,000) using `markdown-it` with `html: false` for XSS safety. Inline
+HTML is escaped, all external links carry `target="_blank"` +
+`rel="noreferrer noopener"`, in-page anchors stay in place, and
+images get `loading="lazy"` + `referrerpolicy="no-referrer"`. Relative
+URLs are resolved against the repo's branch — links go to
+`github.com/<owner>/<repo>/blob/<branch>/...` and images to
+`raw.githubusercontent.com/...`. Bundle cost: ~46 KB gz for
+markdown-it.
 
-### 1.4 · Wider CI/CD detection
-We currently only detect GitHub Actions and miss many real CI setups.
-Add file-presence rules for:
+### 1.4 · Wider CI/CD detection ✅ shipped
+The CI detector now recognises 16 provider catalogs in
+`src/lib/audit/ciDetector.ts` — GitHub Actions, GitLab CI, CircleCI,
+Travis, AppVeyor, Azure Pipelines, Jenkins, Drone, Woodpecker,
+Buildkite, TeamCity, Bitbucket Pipelines, Concourse, Earthly, Tekton,
+Harness, and Gitea Actions. Detection is case-insensitive and runs
+through the central `hasFile` / `hasFolder` lookup. GitHub Actions
+also takes a fast path through the dedicated `/actions/workflows`
+endpoint so very large repos (where the recursive tree response is
+truncated) still report the correct provider. The "No CI workflow
+detected" finding now applies only when *none* of the 16 providers
+are present, killing the false positive for non-GitHub-Actions repos.
+The Insights panel and audit graph list the detected providers; the
+sub-line shows which build/test/lint/deploy/release/codeql buckets
+the workflow names hit. Verified against `python/cpython` (correctly
+reports GitHub Actions + Azure Pipelines) and `torvalds/linux`
+(reports GitHub Actions despite tree truncation).
 
-- GitLab CI: `.gitlab-ci.yml`
-- CircleCI: `.circleci/config.yml`
-- Drone: `.drone.yml`
-- Woodpecker: `.woodpecker.yml`, `.woodpecker/`
-- Azure Pipelines: `azure-pipelines.yml`, `.azure-pipelines/`
-- Jenkins: `Jenkinsfile`
-- Travis: `.travis.yml`
-- Buildkite: `.buildkite/pipeline.yml`
-- AppVeyor: `appveyor.yml`
+### 1.5 · Wider stack detection ✅ shipped
+- Frameworks added to the detection catalog: **Astro**, **SolidStart**,
+  **Qwik** + **Qwik City**, **Hono**, **Elysia**, **Effect**,
+  **TanStack Start / Router**, **Modern.js**, **h3**, **tRPC**, plus
+  **Tauri**, **UnoCSS**, **styled-components**, **Emotion**, **RxJS**,
+  **Remix v2** entry points.
+- Build tools: **Rspack**, **Rsbuild**, **Rspress**, **unbuild**,
+  **tsdown**, **Nx Vite executor**.
+- Test tools: **node:test**, **bun:test**, **@playwright/test**.
+- Lint tools: **Oxlint**.
+- New `envManagers` detector for **mise**, **asdf**, **nvm**,
+  **node-version**, **pyenv**, **rbenv**, **SDKMAN**, **Nix**,
+  **Devbox**, **Dev Containers** — surfaced as a "Toolchain managers"
+  field in the dashboard.
+- New `pythonTools` detector for **uv** (`uv.lock` + `[tool.uv]`),
+  **Pixi**, **Hatch** (file + `[tool.hatch]`), **Poetry** (file +
+  `[tool.poetry]`), **PDM**, **Pipenv**, **Conda**, **setuptools**,
+  **Ruff** (`[tool.ruff]`).
+- New `sboms` detector for `sbom.json`, `bom.json`, `cyclonedx.json`,
+  `spdx.json`, `*.cdx.json`, `*.spdx.json` and their XML variants.
+  An SBOM presence adds 9 points to the trust score.
+- Newer Bun lockfile (`bun.lock` text format) and Yarn PnP
+  (`.pnp.cjs`) wired through monorepo / package-manager detection.
+- Bazel `WORKSPACE` / `MODULE.bazel` recognized as monorepo signal.
+- New `aiDevTools` detector for AI / agent CLIs that maintainers
+  commit configs for: **Claude Code** (`CLAUDE.md`, `.claude/`),
+  **Cursor** (`.cursorrules`, `.cursor/`), **Windsurf**, **Aider**,
+  **GitHub Copilot custom instructions**, **Continue**, **Cline**,
+  **Roo Code**, **Codeium**, **Tabnine**, **OpenHands**, **Open
+  Interpreter**, **GPT-Pilot**, **smolagents**, and the cross-tool
+  **AGENTS.md** spec. Surfaced as both an Insights card and a row in
+  the Dependency panel.
+- Verified live against `pydantic/pydantic` (uv + Hatch + Ruff),
+  `astral-sh/uv` (uv), `QwikDev/qwik` (Qwik), `withastro/astro`
+  (Dev Containers + nvm), `microsoft/TypeScript` (Claude Code +
+  GitHub Copilot + AGENTS.md), `cline/cline` (Cline + Claude Code +
+  Copilot), `RooVetGit/Roo-Code` (Roo Code + AGENTS.md), and the
+  original 10 repos with no score regressions.
 
-Stops the false "no CI workflow detected" finding for non-GitHub-Actions
-projects.
+### 1.6 · Detector unit tests ✅ shipped
+A Vitest suite at `tests/` runs each detector against synthetic
+file-tree fixtures — no network, no GitHub API. 11 test files, 92
+test cases. Coverage:
 
-### 1.5 · Wider stack detection
-- Frameworks: **Astro**, **SolidStart**, **Qwik**, **Hono**, **Elysia**,
-  **Effect**, **TanStack Start**, **Remix Vite**.
-- Package / env managers: **mise** (`.mise.toml`), **Pixi** (`pixi.toml`),
-  **Hatch** (`hatch.toml`), **uv** (`uv.lock`), **PNPm v9 catalogs**.
-- Newer Bun text lockfile (`bun.lock`).
-- SBOMs: `sbom.json`, `cyclonedx.xml`, `spdx.json`, `*.cdx.json`.
+- `parseRepoInput`: 12 happy/edge cases for input parsing.
+- `fileClassifier`: case-insensitive lookups, suspicious-file
+  exclusions, important-file presence, test signals.
+- `securityDetector`: LICENSE / SECURITY.md / CODEOWNERS variants,
+  Dependabot, .env templates, fixture-folder exclusions.
+- `dependencyDetector`: package managers, lockfiles, scripts,
+  TypeScript signals.
+- `stackDetector`: framework + build/test/lint detection from a
+  parsed `package.json`, env managers, Python tools (file +
+  pyproject.toml content), SBOMs, AI dev-tools, monorepo signals,
+  runtime tie-breaking.
+- `ciDetector`: provider catalog, multi-provider, GitHub Actions
+  fast-path via API, workflow buckets.
+- `documentationDetector`: README signals (install/usage/api/badges).
+- `markdown/render`: XSS escaping, link/image URL resolution,
+  target=_blank rules, code-fence re-closing.
+- `auth/tokenStore`: PAT save / load / clear, host allow-list,
+  token-format validation. Stubs `localStorage`.
+- `cache/auditCache`: bundle round-trip, case-insensitive keys,
+  TTL invalidation, clearAll.
+- `auditEngine`: end-to-end smoke tests against synthetic bundles —
+  asserts that recommendations don't claim missing files when they
+  are present, and that .env in fixtures isn't flagged.
 
-### 1.6 · Detector unit tests
-A Vitest suite that runs each detector against synthetic file-tree
-fixtures (no network). One test per detector × happy/edge case. Catches
-regressions when we add or tighten rules.
+Wired into `package.json` as `npm test`, `npm run test:watch`, and
+`npm run test:ui`. Added to `.github/workflows/deploy.yml` as a CI
+step so a failing test blocks deploys to GitHub Pages.
 
-### 1.7 · Print / PDF stylesheet
-A `@media print` stylesheet so users can save the audit as a clean PDF
-straight from the browser. Zero infra — the browser does the work.
+### 1.7 · Print / PDF stylesheet ✅ shipped
+A comprehensive `@media print` block in `src/styles/globals.css`
+converts the dashboard to a paper-friendly layout when the user hits
+**Save as PDF** (the new button next to the Astraudit verdict) or
+their browser's print shortcut. Zero infra — the browser does the
+work.
+
+What changes on print:
+- The dark theme inverts to high-contrast on white. Glass cards
+  flatten to plain bordered boxes. Aurora gradients and the body's
+  background overlay disappear.
+- The sticky `SectionNav`, the Settings/PAT button, the `Show more`
+  / `View full README` toggles, and the findings filter dropdowns
+  are hidden via `print:hidden` — they have no meaning on a static
+  page.
+- The interactive React Flow `AuditGraph` is hidden and a static
+  `PrintGraphSummary` table takes its place. The table lists every
+  graph node with its status and recommendation in three columns,
+  with `page-break-inside: avoid` per row.
+- Major sections (`Findings`, `Onboarding`, `Next steps`) start on
+  a new page; smaller sections (`Overview`, `Score`, `Story`) avoid
+  splitting across pages.
+- External links print with their resolved URL so a printed PDF
+  remains useful offline (`a[href^="http"]::after` rule); in-page
+  anchors stay quiet.
+- A print-only header line at the top of the dashboard prints the
+  full repo name plus the audit timestamp on every page.
+- Code blocks switch to wrapping (`white-space: pre-wrap`) so long
+  lines stay inside the page margin.
+- `@page` set to A4 with 14–18 mm margins. Page color adjustments
+  use `print-color-adjust: exact` so the score ring and accent pills
+  retain their tints.
+
+Verified by build + the full vitest suite (92 tests still green).
+Bundle delta: +0.7 KB gz CSS, ~0.2 KB gz JS for the two new
+components.
 
 ### 1.8 · "Copy" buttons everywhere
 Every command block, every URL, every finding ID gets a one-click copy

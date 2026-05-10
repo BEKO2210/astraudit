@@ -36,7 +36,7 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
         <button
           type="button"
           onClick={onOpenSettings}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition print:hidden ${
             hasToken
               ? "border-aurora-mint/40 bg-aurora-mint/10 text-aurora-mint hover:bg-aurora-mint/20"
               : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"

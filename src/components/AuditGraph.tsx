@@ -111,7 +111,7 @@ export function AuditGraph({ graph }: AuditGraphProps) {
     graph.nodes.find((n) => n.id === selectedId) ?? graph.nodes[0];
 
   return (
-    <section className="glass overflow-hidden">
+    <section className="glass overflow-hidden print:hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-6 py-4">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-aurora-cyan" />

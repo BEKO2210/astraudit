@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="mt-20 border-t border-white/5 py-8">
+    <footer className="mt-20 border-t border-white/5 py-8 print:mt-8 print:border-slate-200 print:py-4">
       <div className="text-xs text-slate-500">
         Browser-only static analysis. No code execution. No backend. Public
         repositories only. An optional GitHub PAT, if you provide one, never
