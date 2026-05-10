@@ -119,6 +119,7 @@ export function runAudit(
     stack,
     maintenance,
     security,
+    deps,
   });
   const copyCtx = { bundle, insights, stack, classified, categories };
   const story = buildRichStory(copyCtx);

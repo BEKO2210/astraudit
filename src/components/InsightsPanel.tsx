@@ -35,6 +35,10 @@ import {
   formatPolicyQuality,
   type ParsedSecurityPolicy,
 } from "../lib/audit/securityPolicyParser";
+import {
+  formatNodeFreshness,
+  type ParsedManifest,
+} from "../lib/audit/packageManifest";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -249,6 +253,22 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
             sub={buildSecurityPolicySub(insights.securityPolicy)}
           />
         ) : null}
+        {insights.manifest ? (
+          <Card
+            icon={Layers3}
+            label="Runtime contract"
+            value={buildManifestValue(insights.manifest)}
+            sub={buildManifestSub(insights.manifest)}
+            accent={
+              insights.manifest.nodeFreshness === "aging" ||
+              insights.manifest.nodeFreshness === "ancient"
+                ? "text-risk-medium"
+                : insights.manifest.nodeFreshness === "modern"
+                  ? "text-aurora-mint"
+                  : undefined
+            }
+          />
+        ) : null}
         <Card
           icon={ShieldCheck}
           label="Trust signal score"
@@ -340,6 +360,47 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the runtime-contract card's primary value: Node freshness
+ * label + the actual `engines.node` range (or "—" when missing).
+ * Phase 3.5.
+ */
+function buildManifestValue(m: ParsedManifest): string {
+  const label = formatNodeFreshness(m.nodeFreshness);
+  const range = m.engines.node;
+  if (!range) return label;
+  return `${label} · node ${range}`;
+}
+
+/**
+ * Format the runtime-contract card's subline: package-manager pin,
+ * module type, peer-dep count + optional split. Phase 3.5.
+ */
+function buildManifestSub(m: ParsedManifest): string {
+  const parts: string[] = [];
+  if (m.packageManagerPin) {
+    // Strip Corepack's `+sha…` checksum suffix for readability.
+    const pin = m.packageManagerPin.replace(/\+sha\d+\..*$/, "");
+    parts.push(`packageManager ${pin}`);
+  }
+  if (m.moduleType) parts.push(`type: ${m.moduleType}`);
+  if (m.peerDependencies.length > 0) {
+    const required = m.peerDependencies.filter((p) => !p.optional).length;
+    const optional = m.peerDependencies.length - required;
+    const peerLabel =
+      optional > 0
+        ? `${m.peerDependencies.length} peer dep${m.peerDependencies.length === 1 ? "" : "s"} (${optional} optional)`
+        : `${m.peerDependencies.length} peer dep${m.peerDependencies.length === 1 ? "" : "s"}`;
+    parts.push(peerLabel);
+  }
+  if (parts.length === 0) {
+    return m.engines.node
+      ? "engines.node declared, no other contract fields set."
+      : "No runtime contract declared.";
+  }
+  return parts.join(" · ");
 }
 
 /**

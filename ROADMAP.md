@@ -1421,9 +1421,78 @@ disclosure timeline. Adopters care which of those they're getting.
 - `npx vitest run` — 35 files / 369 tests green (was 34 / 340).
 - `npm run build` — 581 KB JS, no warnings.
 
-### 3.5 · Parse `package.json` engines / peerDependencies
-Surface declared Node versions; warn when missing. Detect framework
-peer-dep mismatches with detected dependencies.
+### 3.5 · Parse `package.json` engines / peerDependencies ✅ shipped
+**Why:** The audit already pulls scripts and a broad framework
+fingerprint from `package.json`. The *runtime contract* fields —
+`engines`, `peerDependencies`, the Corepack `packageManager` pin,
+`type` — are what tells an adopter "what does this project
+actually need to run?". A library pinning `engines.node: ">=14"`
+in 2026 looks fine to a casual reader but is targeting a runtime
+that's been EOL for over a year.
+
+**Pre-build research (2026-05-10):**
+- npm Docs · *package.json* `engines`: SemVer range syntax,
+  loosely enforced by `npm install` itself but honoured by
+  Corepack, CI, and downstream consumers. Common patterns: `>=18`,
+  `^20.10`, `>=18 <21`, `16 || 18 || 20`.
+  https://docs.npmjs.com/cli/v10/configuring-npm/package-json#engines
+- npm Docs · *peerDependencies* + `peerDependenciesMeta.optional`:
+  npm v7+ installs peer deps automatically; the `optional: true`
+  flag opts out. We surface the optional split so the card shows
+  e.g. "5 peer deps (2 optional)".
+- Node.js *previous releases* — May 2026 LTS state: Node 22 (Jod)
+  active LTS, Node 24 (Krypton) latest LTS. Node 18 (Hydrogen) and
+  Node 20 (Iron) are EOL. The audit's freshness bucket bakes in
+  these thresholds.
+  https://nodejs.org/en/about/previous-releases
+- Implementation choice: deliberately do NOT pull `semver` (~30 KB).
+  The audit only needs to extract the *minimum major* from a range,
+  which is a tiny regex job. Anything more nuanced (intersection,
+  exact-match calculations) is out of scope.
+
+**Implementation:**
+- New `src/lib/audit/packageManifest.ts`. Two pure helpers + a
+  top-level reader:
+   1. `minimumMajorFromRange` parses every documented range form
+      (`>=`, `>`, `~`, `^`, `=`, plain numerics, multi-clause AND,
+      OR-clauses with `||`) and returns the smallest major.
+      Upper-bound-only comparators (`<X`, `<=X`) intentionally
+      return null — they don't define a minimum on their own.
+   2. `bucketNodeFreshness` maps the minimum major to one of
+      `missing` / `any` / `modern` / `current` / `aging` /
+      `ancient` against a single `MIN_LTS_MAJOR = 22` constant
+      sourced from the May-2026 LTS state.
+   3. `parseManifestObject` extracts `type`, `engines` (string
+      values only — non-string entries are dropped silently),
+      `packageManager` (Corepack pin), and `peerDependencies` with
+      `peerDependenciesMeta.optional` honoured. Peer deps are
+      sorted alphabetically for stable UI output.
+- `dependencyDetector.ts` now calls `readManifest(classified)` and
+  exposes the result on `DependencySignals.manifest`.
+- `insightEngine.ts` takes `deps` in its context and surfaces
+  `manifest: ParsedManifest | null` on `DerivedInsights`.
+- `auditEngine.ts` passes the deps signals through.
+- `InsightsPanel.tsx` adds a Layers3-icon "Runtime contract" card.
+  Value: freshness label + actual `engines.node` range. Subline:
+  Corepack pin (with the `+sha…` checksum stripped for readability),
+  module type, peer-dep count + optional split. Card colour shifts
+  to `risk-medium` for `aging`/`ancient` buckets and `aurora-mint`
+  for `modern`.
+
+**Tests:** `tests/lib/audit/packageManifest.test.ts` (41 cases):
+- 5 happy-path cases (typical manifest, empty manifest, non-string
+  engine value tolerance, type-field handling, whitespace trim).
+- 13 `minimumMajorFromRange` cases covering every documented form.
+- 6 unconstrained-range cases (`*`, `x`, `latest`, etc.).
+- 1 upper-bound-only case (the SemVer trap).
+- 1 unparseable-range case.
+- 11 freshness-bucket boundary cases.
+- 6 UI label cases.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 37 files / 425 tests green (was 36 / 384).
+- `npm run build` — 595 KB JS, no warnings.
 
 ### 3.6 · Parse CHANGELOG release pace
 Mean delta between Markdown release headings → adds a real cadence

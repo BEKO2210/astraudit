@@ -8,6 +8,8 @@ import type { SecuritySignals } from "./securityDetector";
 import type { ParsedDependabot } from "./dependabotParser";
 import type { ParsedCodeowners } from "./codeownersParser";
 import type { ParsedSecurityPolicy } from "./securityPolicyParser";
+import type { DependencySignals } from "./dependencyDetector";
+import type { ParsedManifest } from "./packageManifest";
 import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
@@ -116,6 +118,12 @@ export interface DerivedInsights {
    * grade. Null when the file is absent or empty. Phase 3.4.
    */
   securityPolicy: ParsedSecurityPolicy | null;
+  /**
+   * Parsed package.json runtime contract — engines, peerDependencies,
+   * packageManager pin, module type. Null when the file is absent or
+   * unparseable. Phase 3.5.
+   */
+  manifest: ParsedManifest | null;
   tree: TreeShape;
   licenseSummary: string | null;
   licenseTone: "permissive" | "weak-copyleft" | "strong-copyleft" | "proprietary" | "unknown";
@@ -498,10 +506,11 @@ interface InsightsContext {
   stack: StackSignals;
   maintenance: MaintenanceSignals;
   security: SecuritySignals;
+  deps: DependencySignals;
 }
 
 export function deriveInsights(ctx: InsightsContext): DerivedInsights {
-  const { bundle, classified, readme, ci, stack, maintenance, security } = ctx;
+  const { bundle, classified, readme, ci, stack, maintenance, security, deps } = ctx;
   const meta = bundle.metadata;
 
   const ageDays =
@@ -598,6 +607,7 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     dependabot: security.dependabotConfig,
     codeowners: security.codeownersConfig,
     securityPolicy: security.securityPolicy,
+    manifest: deps.manifest,
     tree,
     licenseSummary: lic.summary,
     licenseTone: lic.tone,
