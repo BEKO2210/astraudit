@@ -2303,14 +2303,71 @@ matching the Phase 2.8 / 3.x pattern. The goal: zero unloved
 buttons, zero rough edges, zero "wait, why doesn't *that* work?"
 moments.
 
-### 5.1 · Scroll & focus reset on route changes
-**Why:** Today, navigating from the home page to `#/impressum`
-preserves the user's scroll position — so a visitor who scrolled
-to the footer to click "Datenschutz" lands halfway down the legal
-page instead of at the top. Same for `#/audit/owner/repo` deep
-links and the future hash routes. Every route transition should
-scroll to top **and** move keyboard focus to the page's first
-heading (announced by screen readers as the new context).
+### 5.1 · Scroll & focus reset on route changes ✅ shipped
+**Why:** The trigger flow was the maintainer's own bug report —
+"wenn ich z.B. auf Datenschutz drücke soll es an den Punkt
+springen wo man anfängt zu lesen". Browsers preserve `scrollY`
+across hash changes, so a visitor who scrolled to the footer
+to click "Datenschutz" landed halfway down the legal page. Plus,
+keyboard / screen-reader users had no signal that a new page had
+mounted at all.
+
+**Pre-build research (2026-05-10):**
+- Gatsby a11y route-change study + WAI-ARIA route-change
+  guidance both land on "focus the page's heading" as the most
+  reliable announcement signal for screen-reader users. Don't
+  focus the app top — it's overwhelming on long pages.
+- `tabindex="-1"` lets a non-interactive `<h1>` receive
+  programmatic focus without entering the Tab order.
+- `focus({ preventScroll: true })` keeps the explicit
+  `window.scrollTo(0, 0)` in charge — without it, browsers will
+  also scroll the focused element into view and fight the explicit
+  reset.
+- Programmatic focus on a non-interactive element does *not*
+  trigger `:focus-visible`, so the universal focus ring from
+  Phase 2.8.7 doesn't paint a jarring outline on the heading.
+
+**Implementation:**
+- `src/components/legal/DocPage.tsx` (the Phase 4.5 chrome shared
+  by Impressum, Datenschutzerklärung, RuleBook) gets:
+  - A `useRef<HTMLHeadingElement>` on the page `<h1>`.
+  - A `useEffect` (empty deps) that, on mount, calls
+    `window.scrollTo(0, 0)` and `headingRef.current?.focus({
+    preventScroll: true })`.
+  - The `<h1>` is now `tabIndex={-1}` + `outline-none` so it can
+    receive synthetic focus without ever entering Tab order or
+    painting a visual ring.
+- Each route mounts a fresh `<DocPage>` (the App router returns a
+  different top-level component per slug — `<Impressum />` vs
+  `<Datenschutzerklaerung />` vs `<RuleBook />`), so the empty-deps
+  effect fires on every navigation, including cross-links.
+- Real bug caught alongside the fix: the rule book was rendering
+  TWO `<h1>` tags (DocPage title + the markdown's own
+  `# Astraudit rule book` from `docs/RULES.md`). The second was a
+  WCAG hierarchy violation. `RuleBook.tsx` now strips the leading
+  H1 from the markdown source before rendering — GitHub still
+  shows the heading because GitHub renders the file's first H1 as
+  the page banner regardless.
+
+**Tests:**
+- New `tests/visual/routeReset.spec.ts` (3 Playwright cases) —
+  covers the exact reported flow:
+   1. Scroll to the footer, click Datenschutz, assert
+      `window.scrollY === 0` AND `document.activeElement` is the
+      page `<h1>` with the right text.
+   2. Cross-navigate Datenschutz → Impressum via the in-page
+      header link, same assertions.
+   3. Footer "Rule book" link, same assertions, also confirming
+      the Phase 4.5 `#/rules` slug routes through the same effect.
+- `tests/components/ruleBook.test.tsx` extended with a single-`<h1>`
+  guard so the duplicate-heading regression can never come back.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 47 files / 610 tests green (added 1).
+- `npx playwright test` — **10 specs all pass** (was 7; +3 from
+  the new route-reset spec).
+- `npm run build` — no warnings.
 
 ### 5.2 · Interactive control audit
 A line-by-line walk over every `<button>`, `<a>`, `<select>`,
