@@ -162,3 +162,65 @@ test.describe("Phase 5.x — Badge dialog mobile scroll trap", () => {
     expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
   });
 });
+
+test.describe("Phase 5.x — Badge dialog light-mode contrast", () => {
+  test.use({ viewport: { width: 390, height: 720 } });
+
+  test("Download button keeps white text on its violet/blue gradient in light theme", async ({
+    page,
+  }) => {
+    // Maintainer screenshot bug: the broad `.text-white { color:
+    // #0f172a }` light-mode remap caught buttons on coloured
+    // gradients. The Download CTA's text became near-black on
+    // saturated violet — completely unreadable. The fix scopes
+    // the remap to skip elements with `bg-gradient-to-*`,
+    // `bg-aurora-*`, or `bg-risk-*` classes.
+    await page.addInitScript(() => {
+      localStorage.setItem("astraudit:theme:v1", "light");
+    });
+    await seedAndOpen(page);
+    await page.getByRole("button", { name: "Badge", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+
+    const downloadButton = page.getByRole("button", { name: /Download/ }).first();
+    const color = await downloadButton.evaluate(
+      (el) => getComputedStyle(el as HTMLElement).color,
+    );
+    // Computed-style returns rgb(...) form. Parse and assert this
+    // is *near-white*, NOT near-black. Acceptance: red+green+blue
+    // ≥ 720 (≈ 240 per channel average — generous for any white
+    // tone); the bug rendered ≈ rgb(15,23,42) which sums to 80.
+    const rgb = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    expect(rgb, `Computed color was: ${color}`).not.toBeNull();
+    const sum = Number(rgb![1]) + Number(rgb![2]) + Number(rgb![3]);
+    expect(sum, `rgb sum = ${sum}; expected ≥ 720 (white-ish)`).toBeGreaterThanOrEqual(720);
+  });
+
+  test("dialog title (text-white on glass-strong) DOES get the dark-on-light remap", async ({
+    page,
+  }) => {
+    // Belt-and-suspenders: the same `.text-white` rule still
+    // applies to titles on light surfaces (.glass-strong card
+    // chrome). Without this assertion, a future "fix" could
+    // accidentally revert the original Phase 5.12 contrast
+    // improvement the broad rule was added for.
+    await page.addInitScript(() => {
+      localStorage.setItem("astraudit:theme:v1", "light");
+    });
+    await seedAndOpen(page);
+    await page.getByRole("button", { name: "Badge", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+
+    const title = page.getByRole("heading", { name: "Astraudit badge" });
+    const color = await title.evaluate(
+      (el) => getComputedStyle(el as HTMLElement).color,
+    );
+    const rgb = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    expect(rgb).not.toBeNull();
+    const sum = Number(rgb![1]) + Number(rgb![2]) + Number(rgb![3]);
+    // Heading on a near-white surface must be DARK. Sum should be
+    // < 200 for #0f172a (sums to 80), generous ceiling at 200
+    // covers any future palette tweak that stays "dark".
+    expect(sum, `heading rgb sum = ${sum}; expected < 200 (dark)`).toBeLessThan(200);
+  });
+});
