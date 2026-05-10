@@ -223,7 +223,7 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
             Registry signals
           </h2>
         </div>
-        <span className="text-[11px] text-slate-400">
+        <span className="ml-auto text-[11px] text-slate-400">
           {done
             ? `${oks.length}/${requests.length} resolved${
                 notFound > 0 ? ` · ${notFound} not found` : ""
@@ -272,7 +272,9 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
           <button
             type="button"
             onClick={handleRetry}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-risk-medium/40 bg-risk-medium/10 px-3 py-1 font-medium transition hover:bg-risk-medium/20"
+            // Phase 6.2 — ml-auto keeps Retry right-aligned even when
+            // the alert wraps to a second row on narrow viewports.
+            className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-risk-medium/40 bg-risk-medium/10 px-3 py-1 font-medium transition hover:bg-risk-medium/20"
           >
             <RefreshCw className="h-3 w-3" />
             Retry

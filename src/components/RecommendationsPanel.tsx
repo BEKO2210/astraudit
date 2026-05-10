@@ -65,6 +65,9 @@ export function RecommendationsPanel({
           value={allText}
           label="Copy all steps"
           withText
+          // Phase 6.2 — keep the action right-aligned even after the
+          // header wraps to a second row on narrow viewports.
+          className="ml-auto"
         />
       </div>
       <p className="mt-1 text-xs text-slate-500">
