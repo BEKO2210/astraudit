@@ -814,6 +814,139 @@ html[data-theme="light"] select option {
 }
 
 /* =========================================================================
+   TOOLTIP PRIMITIVE — Phase 2.8.8.
+
+   CSS-only show/hide via :hover and :focus-within so the trigger needs
+   no JS to render the bubble. JS is only used to handle Esc dismissal
+   (WCAG 2.2 SC 1.4.13 Dismissible) via the data-tt-dismissed attribute.
+
+   Layout: the wrapper is `inline-flex` so it doesn't add width around
+   icon buttons. The bubble is absolutely positioned and uses an
+   invisible 6 px buffer (via `padding`) on the side facing the trigger,
+   so the cursor can travel from trigger → bubble without losing the
+   hover state — that's the WCAG 1.4.13 *Hoverable* requirement.
+
+   Sources:
+     - https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+     - https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
+     - https://inclusive-components.design/tooltips-toggletips/
+   ========================================================================= */
+.tt-wrap {
+  position: relative;
+  display: inline-flex;
+  /* The wrapper carries the keyboard listener for Escape. It must be
+     able to receive focus for that listener to fire from the trigger.
+     We keep tabindex off the wrapper itself — the trigger inside is
+     the focusable element, and React's onKeyDown bubbles up. */
+}
+
+.tt-bubble {
+  position: absolute;
+  left: 50%;
+  z-index: 60;
+  pointer-events: none; /* enabled below when visible */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s linear 120ms;
+
+  /* Visual */
+  white-space: nowrap;
+  max-width: 16rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 20, 36, 0.96);
+  color: rgb(241, 245, 249);
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 8px 24px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Top placement: bubble sits above the trigger. The bottom side has
+   extra padding so the gap between trigger and bubble is still part
+   of the bubble's hit area (WCAG Hoverable). */
+.tt-wrap[data-tt-placement="top"] > .tt-bubble {
+  bottom: 100%;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+}
+.tt-wrap[data-tt-placement="bottom"] > .tt-bubble {
+  top: 100%;
+  margin-top: 6px;
+  padding-top: 4px;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Show on hover, keyboard focus inside, OR direct hover on the bubble
+   (in case the cursor traversed onto the tooltip from the trigger). */
+.tt-wrap:hover > .tt-bubble,
+.tt-wrap:focus-within > .tt-bubble,
+.tt-bubble:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s;
+}
+
+/* Esc-dismissed (WCAG 1.4.13 Dismissible). The flag is reset on blur /
+   pointerleave by the React component. */
+.tt-wrap[data-tt-dismissed="true"] > .tt-bubble {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Reduced motion: no slide-in, no fade — just appear / disappear. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-bubble {
+    transition: none;
+    transform: translateX(-50%);
+  }
+  .tt-wrap:hover > .tt-bubble,
+  .tt-wrap:focus-within > .tt-bubble,
+  .tt-bubble:hover {
+    transform: translateX(-50%);
+  }
+}
+
+/* Tooltips are decorative ink on paper, suppress them on print. */
+@media print {
+  .tt-bubble {
+    display: none !important;
+  }
+}
+
+/* Light theme — invert surface and border. */
+html[data-theme="light"] .tt-bubble {
+  background: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.4);
+}
+
+/* Forced-colors users (Windows High Contrast) get system-defined
+   surfaces so the bubble respects their palette. */
+@media (forced-colors: active) {
+  .tt-bubble {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+}
+
+/* =========================================================================
    SKELETON LOADERS — Phase 2.8.2.
    Research:
    - LogRocket: skeletons should reflect the final layout, fast motion

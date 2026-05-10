@@ -9,6 +9,7 @@ import {
   type ResolvedTheme,
   type Theme,
 } from "../lib/theme/themeStore";
+import { Tooltip } from "./ui/Tooltip";
 
 const LABEL: Record<Theme, string> = {
   dark: "Dark",
@@ -49,16 +50,17 @@ export function ThemeToggle() {
       : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white";
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label={`Theme: ${LABEL[theme]}. Click to cycle.`}
-      title={`Theme: ${LABEL[theme]} · click to cycle`}
-      data-print-hide="true"
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition print:hidden ${tone}`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">{LABEL[theme]}</span>
-    </button>
+    <Tooltip label={`Theme: ${LABEL[theme]} · click to cycle`}>
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label={`Theme: ${LABEL[theme]}. Click to cycle.`}
+        data-print-hide="true"
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition print:hidden ${tone}`}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{LABEL[theme]}</span>
+      </button>
+    </Tooltip>
   );
 }

@@ -899,10 +899,69 @@ obviously visible against every surface in the app, in both themes.
 - `npx vitest run` — 28 files / 215 tests green (was 27 / 208).
 - `npm run build` — 574 KB JS / 58.9 KB CSS, no warnings.
 
-#### 2.8.8 · Lightweight tooltip primitive
-A small `Tooltip` helper (CSS-only, no library) used by
-`CopyButton`, `PrintButton`, `ThemeToggle`, the FAB cluster, and the
-heatmap legend. Positioned via `aria-describedby` for assistive tech.
+#### 2.8.8 · Lightweight tooltip primitive ✅ shipped
+**Why:** The codebase had been leaning on the `title=` HTML attribute
+to surface hover hints on icon-only buttons. `title` is a textbook
+*almost works* attribute: it's invisible to keyboard users (Tab does
+not trigger it), invisible on touch, and screen readers announce it
+inconsistently — Heydon Pickering's blunt summary is "if you want to
+hide content from mobile, tablet, AT, and keyboard users, use the
+title attribute." We need a real tooltip primitive that any icon
+button can opt into without re-inventing the wheel.
+
+**Pre-build research (2026-05-10):**
+- WAI-ARIA APG · *Tooltip Pattern* — bubble carries `role="tooltip"`,
+  trigger references it via `aria-describedby` (auxiliary information)
+  or `aria-labelledby` (when the bubble *is* the accessible name).
+  Tooltips never receive focus. Escape dismisses without moving focus.
+  https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
+- Heydon Pickering · *Tooltips & Toggletips* — when a trigger already
+  has a sufficient `aria-label`, an additional `aria-describedby`
+  with the same text is redundant; either drop the wiring or vary the
+  text. CSS-only show/hide via `:hover` + `:focus-visible` is fine for
+  desktop, but touch users need a different affordance (toggletips).
+  https://inclusive-components.design/tooltips-toggletips/
+- W3C WAI · *Understanding SC 1.4.13 Content on Hover or Focus* (AA):
+   · *Dismissible* — Escape (or other mechanism) closes the tooltip
+     without moving focus or pointer.
+   · *Hoverable*   — pointer must be able to traverse onto the bubble
+     without it disappearing.
+   · *Persistent*  — visible until trigger blur, dismissal, or
+     content invalidation.
+  https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+
+**Implementation:**
+- New `src/components/ui/Tooltip.tsx`. Single React element trigger,
+  sibling `<span role="tooltip">` bubble, both wrapped in
+  `<span class="tt-wrap">`. `useId()` generates a stable id for the
+  bubble (referenced via `aria-describedby` when consumer opts in).
+- CSS lives in `src/styles/globals.css` (new "TOOLTIP PRIMITIVE"
+  block before the skeleton block). Visibility is driven entirely by
+  CSS: `.tt-wrap:hover > .tt-bubble`, `.tt-wrap:focus-within > .tt-bubble`,
+  AND `.tt-bubble:hover` (the third selector satisfies WCAG 1.4.13
+  Hoverable — once the cursor leaves the trigger, the bubble's own
+  `:hover` keeps it open).
+- Bubble uses `padding-bottom: 4px; margin-bottom: 6px` (top placement)
+  so the gap between trigger and bubble is part of the bubble's hit
+  area — no JS measurement needed.
+- Esc handling is the only JS: `onKeyDown` on the wrapper sets
+  `data-tt-dismissed="true"` which a CSS rule (`!important`) then
+  honours. The flag resets on `onBlur` / `onPointerLeave` so the next
+  interaction shows the bubble again.
+- Light theme + `forced-colors: active` overrides keep the bubble
+  visible across themes and Windows High-Contrast mode.
+- `prefers-reduced-motion: reduce` zeros out the slide/fade transition.
+- `@media print` hides every bubble.
+- Wired into four call sites that previously used `title=`:
+  `CopyButton`, `ShareButton`, `PrintButton`, `ThemeToggle`. Each now
+  drops the `title` attribute and gains the new bubble while keeping
+  its existing `aria-label` (so SR users still get the name; we don't
+  add `describe` because the bubble text equals the label).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 29 files / 227 tests green (was 28 / 215).
+- `npm run build` — 574 KB JS / 60.4 KB CSS, no warnings.
 
 #### 2.8.9 · Density toggle (comfortable / compact)
 A new "Density" choice in the Settings dialog drops vertical paddings
