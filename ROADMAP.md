@@ -253,10 +253,48 @@ happy paths, malformed fragments, trailing-segment tolerance, and
 the parse↔format round-trip. Total suite is now **102 tests across
 13 files**.
 
-### 2.2 · Compare two repositories side-by-side
-A second "Compare against…" input. Two score rings, two stories, a diff
-of findings ("only in A", "only in B", "shared"). Useful for evaluating
-alternatives.
+### 2.2 · Compare two repositories side-by-side ✅ shipped
+A "Compare with…" pill on every audit dashboard opens a small dialog
+that asks for the right-hand repo. Both audits run in parallel
+(cache-aware), then a dedicated `CompareDashboard` renders:
+
+- Twin score rings with a centered Δ display and a left/right/tie
+  category-win tally.
+- A per-category bar chart showing both sides' percentages and the
+  signed delta in the same row.
+- A three-column **Findings diff** — only-in-left (cyan), shared
+  (violet, with severity-differs / identical pills), only-in-right
+  (amber). Matching is by `category::title` so noisy IDs don't
+  prevent matches.
+- A **Stack diff** section: scalar facts (language, runtime,
+  package manager, monorepo tool, containerized, lockfile) in a
+  table, then per-list diffs (frameworks, build, test, lint, env
+  managers, python tools, AI tooling) split into shared / left-only
+  / right-only.
+- A natural-language quick verdict.
+
+Plumbing:
+
+- The Web Worker now accepts `{ id }` on input messages and echoes
+  it back on `progress` / `result` / `error`, so two audits can run
+  in the same worker without ambiguous routing.
+- `src/lib/compare/diff.ts` builds the structured `CompareResult`
+  (categories, findings diff, stack diff, summary).
+- URL routing extended: `#/compare/<ownerA>/<repoA>+<ownerB>/<repoB>`.
+  `+` is illegal inside repo slugs so the separator is unambiguous.
+  `parseShareHash` is now a discriminated union (`audit | compare`).
+- App state gains `comparing` and `compared` kinds. `popstate` /
+  `hashchange` re-derive either kind from the URL.
+- `CompareDialog` accepts a right-hand repo or a one-click example.
+- `CompareDashboard` reuses `ScoreRing`, `ShareButton`, `CopyButton`
+  for consistency and copies a "Compare summary" line for
+  paste-into-Slack flows.
+
+Tests: 12 new cases in `tests/lib/compare/diff.test.ts` (category
+deltas, finding bucketing, case-insensitive title matching, scalar
+fact comparison, end-to-end with auditEngine), plus 4 new compare
+URL cases in `tests/lib/share/urlState.test.ts`. Total suite is now
+**114 tests across 14 files**.
 
 ### 2.3 · Light & dark theme toggle
 Currently dark only. Add a high-contrast light theme; remember the

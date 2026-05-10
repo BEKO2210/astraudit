@@ -1,4 +1,4 @@
-import { Award } from "lucide-react";
+import { ArrowLeftRight, Award } from "lucide-react";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
 import { ScoreRing } from "./ScoreRing";
@@ -22,6 +22,7 @@ import { ShareButton } from "./ShareButton";
 
 interface ReviewDashboardProps {
   result: AuditResult;
+  onOpenCompare?: () => void;
 }
 
 const SECTIONS: SectionItem[] = [
@@ -39,7 +40,7 @@ const SECTIONS: SectionItem[] = [
   { id: "next", label: "Next steps" },
 ];
 
-export function ReviewDashboard({ result }: ReviewDashboardProps) {
+export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
 
   return (
@@ -70,7 +71,17 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
                 <Award className="h-3.5 w-3.5 text-aurora-mint" />
                 Astraudit verdict
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {onOpenCompare ? (
+                  <button
+                    type="button"
+                    onClick={onOpenCompare}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-3 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 print:hidden"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Compare with…
+                  </button>
+                ) : null}
                 <ShareButton
                   coords={{
                     owner: result.bundle.metadata.owner.login,

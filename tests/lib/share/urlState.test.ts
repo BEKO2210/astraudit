@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatCompareHash,
   formatShareHash,
   formatShareUrl,
   parseShareHash,
 } from "../../../src/lib/share/urlState";
 
-describe("parseShareHash", () => {
+describe("parseShareHash — single audit", () => {
   it("parses #/audit/owner/repo", () => {
     expect(parseShareHash("#/audit/facebook/react")).toEqual({
+      kind: "audit",
       coords: { owner: "facebook", repo: "react" },
     });
   });
@@ -27,25 +29,68 @@ describe("parseShareHash", () => {
   });
 
   it("accepts URL-style trailing segments", () => {
-    expect(
-      parseShareHash("#/audit/facebook/react/tree/main"),
-    ).toEqual({
+    expect(parseShareHash("#/audit/facebook/react/tree/main")).toEqual({
+      kind: "audit",
       coords: { owner: "facebook", repo: "react" },
     });
   });
 });
 
-describe("formatShareHash", () => {
-  it("builds the share fragment", () => {
+describe("parseShareHash — compare", () => {
+  it("parses #/compare/A/B+C/D", () => {
+    expect(parseShareHash("#/compare/facebook/react+vuejs/core")).toEqual({
+      kind: "compare",
+      left: { owner: "facebook", repo: "react" },
+      right: { owner: "vuejs", repo: "core" },
+    });
+  });
+
+  it("rejects compare without separator", () => {
+    expect(parseShareHash("#/compare/foo/bar")).toBeNull();
+  });
+
+  it("rejects compare with missing side", () => {
+    expect(parseShareHash("#/compare/+vuejs/core")).toBeNull();
+    expect(parseShareHash("#/compare/facebook/react+")).toBeNull();
+  });
+
+  it("rejects compare with malformed slugs", () => {
+    expect(parseShareHash("#/compare/foo with space/bar+vuejs/core")).toBeNull();
+  });
+});
+
+describe("formatShareHash / formatCompareHash", () => {
+  it("builds the audit fragment", () => {
     expect(formatShareHash({ owner: "vuejs", repo: "core" })).toBe(
       "#/audit/vuejs/core",
     );
   });
 
-  it("round-trips through parseShareHash", () => {
-    const coords = { owner: "denoland", repo: "deno" };
-    const parsed = parseShareHash(formatShareHash(coords));
-    expect(parsed?.coords).toEqual(coords);
+  it("builds the compare fragment", () => {
+    expect(
+      formatCompareHash(
+        { owner: "facebook", repo: "react" },
+        { owner: "vuejs", repo: "core" },
+      ),
+    ).toBe("#/compare/facebook/react+vuejs/core");
+  });
+
+  it("round-trips through parseShareHash for both kinds", () => {
+    const audit = formatShareHash({ owner: "denoland", repo: "deno" });
+    expect(parseShareHash(audit)).toEqual({
+      kind: "audit",
+      coords: { owner: "denoland", repo: "deno" },
+    });
+
+    const compare = formatCompareHash(
+      { owner: "expressjs", repo: "express" },
+      { owner: "fastify", repo: "fastify" },
+    );
+    expect(parseShareHash(compare)).toEqual({
+      kind: "compare",
+      left: { owner: "expressjs", repo: "express" },
+      right: { owner: "fastify", repo: "fastify" },
+    });
   });
 });
 
