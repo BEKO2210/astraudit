@@ -738,10 +738,16 @@ html[data-theme="light"] [class*="bg-risk-low"] {
   background-color: rgba(59, 130, 246, 0.10) !important;
 }
 
-/* Sticky section nav strip — keep glass feel on light. */
+/* Sticky section nav strip + score bar — keep glass feel on light.
+   Phase 5.x — bumped from rgba(255,255,255,0.85) (which blended into
+   the near-white page background and made the bar look like it had
+   disappeared) to a slightly-tinted slate that always reads as a
+   surface above the page. The companion border override below adds
+   a visible bottom edge so the bar's lower boundary is clear too. */
 html[data-theme="light"] .bg-ink-950\/85,
 html[data-theme="light"] .bg-ink-950\/80 {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(241, 245, 249, 0.92) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.10) !important;
 }
 
 /* Ink surface helpers used inside selects + dialogs. */
@@ -1263,4 +1269,26 @@ html[data-theme="light"] .legal-prose code {
   background: rgba(241, 245, 249, 0.9);
   border-color: rgba(15, 23, 42, 0.08);
   color: #0f172a;
+}
+
+/* =========================================================================
+   SectionNav scroll-fade hints — Phase 5.x SectionNav fix.
+
+   The dashboard's sticky tab strip uses a soft fade on each edge to
+   hint there's more horizontal content. The fade colour MUST match
+   the strip's surface (otherwise it reads as a hard dark bar on the
+   light theme — exactly the bug the maintainer screenshotted). We
+   thread it through a CSS variable that flips with the theme.
+   ========================================================================= */
+:root {
+  --section-nav-fade: rgba(5, 7, 13, 0.92);
+}
+html[data-theme="light"] {
+  --section-nav-fade: rgba(248, 250, 252, 0.95);
+}
+.section-nav-fade-right {
+  background: linear-gradient(to left, var(--section-nav-fade), transparent);
+}
+.section-nav-fade-left {
+  background: linear-gradient(to right, var(--section-nav-fade), transparent);
 }

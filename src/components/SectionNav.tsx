@@ -11,6 +11,12 @@ interface SectionNavProps {
 
 export function SectionNav({ sections }: SectionNavProps) {
   const [active, setActive] = useState<string>(sections[0]?.id ?? "");
+  // Phase 5.x — track which scroll edges have hidden content so the
+  // edge-fade hints only appear when they're actually informative.
+  // Without this, the fades sit on top of the leftmost/rightmost
+  // pill at all times and clip the active pill (the bug the
+  // maintainer screenshotted).
+  const [overflow, setOverflow] = useState({ left: false, right: false });
   const navRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
@@ -49,6 +55,31 @@ export function SectionNav({ sections }: SectionNavProps) {
     }
   }, [active]);
 
+  // Track horizontal scroll position so we can hide each fade when
+  // its edge is fully reached. ResizeObserver also fires when the
+  // viewport rotates / changes width.
+  useEffect(() => {
+    const container = navRef.current;
+    if (!container) return;
+    const update = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const atStart = scrollLeft <= 1;
+      const atEnd = scrollLeft + clientWidth >= scrollWidth - 1;
+      setOverflow({ left: !atStart, right: !atEnd });
+    };
+    update();
+    container.addEventListener("scroll", update, { passive: true });
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(update)
+        : null;
+    ro?.observe(container);
+    return () => {
+      container.removeEventListener("scroll", update);
+      ro?.disconnect();
+    };
+  }, [sections]);
+
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -63,16 +94,24 @@ export function SectionNav({ sections }: SectionNavProps) {
       style={{ top: "var(--sticky-offset, 0px)" }}
     >
       <div className="relative">
-        {/* Right-edge fade hint when there's more to scroll */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-gradient-to-l from-ink-950/90 to-transparent"
-        />
-        {/* Left-edge fade hint */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6 bg-gradient-to-r from-ink-950/90 to-transparent"
-        />
+        {/* Phase 5.x — edge-fade hints. Now theme-aware (the
+            `section-nav-fade-*` classes in globals.css read a CSS
+            variable that flips with the theme), narrower (was w-12,
+            now w-6 — the active pill never lives behind the fade
+            anymore), and conditionally rendered (only when there's
+            actually scroll overflow on that edge). */}
+        {overflow.right ? (
+          <div
+            aria-hidden
+            className="section-nav-fade-right pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-6"
+          />
+        ) : null}
+        {overflow.left ? (
+          <div
+            aria-hidden
+            className="section-nav-fade-left pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6"
+          />
+        ) : null}
         <nav
           ref={navRef}
           className="scrollbar-thin -mx-1 flex gap-1 overflow-x-auto scroll-smooth px-2"
