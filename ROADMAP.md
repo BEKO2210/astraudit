@@ -109,10 +109,38 @@ reports GitHub Actions + Azure Pipelines) and `torvalds/linux`
   Copilot), `RooVetGit/Roo-Code` (Roo Code + AGENTS.md), and the
   original 10 repos with no score regressions.
 
-### 1.6 · Detector unit tests
-A Vitest suite that runs each detector against synthetic file-tree
-fixtures (no network). One test per detector × happy/edge case. Catches
-regressions when we add or tighten rules.
+### 1.6 · Detector unit tests ✅ shipped
+A Vitest suite at `tests/` runs each detector against synthetic
+file-tree fixtures — no network, no GitHub API. 11 test files, 92
+test cases. Coverage:
+
+- `parseRepoInput`: 12 happy/edge cases for input parsing.
+- `fileClassifier`: case-insensitive lookups, suspicious-file
+  exclusions, important-file presence, test signals.
+- `securityDetector`: LICENSE / SECURITY.md / CODEOWNERS variants,
+  Dependabot, .env templates, fixture-folder exclusions.
+- `dependencyDetector`: package managers, lockfiles, scripts,
+  TypeScript signals.
+- `stackDetector`: framework + build/test/lint detection from a
+  parsed `package.json`, env managers, Python tools (file +
+  pyproject.toml content), SBOMs, AI dev-tools, monorepo signals,
+  runtime tie-breaking.
+- `ciDetector`: provider catalog, multi-provider, GitHub Actions
+  fast-path via API, workflow buckets.
+- `documentationDetector`: README signals (install/usage/api/badges).
+- `markdown/render`: XSS escaping, link/image URL resolution,
+  target=_blank rules, code-fence re-closing.
+- `auth/tokenStore`: PAT save / load / clear, host allow-list,
+  token-format validation. Stubs `localStorage`.
+- `cache/auditCache`: bundle round-trip, case-insensitive keys,
+  TTL invalidation, clearAll.
+- `auditEngine`: end-to-end smoke tests against synthetic bundles —
+  asserts that recommendations don't claim missing files when they
+  are present, and that .env in fixtures isn't flagged.
+
+Wired into `package.json` as `npm test`, `npm run test:watch`, and
+`npm run test:ui`. Added to `.github/workflows/deploy.yml` as a CI
+step so a failing test blocks deploys to GitHub Pages.
 
 ### 1.7 · Print / PDF stylesheet
 A `@media print` stylesheet so users can save the audit as a clean PDF
