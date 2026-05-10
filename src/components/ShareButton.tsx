@@ -2,6 +2,11 @@ import { Check, Share2 } from "lucide-react";
 import { useState } from "react";
 import type { RepoCoordinates } from "../types/github";
 import { formatShareUrl } from "../lib/share/urlState";
+import { pushToast } from "../lib/ui/toastStore";
+
+// Inline "Link copied" pill is the primary success affordance, same
+// as CopyButton. Toasts here are only for the async-failure path so
+// users actually see what went wrong.
 
 interface ShareButtonProps {
   coords: RepoCoordinates;
@@ -41,7 +46,13 @@ export function ShareButton({ coords, className = "" }: ShareButtonProps) {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1800);
       } catch {
-        // Silent: in a non-secure context the user will see the URL in the bar anyway.
+        pushToast({
+          tone: "warn",
+          message: "Could not copy the share link",
+          detail:
+            "Browser blocked clipboard access. The full URL is in your address bar.",
+        });
+        // Silent fallback: in a non-secure context the user will see the URL in the bar anyway.
       }
     }
   };

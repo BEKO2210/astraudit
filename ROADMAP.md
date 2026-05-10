@@ -482,11 +482,119 @@ contract, score clamping at both ends, no parseable `<script>` /
 and the Markdown builder. **Total suite: 167 tests across 20
 files.**
 
-### 2.8 · Mobile polish round 2
-- Bottom-anchored "jump to next section" FAB on small screens.
-- Swipeable score / story / findings cards on phones.
-- Better one-handed reach: keep primary actions in the bottom 2/3 of the
-  viewport.
+### 2.8 · UI polish round (ten focused improvements)
+
+A dedicated UI-polish phase — one PR-shaped slice per item, all tested
+where there is meaningful logic, all hidden on print where they would
+add ink-only chrome.
+
+#### 2.8.1 · Toast notifications ✅ shipped
+A research-driven toast system (Sonner / Radix Toast / ARIA APG /
+Adrian Roselli + WCAG 2.1 AA). Lives in
+`src/lib/ui/toastStore.ts` (pure pub/sub, no React) and
+`src/components/ToastHost.tsx` (single live region).
+
+Honours the toast-UX rules backed by the research:
+
+- **Use sparingly** — `CopyButton` and `ShareButton` keep the
+  inline icon-flip as the primary success affordance and only emit
+  a toast on the failure path. Toasts are reserved for actions
+  whose outcome isn't visually evident: badge download saved,
+  GitHub PAT saved/removed, audit cache cleared, history cleared.
+- **Per-tone semantics**: success / info / loading map to
+  `role="status"` + `aria-live="polite"`; warn / error map to
+  `role="alert"` + `aria-live="assertive"`.
+- **TTL defaults**: 4 s success/info, 5 s warn, 6 s error,
+  ∞ loading. Override per call. Loading toasts can be promoted
+  into success/error via `updateToast`.
+- **WCAG 2.2.1 timing**: pause-on-hover, pause-on-focus-within,
+  pause-on-tab-hidden — all preserve millisecond precision so
+  resuming continues from the remaining time, not from zero.
+- **Esc dismisses all** — but only when no `[role="dialog"]
+  [aria-modal="true"]` is open, so dialog Esc still wins.
+- **Stack cap** at `MAX_VISIBLE = 4`. Older toasts queue silently.
+- **`prefers-reduced-motion`** is respected via `motion-safe:`.
+- **Icon + colour** for every tone (never colour alone).
+
+Dialogs that emit useful toasts:
+- `BadgeDialog` → "Badge saved" with the filename on download
+  success; an error toast when the Blob/anchor flow throws.
+- `SettingsDialog` → "GitHub token saved", "GitHub token removed",
+  "Audit cache cleared (~X KB freed)".
+- `HistoryDialog` → "Audit history cleared (X entries removed)".
+- `CopyButton` / `ShareButton` → warn/error toasts only on
+  clipboard failure.
+
+Tests: 12 cases in `tests/lib/ui/toastStore.test.ts` covering
+push + monotonic ids, per-tone TTL defaults, auto-dismiss timing
+with fake timers, loading-tone persistence, pause/resume
+preserves remaining time + idempotency, dismiss / dismissAll
+clear pending timers, `updateToast` resets timer + ignores
+unknown ids, `MAX_VISIBLE` constant. **Total suite: 179 tests
+across 21 files.**
+
+Sources informing the design:
+- Radix Primitives Toast docs (sensitivity model, foreground vs.
+  background)
+- Sonner (TTL defaults, pause-on-hover, stack of 3-4)
+- Adrian Roselli, "Defining 'Toast' Messages" (timing-adjustable
+  WCAG criterion, role semantics)
+- Scott O'Hara, "A toast to a11y toasts" (no focus trap, polite
+  vs assertive)
+- WCAG 2.1 success criterion 2.2.1 timing-adjustable
+
+#### 2.8.2 · Skeleton loaders for the dashboard
+Replace the linear "Reading metadata… Mapping tree…" list during
+audit with **content-shaped skeletons** that mirror the eventual
+panels: a header bar, a score-ring placeholder, two story cards, a
+12-cell heatmap shimmer, a findings stack. Smooth shimmer animation,
+honours the existing `animate-shimmer` keyframe.
+
+#### 2.8.3 · Sticky score header on scroll
+Once the user scrolls past the Score section, a thin top-pinned bar
+slides in showing **`owner/repo · 81/100 · Strong`** plus the
+existing share / badge / print / verdict-copy actions, so the user
+never loses context while skimming Findings or Onboarding.
+
+#### 2.8.4 · Mobile FAB cluster
+On phones (< sm), a bottom-right floating action cluster surfaces
+the three highest-value actions — **Share**, **Save as PDF**,
+**Badge** — anchored in the thumb zone. Auto-hidden when a dialog
+is open and on `print:hidden`.
+
+#### 2.8.5 · Empty-state celebration
+When a repo audits with **zero findings** (rare but real — see
+facebook/react), the Findings section flips to a celebratory
+"All clear" panel with a star burst, the score line, and a hint to
+Compare against another repo.
+
+#### 2.8.6 · Smooth route transitions
+Add tasteful CSS transitions (`opacity` + tiny `translateY`) when
+the App state moves between idle → loading → ready / compared and
+back. Single `data-state` attribute on the root container, no
+animation libraries required.
+
+#### 2.8.7 · Universal focus-visible ring
+Replace ad-hoc focus styles with a single
+`:focus-visible` ring tuned per theme (aurora-violet on dark,
+indigo-600 on light). Audit every interactive element so keyboard
+users have an unambiguous target.
+
+#### 2.8.8 · Lightweight tooltip primitive
+A small `Tooltip` helper (CSS-only, no library) used by
+`CopyButton`, `PrintButton`, `ThemeToggle`, the FAB cluster, and the
+heatmap legend. Positioned via `aria-describedby` for assistive tech.
+
+#### 2.8.9 · Density toggle (comfortable / compact)
+A new "Density" choice in the Settings dialog drops vertical paddings
+and font sizes by ~15 % across glass cards. Useful for power users
+running 1080p screens. Persisted in `localStorage`.
+
+#### 2.8.10 · Mobile bottom-sheet dialogs
+The existing dialogs (Settings, History, Compare, Badge, Shortcuts,
+Command palette) become true **bottom-sheets** on phones — anchored
+to the bottom edge, rounded only on top, swipe-friendly height,
+better one-handed reach. Auto-resolves to centred modal on `sm:`+.
 
 ---
 

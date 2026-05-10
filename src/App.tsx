@@ -13,6 +13,7 @@ import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
+import { ToastHost } from "./components/ToastHost";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
 import { recordAudit } from "./lib/history/historyStore";
 import { buildCommands } from "./lib/commands/buildCommands";
@@ -635,6 +636,8 @@ export default function App() {
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
       />
+
+      <ToastHost />
 
       <CompareDialog
         open={compareOpen}

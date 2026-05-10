@@ -6,6 +6,7 @@ import {
   type BadgeStyle,
 } from "../lib/badge/svgBadge";
 import { formatShareUrl } from "../lib/share/urlState";
+import { pushToast } from "../lib/ui/toastStore";
 import { CopyButton } from "./CopyButton";
 
 interface BadgeDialogProps {
@@ -26,15 +27,28 @@ const STYLES: Array<{ id: BadgeStyle; label: string; hint: string }> = [
 
 function downloadSvg(filename: string, svg: string): void {
   if (typeof window === "undefined") return;
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    pushToast({
+      tone: "success",
+      message: "Badge saved",
+      detail: `Downloaded ${filename}. Commit it next to your README and embed it.`,
+    });
+  } catch (err) {
+    pushToast({
+      tone: "error",
+      message: "Could not save the badge",
+      detail: (err as Error).message,
+    });
+  }
 }
 
 export function BadgeDialog({
