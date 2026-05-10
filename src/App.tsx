@@ -8,7 +8,17 @@ import { ErrorState } from "./components/ErrorState";
 import { ReviewDashboard } from "./components/ReviewDashboard";
 import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { CompareDashboard } from "./components/CompareDashboard";
+import { CompareDialog } from "./components/CompareDialog";
+import { HistoryDialog } from "./components/HistoryDialog";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
+import { recordAudit } from "./lib/history/historyStore";
+import {
+  applyAuditHash,
+  applyCompareHash,
+  clearAuditHash,
+  parseShareHash,
+} from "./lib/share/urlState";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import {
   GithubError,
@@ -16,18 +26,28 @@ import {
   RateLimitError,
   loadRepoBundle,
 } from "./lib/github";
+import { buildCompareResult, type CompareResult } from "./lib/compare/diff";
 import type {
   AuditProgressStep,
   AuditResult,
   WorkerOutputMessage,
 } from "./types/audit";
-import type { RepoBundle } from "./types/github";
+import type { RepoBundle, RepoCoordinates } from "./types/github";
+
+type CompareSide = "left" | "right";
 
 type AppState =
   | { kind: "idle" }
   | { kind: "fetching"; repoLabel: string; step: AuditProgressStep }
   | { kind: "auditing"; repoLabel: string; step: AuditProgressStep }
   | { kind: "ready"; result: AuditResult }
+  | {
+      kind: "comparing";
+      labelLeft: string;
+      labelRight: string;
+      step: AuditProgressStep;
+    }
+  | { kind: "compared"; compare: CompareResult }
   | { kind: "error"; title: string; message: string };
 
 export default function App() {
@@ -35,9 +55,16 @@ export default function App() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [state, setState] = useState<AppState>({ kind: "idle" });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [authTick, setAuthTick] = useState(0);
+  const [historyTick, setHistoryTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const compareJobRef = useRef<{
+    left?: AuditResult;
+    right?: AuditResult;
+  } | null>(null);
 
   useEffect(() => {
     const worker = new Worker(
@@ -47,6 +74,48 @@ export default function App() {
     worker.addEventListener("message", (event: MessageEvent<WorkerOutputMessage>) => {
       const message = event.data;
       if (!message) return;
+
+      // Compare-mode results: collect both sides, then assemble.
+      if (
+        message.type === "result" &&
+        (message.id === "left" || message.id === "right") &&
+        compareJobRef.current
+      ) {
+        compareJobRef.current[message.id as CompareSide] = message.result;
+        const job = compareJobRef.current;
+        if (job.left && job.right) {
+          const compare = buildCompareResult(job.left, job.right);
+          compareJobRef.current = null;
+          setState({ kind: "compared", compare });
+        }
+        return;
+      }
+      if (
+        message.type === "error" &&
+        (message.id === "left" || message.id === "right") &&
+        compareJobRef.current
+      ) {
+        compareJobRef.current = null;
+        setState({
+          kind: "error",
+          title: "Compare failed",
+          message: message.message,
+        });
+        return;
+      }
+      if (
+        message.type === "progress" &&
+        (message.id === "left" || message.id === "right")
+      ) {
+        setState((prev) =>
+          prev.kind === "comparing"
+            ? { ...prev, step: message.progress.step }
+            : prev,
+        );
+        return;
+      }
+
+      // Single-audit path.
       if (message.type === "progress") {
         setState((prev) =>
           prev.kind === "auditing"
@@ -71,7 +140,7 @@ export default function App() {
   }, []);
 
   const startAudit = useCallback(
-    async (rawInput: string) => {
+    async (rawInput: string, options: { fromHash?: boolean } = {}) => {
       const parsed = parseRepoInput(rawInput);
       if (!parsed.ok || !parsed.coords) {
         setValidationError(parsed.error ?? "Invalid input.");
@@ -79,6 +148,12 @@ export default function App() {
       }
       setValidationError(null);
       setInput(`${parsed.coords.owner}/${parsed.coords.repo}`);
+
+      // Sync the URL hash so the audit is shareable. push=true on a
+      // user-initiated submit so the back button reverts to the prior
+      // view; replace on a hash-driven kickoff to avoid duplicate
+      // history entries.
+      applyAuditHash(parsed.coords, { push: !options.fromHash });
 
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
@@ -178,17 +253,262 @@ export default function App() {
 
   const handleReset = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
+    compareJobRef.current = null;
     setState({ kind: "idle" });
     setValidationError(null);
+    clearAuditHash({ push: true });
   }, []);
 
-  const showLoading = state.kind === "fetching" || state.kind === "auditing";
+  /**
+   * Fetch a single bundle (cache-aware). Returns null if anything
+   * fails along the way so the caller can show a meaningful error.
+   */
+  const loadBundleFor = useCallback(
+    async (
+      coords: RepoCoordinates,
+      signal: AbortSignal,
+    ): Promise<RepoBundle | { error: { title: string; message: string } }> => {
+      const cached = readBundle(coords);
+      if (cached) return cached;
+      try {
+        const bundle = await loadRepoBundle(coords, { signal });
+        writeBundle(coords, bundle);
+        return bundle;
+      } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          return { error: { title: "Aborted", message: "Audit cancelled." } };
+        }
+        if (err instanceof RateLimitError) {
+          return { error: { title: "Rate limited", message: err.message } };
+        }
+        if (err instanceof NotFoundError) {
+          return {
+            error: { title: "Repository not found", message: err.message },
+          };
+        }
+        if (err instanceof GithubError) {
+          return { error: { title: "GitHub error", message: err.message } };
+        }
+        return {
+          error: {
+            title: "Network error",
+            message: (err as Error).message ?? "Unknown failure.",
+          },
+        };
+      }
+    },
+    [],
+  );
+
+  /**
+   * Audit two repos and produce a CompareResult.
+   *
+   * Bundles are fetched in parallel (each one is sequential within the
+   * GitHub API client). The two bundles are then sent to the worker in
+   * sequence with id="left" and id="right"; the worker callback above
+   * collects both AuditResults and assembles the diff.
+   */
+  const startCompare = useCallback(
+    async (
+      a: RepoCoordinates,
+      b: RepoCoordinates,
+      options: { fromHash?: boolean } = {},
+    ) => {
+      if (
+        a.owner.toLowerCase() === b.owner.toLowerCase() &&
+        a.repo.toLowerCase() === b.repo.toLowerCase()
+      ) {
+        setValidationError("Pick two different repositories to compare.");
+        return;
+      }
+      setValidationError(null);
+
+      applyCompareHash(a, b, { push: !options.fromHash });
+
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      compareJobRef.current = {};
+
+      const labelLeft = `${a.owner}/${a.repo}`;
+      const labelRight = `${b.owner}/${b.repo}`;
+      setState({
+        kind: "comparing",
+        labelLeft,
+        labelRight,
+        step: "metadata",
+      });
+
+      const [leftBundle, rightBundle] = await Promise.all([
+        loadBundleFor(a, controller.signal),
+        loadBundleFor(b, controller.signal),
+      ]);
+
+      const errBundle = "error" in leftBundle ? leftBundle : "error" in rightBundle ? rightBundle : null;
+      if (errBundle && "error" in errBundle) {
+        compareJobRef.current = null;
+        setState({ kind: "error", ...errBundle.error });
+        return;
+      }
+      if ("error" in leftBundle || "error" in rightBundle) return;
+
+      const worker = workerRef.current;
+      if (!worker) {
+        setState({
+          kind: "error",
+          title: "Worker not ready",
+          message: "Audit worker is not available in this environment.",
+        });
+        return;
+      }
+      worker.postMessage({ type: "audit", bundle: leftBundle, id: "left" });
+      worker.postMessage({ type: "audit", bundle: rightBundle, id: "right" });
+    },
+    [loadBundleFor],
+  );
+
+  /** Open the compare dialog from anywhere. */
+  const openCompare = useCallback(() => setCompareOpen(true), []);
+
+  /** Submit handler from the dialog: kick off a compare given the right side. */
+  const submitCompareWith = useCallback(
+    (rawRight: string) => {
+      const parsedRight = parseRepoInput(rawRight);
+      if (!parsedRight.ok || !parsedRight.coords) {
+        setValidationError(parsedRight.error ?? "Invalid input.");
+        return;
+      }
+      let leftCoords: RepoCoordinates | null = null;
+      if (state.kind === "ready") {
+        leftCoords = {
+          owner: state.result.bundle.metadata.owner.login,
+          repo: state.result.bundle.metadata.name,
+        };
+      } else if (state.kind === "compared") {
+        leftCoords = {
+          owner: state.compare.left.bundle.metadata.owner.login,
+          repo: state.compare.left.bundle.metadata.name,
+        };
+      }
+      if (!leftCoords) {
+        setValidationError(
+          "Run a single-repo audit first, then choose a repo to compare against.",
+        );
+        return;
+      }
+      setCompareOpen(false);
+      void startCompare(leftCoords, parsedRight.coords);
+    },
+    [state, startCompare],
+  );
+
+  // On first mount, honour any audit/compare hash already in the URL —
+  // this is the entire reason shared links work as deep links.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const initial = parseShareHash(window.location.hash);
+    if (!initial) return;
+    if (initial.kind === "audit") {
+      void startAudit(`${initial.coords.owner}/${initial.coords.repo}`, {
+        fromHash: true,
+      });
+    } else if (initial.kind === "compare") {
+      void startCompare(initial.left, initial.right, { fromHash: true });
+    }
+    // We intentionally only do this once at mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Back / forward navigation: re-derive the audit/compare (or reset)
+  // from the hash. We compare against the currently-shown state to
+  // avoid kicking off the same job twice.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => {
+      const parsed = parseShareHash(window.location.hash);
+      if (!parsed) {
+        if (abortRef.current) abortRef.current.abort();
+        compareJobRef.current = null;
+        setState({ kind: "idle" });
+        setValidationError(null);
+        return;
+      }
+      if (parsed.kind === "audit") {
+        const currentLabel =
+          state.kind === "fetching" || state.kind === "auditing"
+            ? state.repoLabel
+            : state.kind === "ready"
+              ? state.result.bundle.metadata.fullName
+              : "";
+        const targetLabel = `${parsed.coords.owner}/${parsed.coords.repo}`;
+        if (currentLabel.toLowerCase() === targetLabel.toLowerCase()) return;
+        void startAudit(targetLabel, { fromHash: true });
+      } else if (parsed.kind === "compare") {
+        const currentPair =
+          state.kind === "comparing"
+            ? `${state.labelLeft}+${state.labelRight}`.toLowerCase()
+            : state.kind === "compared"
+              ? `${state.compare.left.bundle.metadata.fullName}+${state.compare.right.bundle.metadata.fullName}`.toLowerCase()
+              : "";
+        const target = `${parsed.left.owner}/${parsed.left.repo}+${parsed.right.owner}/${parsed.right.repo}`.toLowerCase();
+        if (currentPair === target) return;
+        void startCompare(parsed.left, parsed.right, { fromHash: true });
+      }
+    };
+    window.addEventListener("popstate", handler);
+    window.addEventListener("hashchange", handler);
+    return () => {
+      window.removeEventListener("popstate", handler);
+      window.removeEventListener("hashchange", handler);
+    };
+  }, [state, startAudit, startCompare]);
+
+  // When an audit (single or compare) finishes successfully, persist it
+  // to the local history. Compare mode records both sides.
+  useEffect(() => {
+    if (state.kind === "ready") {
+      const m = state.result.bundle.metadata;
+      recordAudit({
+        coords: { owner: m.owner.login, repo: m.name },
+        fullName: m.fullName,
+        avatarUrl: m.owner.avatarUrl,
+        score: state.result.totalScore,
+        grade: state.result.grade,
+      });
+      setHistoryTick((t) => t + 1);
+    } else if (state.kind === "compared") {
+      const ml = state.compare.left.bundle.metadata;
+      const mr = state.compare.right.bundle.metadata;
+      recordAudit({
+        coords: { owner: ml.owner.login, repo: ml.name },
+        fullName: ml.fullName,
+        avatarUrl: ml.owner.avatarUrl,
+        score: state.compare.left.totalScore,
+        grade: state.compare.left.grade,
+      });
+      recordAudit({
+        coords: { owner: mr.owner.login, repo: mr.name },
+        fullName: mr.fullName,
+        avatarUrl: mr.owner.avatarUrl,
+        score: state.compare.right.totalScore,
+        grade: state.compare.right.grade,
+      });
+      setHistoryTick((t) => t + 1);
+    }
+  }, [state]);
+
+  const showLoading =
+    state.kind === "fetching" ||
+    state.kind === "auditing" ||
+    state.kind === "comparing";
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
       <Hero
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
         authTick={authTick}
+        historyTick={historyTick}
       />
 
       <RepoInput
@@ -207,8 +527,16 @@ export default function App() {
 
       {showLoading ? (
         <LoadingAudit
-          step={(state as { step: AuditProgressStep }).step}
-          repoLabel={(state as { repoLabel: string }).repoLabel}
+          step={
+            state.kind === "comparing"
+              ? state.step
+              : (state as { step: AuditProgressStep }).step
+          }
+          repoLabel={
+            state.kind === "comparing"
+              ? `${state.labelLeft}  vs.  ${state.labelRight}`
+              : (state as { repoLabel: string }).repoLabel
+          }
         />
       ) : null}
 
@@ -220,7 +548,20 @@ export default function App() {
         />
       ) : null}
 
-      {state.kind === "ready" ? <ReviewDashboard result={state.result} /> : null}
+      {state.kind === "ready" ? (
+        <ReviewDashboard
+          result={state.result}
+          onOpenCompare={openCompare}
+        />
+      ) : null}
+
+      {state.kind === "compared" ? (
+        <CompareDashboard
+          compare={state.compare}
+          onReset={handleReset}
+          onOpenCompare={openCompare}
+        />
+      ) : null}
 
       <Footer />
 
@@ -230,6 +571,28 @@ export default function App() {
           setSettingsOpen(false);
           setAuthTick((t) => t + 1);
         }}
+      />
+
+      <HistoryDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onPick={(fullName) => {
+          void startAudit(fullName);
+        }}
+        tick={historyTick}
+      />
+
+      <CompareDialog
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        onSubmit={submitCompareWith}
+        leftLabel={
+          state.kind === "ready"
+            ? state.result.bundle.metadata.fullName
+            : state.kind === "compared"
+              ? state.compare.left.bundle.metadata.fullName
+              : ""
+        }
       />
     </div>
   );

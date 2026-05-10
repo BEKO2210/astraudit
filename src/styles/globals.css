@@ -556,3 +556,197 @@
 .print-only {
   display: none;
 }
+
+/* =========================================================================
+   LIGHT THEME — opt-in via [data-theme="light"] on <html>. Default
+   styling is dark; the rules below invert the few semantic surfaces
+   without touching component code.
+   ========================================================================= */
+html[data-theme="light"] {
+  background: #f8fafc;
+  color-scheme: light;
+}
+html[data-theme="light"] body {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Replace the dark-only aurora overlay with a soft, paper-friendly version. */
+html[data-theme="light"] body::before {
+  background-image:
+    radial-gradient(70% 50% at 18% 0%, rgba(122, 92, 255, 0.10), transparent 60%),
+    radial-gradient(50% 40% at 80% 0%, rgba(58, 214, 255, 0.07), transparent 60%),
+    radial-gradient(40% 35% at 50% 110%, rgba(66, 232, 200, 0.07), transparent 60%) !important;
+}
+
+html[data-theme="light"] .glass {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgb(226 232 240) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 12px 30px -12px rgba(15, 23, 42, 0.12) !important;
+}
+html[data-theme="light"] .glass-strong {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgb(226 232 240) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 16px 40px -16px rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Text token remap. */
+html[data-theme="light"] .text-white,
+html[data-theme="light"] .text-slate-100,
+html[data-theme="light"] .text-slate-200 {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .text-slate-300 { color: #1f2937 !important; }
+html[data-theme="light"] .text-slate-400 { color: #475569 !important; }
+html[data-theme="light"] .text-slate-500 { color: #64748b !important; }
+html[data-theme="light"] .text-slate-600 { color: #94a3b8 !important; }
+
+html[data-theme="light"] .text-aurora-mint { color: #047857 !important; }
+html[data-theme="light"] .text-aurora-cyan { color: #0e7490 !important; }
+html[data-theme="light"] .text-aurora-violet { color: #6d28d9 !important; }
+html[data-theme="light"] .text-aurora-blue { color: #4338ca !important; }
+html[data-theme="light"] .text-aurora-amber { color: #b45309 !important; }
+html[data-theme="light"] .text-risk-critical { color: #b91c1c !important; }
+html[data-theme="light"] .text-risk-high { color: #c2410c !important; }
+html[data-theme="light"] .text-risk-medium { color: #b45309 !important; }
+html[data-theme="light"] .text-risk-low { color: #1d4ed8 !important; }
+html[data-theme="light"] .text-risk-info { color: #475569 !important; }
+
+/* Translucent dark surfaces become translucent light surfaces. */
+html[data-theme="light"] [class*="bg-white\\/"] {
+  background: rgba(248, 250, 252, 0.7) !important;
+}
+html[data-theme="light"] [class*="bg-black\\/"] {
+  background: rgba(241, 245, 249, 0.85) !important;
+}
+html[data-theme="light"] [class*="border-white\\/"] {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Aurora tints for backgrounds — softened. */
+html[data-theme="light"] [class*="bg-aurora-violet"] {
+  background-color: rgba(122, 92, 255, 0.08) !important;
+}
+html[data-theme="light"] [class*="bg-aurora-blue"] {
+  background-color: rgba(58, 123, 255, 0.08) !important;
+}
+html[data-theme="light"] [class*="bg-aurora-cyan"] {
+  background-color: rgba(58, 214, 255, 0.08) !important;
+}
+html[data-theme="light"] [class*="bg-aurora-mint"] {
+  background-color: rgba(66, 232, 200, 0.10) !important;
+}
+html[data-theme="light"] [class*="bg-risk-critical"] {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+html[data-theme="light"] [class*="bg-risk-high"] {
+  background-color: rgba(234, 88, 12, 0.10) !important;
+}
+html[data-theme="light"] [class*="bg-risk-medium"] {
+  background-color: rgba(245, 158, 11, 0.10) !important;
+}
+html[data-theme="light"] [class*="bg-risk-low"] {
+  background-color: rgba(59, 130, 246, 0.10) !important;
+}
+
+/* Sticky section nav strip — keep glass feel on light. */
+html[data-theme="light"] .bg-ink-950\/85,
+html[data-theme="light"] .bg-ink-950\/80 {
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Ink surface helpers used inside selects + dialogs. */
+html[data-theme="light"] .bg-ink-800,
+html[data-theme="light"] .bg-ink-800\/80 {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Pill helper. */
+html[data-theme="light"] .pill {
+  background-color: rgba(241, 245, 249, 0.95);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+/* Code blocks. */
+html[data-theme="light"] code,
+html[data-theme="light"] pre {
+  background: rgba(241, 245, 249, 0.85) !important;
+  color: #1e293b !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Score-ring track. */
+html[data-theme="light"] svg circle[stroke^="rgba(255,255,255"] {
+  stroke: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* shadow-glow becomes a soft drop shadow for inputs and primary buttons. */
+html[data-theme="light"] .shadow-glow {
+  box-shadow: 0 8px 24px -8px rgba(122, 92, 255, 0.4) !important;
+}
+
+/* Aurora text gradient stays vivid but darker. */
+html[data-theme="light"] .from-aurora-violet { --tw-gradient-from: #6d28d9 !important; }
+html[data-theme="light"] .via-aurora-blue { --tw-gradient-stops: var(--tw-gradient-from), #4338ca, var(--tw-gradient-to, transparent) !important; }
+html[data-theme="light"] .to-aurora-mint { --tw-gradient-to: #047857 !important; }
+
+/* README prose. */
+html[data-theme="light"] .readme-prose {
+  color: #1e293b;
+}
+html[data-theme="light"] .readme-prose h1,
+html[data-theme="light"] .readme-prose h2,
+html[data-theme="light"] .readme-prose h3,
+html[data-theme="light"] .readme-prose h4,
+html[data-theme="light"] .readme-prose h5,
+html[data-theme="light"] .readme-prose h6,
+html[data-theme="light"] .readme-prose strong {
+  color: #0f172a;
+}
+html[data-theme="light"] .readme-prose a {
+  color: #1d4ed8;
+}
+html[data-theme="light"] .readme-prose code {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+html[data-theme="light"] .readme-prose pre {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+html[data-theme="light"] .readme-prose pre code {
+  background: transparent;
+  color: #0f172a;
+}
+html[data-theme="light"] .readme-prose blockquote {
+  background: rgba(122, 92, 255, 0.06);
+  border-color: rgba(122, 92, 255, 0.5);
+  color: #334155;
+}
+
+/* React Flow tweaks for light. */
+html[data-theme="light"] .react-flow__handle {
+  background: rgba(122, 92, 255, 0.6);
+  border-color: rgba(15, 23, 42, 0.4);
+}
+html[data-theme="light"] .react-flow__attribution {
+  color: rgba(15, 23, 42, 0.4) !important;
+}
+
+/* Inputs and selects. */
+html[data-theme="light"] select,
+html[data-theme="light"] input[type="text"],
+html[data-theme="light"] input[type="password"],
+html[data-theme="light"] input[type="url"] {
+  color: #0f172a;
+}
+html[data-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}

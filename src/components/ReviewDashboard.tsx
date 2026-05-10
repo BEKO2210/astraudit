@@ -1,4 +1,4 @@
-import { Award } from "lucide-react";
+import { ArrowLeftRight, Award } from "lucide-react";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
 import { ScoreRing } from "./ScoreRing";
@@ -12,14 +12,17 @@ import { SecurityPanel } from "./SecurityPanel";
 import { MaintenancePanel } from "./MaintenancePanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { InsightsPanel } from "./InsightsPanel";
+import { CopyButton } from "./CopyButton";
 import { OnboardingPanel } from "./OnboardingPanel";
 import { PrintButton } from "./PrintButton";
 import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
+import { ShareButton } from "./ShareButton";
 
 interface ReviewDashboardProps {
   result: AuditResult;
+  onOpenCompare?: () => void;
 }
 
 const SECTIONS: SectionItem[] = [
@@ -37,7 +40,7 @@ const SECTIONS: SectionItem[] = [
   { id: "next", label: "Next steps" },
 ];
 
-export function ReviewDashboard({ result }: ReviewDashboardProps) {
+export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
 
   return (
@@ -68,7 +71,30 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
                 <Award className="h-3.5 w-3.5 text-aurora-mint" />
                 Astraudit verdict
               </div>
-              <PrintButton />
+              <div className="flex flex-wrap items-center gap-2">
+                {onOpenCompare ? (
+                  <button
+                    type="button"
+                    onClick={onOpenCompare}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-3 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 print:hidden"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Compare with…
+                  </button>
+                ) : null}
+                <ShareButton
+                  coords={{
+                    owner: result.bundle.metadata.owner.login,
+                    repo: result.bundle.metadata.name,
+                  }}
+                />
+                <CopyButton
+                  value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
+                  label="Copy verdict"
+                  withText
+                />
+                <PrintButton />
+              </div>
             </div>
             <h3 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
               {result.grade}

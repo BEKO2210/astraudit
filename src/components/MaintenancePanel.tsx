@@ -1,6 +1,7 @@
 import { Activity, GitCommit, GitPullRequest, Tag } from "lucide-react";
 import type { RepoBundle } from "../types/github";
 import { formatDate, formatRelative } from "../lib/utils/formatDate";
+import { CopyButton } from "./CopyButton";
 
 interface MaintenancePanelProps {
   bundle: RepoBundle;
@@ -49,9 +50,11 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 break-words text-slate-200">{c.message}</p>
                   <p className="text-[11px] text-slate-500">
+                    <code className="font-mono">{c.sha.slice(0, 7)}</code> ·{" "}
                     {c.authorName ?? "Unknown"} · {formatRelative(c.authorDate)}
                   </p>
                 </div>
+                <CopyButton value={c.sha} label="Copy commit SHA" />
               </li>
             ))}
           </ul>
@@ -74,6 +77,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
                 <span className="shrink-0 text-[11px] text-slate-500">
                   {formatRelative(r.publishedAt)}
                 </span>
+                <CopyButton value={r.tagName} label="Copy tag" />
               </li>
             ))}
           </ul>

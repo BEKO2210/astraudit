@@ -14,6 +14,7 @@ import type { RepoMetadata } from "../types/github";
 import { formatDate, formatRelative } from "../lib/utils/formatDate";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { safeText } from "../lib/utils/safeText";
+import { CopyButton } from "./CopyButton";
 
 interface OverviewHeaderProps {
   metadata: RepoMetadata;
@@ -37,6 +38,10 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
               <h2 className="min-w-0 break-words text-lg font-semibold text-white sm:text-xl">
                 {metadata.fullName}
               </h2>
+              <CopyButton
+                value={metadata.fullName}
+                label="Copy owner/repo"
+              />
               <a
                 href={metadata.htmlUrl}
                 target="_blank"
@@ -46,6 +51,10 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
                 Open on GitHub
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
+              <CopyButton
+                value={metadata.htmlUrl}
+                label="Copy GitHub URL"
+              />
               {metadata.archived ? (
                 <span className="pill text-risk-medium border-risk-medium/40 bg-risk-medium/10">
                   Archived

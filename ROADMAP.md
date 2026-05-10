@@ -179,31 +179,188 @@ Verified by build + the full vitest suite (92 tests still green).
 Bundle delta: +0.7 KB gz CSS, ~0.2 KB gz JS for the two new
 components.
 
-### 1.8 · "Copy" buttons everywhere
-Every command block, every URL, every finding ID gets a one-click copy
-button. Mobile-friendly.
+### 1.8 · "Copy" buttons everywhere ✅ shipped
+Reusable `CopyButton` component (`src/components/CopyButton.tsx`)
+uses `navigator.clipboard.writeText` with a graceful no-op fallback
+when the API is unavailable. Click feedback toggles the icon to a
+mint-green check for 1.8 s. Three sizes (sm / md), two variants
+(ghost / solid), optional inline label, and `print:hidden` so they
+disappear on PDF export.
+
+Wired into:
+- `OnboardingPanel`: every shell-command `<pre>` block has a copy
+  button pinned to the top-right corner.
+- `OverviewHeader`: copies the canonical `owner/repo` slug and the
+  full GitHub URL.
+- `FindingCard`: per-file copy on each affected-file chip plus a
+  "Copy all paths" button when a finding has more than one file.
+- `FileStructurePanel`: copy on each suspicious filename row.
+- `MaintenancePanel`: copy on commit SHAs (long form) and release
+  tags. The 7-char short SHA is now also visible on screen.
+- `RecommendationsPanel`: a "Copy all steps" button serializes the
+  prioritized list as a numbered text block ready to paste into
+  issues / Slack.
+- `ReviewDashboard`: a "Copy verdict" button next to the existing
+  "Save as PDF" button copies a four-line summary (repo, score,
+  headline, verdict) — what you'd paste into a status update.
+
+Test coverage: a vitest suite verifies the clipboard contract and
+that the module loads even when `navigator.clipboard` is missing
+(non-secure context). Total suite is now 94 tests across 12 files.
 
 ---
 
 ## Phase 2 — UX upgrades
 
-### 2.1 · Shareable URL-encoded results
-Encode the repo coordinate (and optionally a content hash) into the URL
-hash so a link reproduces the same view: `#/audit/owner/repo`. Pure
-client-side. No URL shortener, no backend.
+### 2.1 · Shareable URL-encoded results ✅ shipped
+Audit results now have shareable URLs of the form
+`https://beko2210.github.io/astraudit/#/audit/owner/repo`. Hash-only
+state — no backend, no shortener — and we deliberately encode only
+the repo coordinates so audit-rule improvements apply on every
+re-visit.
 
-### 2.2 · Compare two repositories side-by-side
-A second "Compare against…" input. Two score rings, two stories, a diff
-of findings ("only in A", "only in B", "shared"). Useful for evaluating
-alternatives.
+Implementation in `src/lib/share/urlState.ts`:
+- `parseShareHash` accepts the `#/audit/<owner>/<repo>` form, tolerates
+  trailing GitHub-URL segments (`#/audit/owner/repo/tree/main`), and
+  re-uses the existing `parseRepoInput` slug validator.
+- `formatShareHash` / `formatShareUrl` produce the canonical hash and
+  fully-qualified URL (the latter preserves the deployed path so the
+  link works under `/astraudit/`).
+- `applyAuditHash` updates the URL via `history.pushState` on a fresh
+  user submit and `history.replaceState` on hash-driven kickoffs to
+  avoid duplicate history entries.
+- `clearAuditHash` removes the audit fragment without touching the
+  search part of the URL.
 
-### 2.3 · Light & dark theme toggle
-Currently dark only. Add a high-contrast light theme; remember the
-choice in `localStorage`.
+App.tsx wires the routing:
+- On mount, any `#/audit/...` already in the URL auto-triggers the
+  audit (this is what makes shared links a deep link).
+- `startAudit` accepts an optional `{ fromHash }` flag so the URL
+  update uses replaceState in that path.
+- A combined `popstate` + `hashchange` listener re-derives the audit
+  (or resets to idle) when the user uses the browser back/forward
+  buttons.
+- `handleReset` clears the hash with `pushState`.
 
-### 2.4 · Audit history & favorites
-Sidebar: last 20 audits, plus favorites. Stored in `localStorage`.
-Click a favorite to re-audit immediately (cache-aware).
+UI:
+- New `ShareButton` in `src/components/ShareButton.tsx` sits next to
+  "Copy verdict" / "Save as PDF". Uses the native Web Share API on
+  supported devices (mobile mostly), falls back to clipboard copy
+  with a 1.8 s "Link copied" confirmation. Hidden when printing.
+
+Tests: 8 new cases in `tests/lib/share/urlState.test.ts` covering
+happy paths, malformed fragments, trailing-segment tolerance, and
+the parse↔format round-trip. Total suite is now **102 tests across
+13 files**.
+
+### 2.2 · Compare two repositories side-by-side ✅ shipped
+A "Compare with…" pill on every audit dashboard opens a small dialog
+that asks for the right-hand repo. Both audits run in parallel
+(cache-aware), then a dedicated `CompareDashboard` renders:
+
+- Twin score rings with a centered Δ display and a left/right/tie
+  category-win tally.
+- A per-category bar chart showing both sides' percentages and the
+  signed delta in the same row.
+- A three-column **Findings diff** — only-in-left (cyan), shared
+  (violet, with severity-differs / identical pills), only-in-right
+  (amber). Matching is by `category::title` so noisy IDs don't
+  prevent matches.
+- A **Stack diff** section: scalar facts (language, runtime,
+  package manager, monorepo tool, containerized, lockfile) in a
+  table, then per-list diffs (frameworks, build, test, lint, env
+  managers, python tools, AI tooling) split into shared / left-only
+  / right-only.
+- A natural-language quick verdict.
+
+Plumbing:
+
+- The Web Worker now accepts `{ id }` on input messages and echoes
+  it back on `progress` / `result` / `error`, so two audits can run
+  in the same worker without ambiguous routing.
+- `src/lib/compare/diff.ts` builds the structured `CompareResult`
+  (categories, findings diff, stack diff, summary).
+- URL routing extended: `#/compare/<ownerA>/<repoA>+<ownerB>/<repoB>`.
+  `+` is illegal inside repo slugs so the separator is unambiguous.
+  `parseShareHash` is now a discriminated union (`audit | compare`).
+- App state gains `comparing` and `compared` kinds. `popstate` /
+  `hashchange` re-derive either kind from the URL.
+- `CompareDialog` accepts a right-hand repo or a one-click example.
+- `CompareDashboard` reuses `ScoreRing`, `ShareButton`, `CopyButton`
+  for consistency and copies a "Compare summary" line for
+  paste-into-Slack flows.
+
+Tests: 12 new cases in `tests/lib/compare/diff.test.ts` (category
+deltas, finding bucketing, case-insensitive title matching, scalar
+fact comparison, end-to-end with auditEngine), plus 4 new compare
+URL cases in `tests/lib/share/urlState.test.ts`. Total suite is now
+**114 tests across 14 files**.
+
+### 2.3 · Light & dark theme toggle ✅ shipped
+A three-way Theme toggle (Dark / Light / System) sits next to the
+Settings/PAT pill in the Hero. The choice persists in `localStorage`
+and the System mode follows `prefers-color-scheme` live.
+
+How it works without refactoring every component:
+
+- Dark stays the default. The opt-in is `data-theme="light"` on
+  `<html>`, and a single CSS block in `globals.css` rewrites the
+  semantic surfaces (glass cards, body, accent text, code blocks,
+  README prose, sticky nav, score-ring track, …) for light mode
+  without touching any component class names.
+- A tiny inline script in `index.html` reads the stored preference
+  before the React bundle loads — no flash of the wrong theme.
+- `src/lib/theme/themeStore.ts` exposes `loadTheme`, `saveTheme`,
+  `resolveTheme`, `applyTheme`, `cycleTheme`, and a
+  `listenSystemPreference` that survives the legacy Safari
+  `addListener` API.
+- `ThemeToggle.tsx` cycles dark → light → system → dark, swaps the
+  icon (Moon / Sun / Monitor), and re-applies on system changes
+  while in System mode. Hidden on print.
+
+Tests: 7 new cases in `tests/lib/theme/themeStore.test.ts` covering
+default fallback, persistence, garbage rejection, OS resolution for
+"system", concrete `dark/light` resolution, and the
+data-theme attribute toggle. **Total suite: 122 tests across 15 files.**
+
+### 2.4 · Audit history & favorites ✅ shipped
+Every successful audit (including each side of a comparison) is
+recorded into a local `localStorage` history. A new "History" pill
+appears in the Hero as soon as the first entry exists; clicking it
+opens the History dialog with two tabs:
+
+- **Favorites** — entries the user has starred. Pinned to the top
+  regardless of recency. Unlimited count.
+- **Recent** — the last 20 audited repositories ordered by recency.
+
+Each row shows the GitHub avatar, the `owner/repo` slug, the score,
+the grade colour-coded, and the relative time of the last audit.
+Clicking a row re-audits that repo (cache-aware, so a hit reads
+straight from the 24h bundle cache shipped in Phase 1.2).
+Per-row controls toggle the favorite flag or remove the entry; a
+"Clear all" button wipes the whole history.
+
+Implementation:
+
+- `src/lib/history/historyStore.ts` exposes `recordAudit`,
+  `toggleFavorite`, `removeEntry`, `listHistory`,
+  `listFavorites`, `getEntry`, `clearAll`, and `getStats`.
+  Entries are deduped by lowercased `owner/repo`, the favorite flag
+  is preserved across re-audits, and a soft `TOTAL_STORAGE_LIMIT`
+  of 200 prevents unbounded growth (oldest non-favorites evicted
+  first).
+- `App.tsx` calls `recordAudit` whenever the state transitions to
+  `ready` (single audit) or `compared` (records both sides).
+- `HistoryDialog` mirrors the Settings dialog pattern: glass card,
+  Esc-close, click-outside-to-close, scrolling list.
+- `Hero` renders the History pill conditionally when at least one
+  entry exists.
+
+Tests: 9 new cases in `tests/lib/history/historyStore.test.ts` —
+record creates entries, dedupes case-insensitively, preserves the
+favorite flag on update, toggleFavorite is idempotent, listHistory
+floats favorites to the top, removeEntry / clearAll behaviour, and
+the stats counter. **Total suite: 131 tests across 16 files.**
 
 ### 2.5 · Keyboard shortcuts + command palette
 `Cmd/Ctrl+K` opens a palette to jump to any section, switch repo, or

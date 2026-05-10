@@ -118,9 +118,11 @@ export interface AuditProgress {
 export interface WorkerInputMessage {
   type: "audit";
   bundle: RepoBundle;
+  /** Optional correlation id so callers can match parallel audits. */
+  id?: string;
 }
 
 export type WorkerOutputMessage =
-  | { type: "progress"; progress: AuditProgress }
-  | { type: "result"; result: AuditResult }
-  | { type: "error"; message: string };
+  | { type: "progress"; progress: AuditProgress; id?: string }
+  | { type: "result"; result: AuditResult; id?: string }
+  | { type: "error"; message: string; id?: string };
