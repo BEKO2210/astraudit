@@ -2138,9 +2138,73 @@ behaviour.
 - `npx lhci autorun` — every assertion passes (perf 0.78,
   a11y 1.0, best 0.95, SEO 1.0).
 
-### 4.5 · Public rule book
-A rendered Markdown page that lists **every** detector and exactly what
-triggers it. Helps users trust the findings and contribute new rules.
+### 4.5 · Public rule book ✅ shipped
+**Why:** "Rule-based, not AI-judged" is one of Astraudit's four
+operating constraints, and a curious user has no way to verify
+that today — the rules live across a dozen detector files. A
+canonical, human-readable rule book turns that promise into a
+checkable artefact: every finding has a documented trigger you can
+look up by ID, and every panel-only detector explains what it
+measures.
+
+**Implementation:**
+- New canonical doc: `docs/RULES.md`. Single source of truth for
+   the rule catalog. Renders cleanly on GitHub *and* inside the
+   app — contributors edit one file, both views update.
+   Sections:
+    1. **Score & grade model** — total-score → letter-grade table,
+       status ribbons (`Strong`/`Partial`/`Missing`/`Info`/`Not
+       detected`) and what each means.
+    2. **Findings catalog** — every finding-emitting rule grouped
+       by category, with rule ID, trigger description, and
+       severity. Documents all 16 entries from `riskEngine.ts`.
+    3. **Panel outputs** — the Phase 3 detectors that don't emit
+       findings (readability, Dependabot, CODEOWNERS, security
+       policy, runtime contract, CHANGELOG cadence, topic rules,
+       registry signals, license tone) each get a paragraph with
+       the input file/format and the surfaced output.
+    4. **Operating constraints + rule proposal flow.**
+- New `src/components/legal/DocPage.tsx` — generic full-screen doc
+   chrome, takes a `backLabel` and a `nav: DocPageNav[]` for
+   cross-links. `LegalPage.tsx` now delegates to it, so the German
+   "Zurück zur App" copy stays on the legal pages while the rule
+   book gets English chrome.
+- New `src/components/legal/RuleBook.tsx` — imports
+   `docs/RULES.md` via Vite's `?raw` attribute, renders with
+   `markdown-it` (already a dep — re-used from the README preview
+   pipeline), `html: false` for the same XSS-defensive baseline.
+   Renders inside the existing `.legal-prose` typography stack.
+- New TypeScript declaration `src/vite-env.d.ts` for the
+   `*.md?raw` import shape.
+- `App.tsx` extends `routeFromHash` to recognise `#/rules`,
+   `#/rulebook`, and `#/rule-book`. The legal-route state widens to
+   `"impressum" | "datenschutz" | "rules" | null`.
+- `Footer.tsx` adds "Rule book" alongside Impressum + Datenschutz.
+
+**Tests:** `tests/components/ruleBook.test.tsx` (9 cases):
+- Locks down every rule ID emitted by `riskEngine.ts` (16 IDs)
+   plus the four Phase 3.9 license-tone IDs — the doc would
+   otherwise drift away from the source over time.
+- Score-grade table + the five status ribbons.
+- Each of the four operating constraints.
+- `<RuleBook />` rendering: chrome (title + back link), cross-links
+   to the legal pages, real `<code>` tags from the catalog (proves
+   markdown-it ran), real `<table>` for the grade matrix, and a
+   negative XSS guard (no `<script>` / `<iframe>` ever in output).
+
+**Bundle impact:**
+- `index.js` 481 → 495 KB / 157 → 162 KB gzipped (+14 KB raw,
+   +5 KB gzipped). The whole rule book ships in the main chunk
+   so the doc is one fewer fetch away. Could be lazy-loaded
+   later, but at ~12 KB raw it's not worth a Suspense round-trip.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 46 files / 603 tests green (was 45 / 594).
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+- Manual: `#/rules` renders the doc with proper typography, both
+   themes; back-link returns to the app; cross-links to
+   Impressum/Datenschutz work.
 
 ### 4.6 · Contribution guide
 A `CONTRIBUTING.md` for adding new detectors, with the same fixture
@@ -2217,6 +2281,32 @@ every Insight pill, the new Topic Checks + Registry panels added
 in Phase 3, plus the legal pages. The print stylesheet has grown
 ad-hoc since 1.7; v2 audits it with real sample audits and locks
 the contract down with a Playwright print-preview snapshot run.
+
+### 5.8 · Multi-format audit export
+**Why:** Today the audit is read in the browser or printed to PDF
+via 1.7's stylesheet. That covers humans, but downstream tooling
+(static-site indexers, security dashboards, GitOps pipelines,
+internal docs) wants structured output. We add three exports —
+all generated client-side, all browser-safe, no backend:
+
+- **JSON** — the full `AuditResult` (categories, findings, story,
+  insights, derived metrics) with a stable, versioned schema.
+  Drop-in for `jq` or any JSON-aware tool.
+- **Markdown** — a complete narrative report (overview, score
+  breakdown, every finding with severity + recommendation, the
+  Repo Story, next steps). Pasteable into a GitHub issue or a
+  team wiki without further edits.
+- **AsciiDoc** — same content as the Markdown, but in AsciiDoc
+  syntax for users on Antora / Asciidoctor docs pipelines. The
+  three formats share a single intermediate representation so a
+  rule that lands in one always lands in the other two.
+
+Each export is exposed in the existing FAB cluster + Settings
+dialog as a "Download" button, never opens a new tab. File names
+follow `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}` so multiple
+downloads sort nicely on disk. The schema is documented in
+`docs/export-schema.md` and locked with a fixture-based test that
+fails on any unintentional shape change.
 
 ---
 

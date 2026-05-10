@@ -1,10 +1,12 @@
 /**
  * Site footer.
  *
- * Carries the German-law-required links to the Impressum (§ 5 DDG) and
- * Datenschutzerklärung (Art. 13 DSGVO). Both pages live behind the
- * `#/impressum` and `#/datenschutz` hash routes so the SPA can render
- * them without a backend round-trip.
+ * Carries:
+ *   - the Phase 4.5 rule book at `#/rules`,
+ *   - the German-law-required Impressum (§ 5 DDG) at `#/impressum`,
+ *   - the DSGVO-compliant Datenschutzerklärung at `#/datenschutz`.
+ * All three render as stand-alone hash routes so the SPA serves them
+ * without a backend round-trip.
  */
 export function Footer() {
   const base = import.meta.env.BASE_URL;
@@ -17,6 +19,13 @@ export function Footer() {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
         <span>Astraudit · {new Date().getFullYear()}</span>
+        <span className="text-slate-700">·</span>
+        <a
+          href={`${base}#/rules`}
+          className="text-slate-500 transition hover:text-aurora-cyan hover:underline"
+        >
+          Rule book
+        </a>
         <span className="text-slate-700">·</span>
         <a
           href={`${base}#/impressum`}
