@@ -2443,6 +2443,29 @@ component files.** Real issues found and fixed:
 - `npx lhci autorun` — perf 0.78 / a11y 1.0 / best 0.95 / SEO 1.0
   (every assertion still clears its floor).
 
+**Follow-up bug (caught while 5.2 was being reviewed):** the
+maintainer reported a sliver of horizontal scrolling on Android-
+sized viewports. Reproduced at 360 × 640: the Hero's brand cluster
++ ThemeToggle + Settings + History row summed to 362 px on a
+360 px viewport, pushing a 2 px overflow. None of our existing
+specs ran below 1280 px so it slipped through.
+
+Fix: `<div className="flex items-center justify-between gap-2">`
+on the Hero header is now `flex-wrap`. On tight viewports the
+action cluster (Theme, History, Settings) wraps to a second line
+instead of forcing the page wider than the body.
+
+Permanent guard: new `tests/visual/mobileOverflow.spec.ts` runs
+the four routes (home / Impressum / Datenschutz / rules) at
+**320 × 568** (WCAG 1.4.10 Reflow contract — content must not
+require horizontal scroll at 320 CSS px wide) and **360 × 640**
+(typical Android). 8 cases total. A future change that pushes
+anything outside the viewport at either size now fails CI before
+the PR can land.
+
+Updated totals: **22 Playwright specs** all pass (was 14; +8 from
+the mobile-overflow guard).
+
 ### 5.3 · Dialog, popup & overlay hardening
 Every modal in the app — `SettingsDialog`, `HistoryDialog`,
 `CompareDialog`, `ShortcutsDialog`, `BadgeDialog`, the command

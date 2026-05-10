@@ -37,7 +37,13 @@ export function Hero({
 
   return (
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
-      <div className="flex items-center justify-between gap-2">
+      {/* Phase 5.2 — at narrow widths (tested at 360px Android),
+          the brand cluster + ThemeToggle + Settings + History row
+          summed to slightly more than the available content width.
+          `flex-wrap` lets the action cluster fall to a second line
+          on tight viewports instead of pushing the page wider than
+          the body. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <a
             href={`${import.meta.env.BASE_URL}#`}
