@@ -11,6 +11,11 @@ import {
   type Node,
   type NodeProps,
 } from "reactflow";
+// Phase 4.4 — lazy-load React Flow's stylesheet alongside the
+// component itself. Keeping this import here (rather than in
+// `main.tsx`) means Vite bundles the CSS into the AuditGraph chunk
+// so first paint of the home page never downloads it.
+import "reactflow/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -415,3 +420,8 @@ export function AuditGraph({ graph }: AuditGraphProps) {
     </ReactFlowProvider>
   );
 }
+
+// Phase 4.4 — default export is required by React.lazy. Consumers
+// that don't care about the lazy split can keep using the named
+// `AuditGraph` import; lazy consumers reach for `default`.
+export default AuditGraph;

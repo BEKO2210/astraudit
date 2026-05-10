@@ -2077,10 +2077,66 @@ beautiful but only useful at first glance.
 pattern, so screen-reader users get the same on/off feedback as
 sighted users.
 
-### 4.4 · Bundle splitting
-Lazy-load React Flow only after the dashboard first paints. The graph
-is below the fold on most viewports — no need to ship it in the
-critical bundle.
+### 4.4 · Bundle splitting ✅ shipped
+**Why:** `reactflow` + its CSS together weighed in at ~150 KB
+minified — about a quarter of the home page's first-paint payload —
+even though the audit graph is below the fold on every viewport
+and only mounts after a successful audit. Lazy-loading it cuts the
+initial JS by that quarter without changing a single user-facing
+behaviour.
+
+**Pre-build research (2026-05-10):**
+- Vite Docs · *Dynamic Import*: `React.lazy(() => import("./X"))`
+  is the canonical pattern. Vite's chunk-splitting automatically
+  emits a separate `.js` file *and* parallel-fetches it, so there's
+  no waterfall penalty — the lazy chunk arrives roughly when the
+  user starts scrolling.
+- The CSS import follows the JS into the new chunk *as long as the
+  `import "reactflow/dist/style.css"` lives in the lazy module*.
+  Ours used to live in `main.tsx`, which kept it in the main CSS
+  bundle even though the JS was about to be split. Moving the
+  import into `AuditGraph.tsx` puts JS and CSS into the same lazy
+  chunk.
+  https://vite.dev/guide/features#dynamic-import
+
+**Implementation:**
+- `src/components/AuditGraph.tsx` adds a `default` export and
+  imports `reactflow/dist/style.css` at the top of the file.
+- `src/main.tsx` drops the static CSS import — replaced with a
+  comment pointing the reader at the new home.
+- `src/components/ReviewDashboard.tsx` switches to
+  `const AuditGraph = lazy(() => import("./AuditGraph"))` and
+  wraps the rendered `<AuditGraph>` in `<Suspense fallback={
+  <AuditGraphSkeleton />}>`.
+- New `src/components/AuditGraphSkeleton.tsx` mirrors the live
+  graph's chrome so the layout doesn't reflow when the chunk
+  arrives — same glass card, same toolbar height, the canvas
+  shows six node-shaped skeletons in the rough positions of the
+  real graph. Built on the existing `<Skeleton>` primitive
+  (Phase 2.8.2).
+
+**Build output (May 2026 baseline):**
+- **Before:** `index.js` 629 KB / 204 KB gzipped, single
+  `index.css` 64 KB / 13 KB gzipped.
+- **After:**
+   · `index.js` **481 KB / 157 KB gzipped** (-148 KB / -47 KB,
+     **24 % lighter on first paint**).
+   · `index.css` **58 KB / 11 KB gzipped** (-7 KB).
+   · New lazy chunks: `AuditGraph.js` 151 KB / 50 KB gzipped +
+     `AuditGraph.css` 7 KB / 1.6 KB gzipped (only loaded after
+     the dashboard mounts).
+- Lighthouse FCP **465 ms**, TBT **0 ms**, Speed Index **465 ms**.
+  The Lighthouse score itself stays 0.78 because the LCP element
+  is the maintainer's intentional 5 MB
+  `public/Logo_bg_removed.png` — that's the metric ceiling, not
+  bundle weight.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 45 files / 594 tests still green.
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+- `npx lhci autorun` — every assertion passes (perf 0.78,
+  a11y 1.0, best 0.95, SEO 1.0).
 
 ### 4.5 · Public rule book
 A rendered Markdown page that lists **every** detector and exactly what
@@ -2089,6 +2145,78 @@ triggers it. Helps users trust the findings and contribute new rules.
 ### 4.6 · Contribution guide
 A `CONTRIBUTING.md` for adding new detectors, with the same fixture
 test pattern as Phase 1.6.
+
+---
+
+## Phase 5 — Deep UX & control review
+
+A focused pass over every interactive surface in the app. Each
+sub-phase is a self-contained run (research → audit → fix → tests),
+matching the Phase 2.8 / 3.x pattern. The goal: zero unloved
+buttons, zero rough edges, zero "wait, why doesn't *that* work?"
+moments.
+
+### 5.1 · Scroll & focus reset on route changes
+**Why:** Today, navigating from the home page to `#/impressum`
+preserves the user's scroll position — so a visitor who scrolled
+to the footer to click "Datenschutz" lands halfway down the legal
+page instead of at the top. Same for `#/audit/owner/repo` deep
+links and the future hash routes. Every route transition should
+scroll to top **and** move keyboard focus to the page's first
+heading (announced by screen readers as the new context).
+
+### 5.2 · Interactive control audit
+A line-by-line walk over every `<button>`, `<a>`, `<select>`,
+`<input>`, pill, chip, toggle, and tab in the app. Each control
+gets verified against a checklist: visible focus, keyboard
+activation, correct ARIA, hover / active / disabled states,
+theme parity (dark + light + forced-colors), tooltip when
+non-obvious, hit area ≥ 24×24 (WCAG 2.5.8). Expected output is a
+table of fixes + a tracking doc so future contributions don't
+regress.
+
+### 5.3 · Dialog, popup & overlay hardening
+Every modal in the app — `SettingsDialog`, `HistoryDialog`,
+`CompareDialog`, `ShortcutsDialog`, `BadgeDialog`, the command
+palette, plus the tooltip primitive and the toast host — gets
+re-validated against the WAI-ARIA APG modal pattern: focus trap on
+open, focus restore on close, Esc dismissal, body-scroll lock,
+correct `aria-labelledby` + `aria-describedby`, stacking order
+that doesn't fight with the bottom-sheet variant.
+
+### 5.4 · Activity heatmap overhaul
+The Phase 2.6 heatmap shipped as a minimal grid. Phase 5.4
+revisits it with: hover tooltip showing the exact date + commit
+count (not just a colour), keyboard navigation across cells,
+explicit legend with counts, axis labels (months on top, weekdays
+on left), a higher-contrast palette for the missing-data cells in
+light mode, and mobile-friendly cell sizing that doesn't squash
+six months into a thumbnail.
+
+### 5.5 · Empty, loading & error state pass
+Every major panel — Insights, Topic Checks, Registry, Story,
+Findings, Graph, Compare dashboard — gets a coherent loading
+skeleton (matching the dashboard skeleton from 2.8.2), a dignified
+empty state with an icon + one-line explanation, and an
+actionable error state with a retry CTA where it makes sense.
+Today these vary panel-to-panel; this pass aligns them to a
+single visual + accessibility baseline.
+
+### 5.6 · Error & rate-limit messaging review
+Every error path users can hit: invalid repo input, 404, 403
+(GitHub unauthenticated rate limit), 403 (PAT scope), abort,
+parse failure, registry timeout. Each gets reviewed for:
+clarity (no jargon), actionability (what should the user *do*?),
+recovery affordance (retry / open settings / clear cache), and
+consistency with the Phase 2.8.1 toast tone system. Includes a
+"What does this error mean?" companion section in the docs.
+
+### 5.7 · Print stylesheet v2
+Re-walk every panel under `@media print` — every detector card,
+every Insight pill, the new Topic Checks + Registry panels added
+in Phase 3, plus the legal pages. The print stylesheet has grown
+ad-hoc since 1.7; v2 audits it with real sample audits and locks
+the contract down with a Playwright print-preview snapshot run.
 
 ---
 
