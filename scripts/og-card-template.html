@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <title>Astraudit OG card</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -26,17 +26,16 @@
         position: relative;
         width: 1200px;
         height: 630px;
-        padding: 64px 80px;
+        padding: 56px 80px;
         background:
           radial-gradient(circle at 12% 20%, rgba(122, 92, 255, 0.45), transparent 55%),
-          radial-gradient(circle at 88% 14%, rgba(58, 214, 255, 0.35), transparent 55%),
+          radial-gradient(circle at 88% 14%, rgba(58, 214, 255, 0.30), transparent 55%),
           radial-gradient(circle at 80% 92%, rgba(66, 232, 200, 0.32), transparent 60%),
           linear-gradient(135deg, #0a0e1a 0%, #050810 100%);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
       }
-      /* Subtle aurora-grid texture */
       .card::before {
         content: "";
         position: absolute;
@@ -50,49 +49,74 @@
         mask-image: radial-gradient(ellipse at center, #000 50%, transparent 90%);
         pointer-events: none;
       }
-      header {
+
+      /* Top row — big wordmark on the left, original logo on the right.
+         The grid keeps both items vertically centred with a generous
+         260 px column for the logo so the heading below never has to
+         compete for horizontal space. */
+      .top {
         position: relative;
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 48px;
         align-items: center;
-        gap: 14px;
       }
-      .logo {
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
-        background:
-          linear-gradient(135deg, #7a5cff 0%, #42e8c8 100%);
+      .brand {
+        font-size: 64px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        color: #f8fafc;
+        line-height: 1;
+        background: linear-gradient(135deg, #f8fafc 0%, #c0c4ff 70%, #6df7d8 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .logo-slot {
+        position: relative;
+        width: 260px;
+        height: 260px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow:
-          0 8px 28px rgba(122, 92, 255, 0.45),
-          inset 0 1px 0 rgba(255, 255, 255, 0.18);
       }
-      .logo svg {
-        width: 32px;
-        height: 32px;
+      .logo-slot::before {
+        /* Subtle aurora glow behind the logo so it reads as the
+           focal point on the right side of the card. */
+        content: "";
+        position: absolute;
+        inset: -10px;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(122, 92, 255, 0.35) 0%,
+          rgba(66, 232, 200, 0.18) 45%,
+          transparent 70%
+        );
+        filter: blur(20px);
+        z-index: 0;
       }
-      .brand {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: #cbd5e1;
+      .logo-slot img {
+        position: relative;
+        z-index: 1;
+        width: 240px;
+        height: 240px;
+        object-fit: contain;
+        /* Drop-shadow gives the logo a touch of depth on top of the
+           glow without changing its colours. */
+        filter: drop-shadow(0 12px 32px rgba(122, 92, 255, 0.45));
       }
-      .brand strong {
-        color: #f8fafc;
-        font-weight: 800;
-        letter-spacing: 0.15em;
+
+      /* Body copy — sits below the top row, constrained to the LEFT
+         portion of the card so it never reaches into the logo area. */
+      .body {
+        position: relative;
+        max-width: 760px;
       }
       h1 {
-        position: relative;
-        font-size: 84px;
+        font-size: 60px;
         line-height: 1.05;
         font-weight: 800;
         letter-spacing: -0.025em;
-        max-width: 900px;
-        margin-top: 64px;
         background: linear-gradient(135deg, #f8fafc 0%, #c0c4ff 60%, #6df7d8 100%);
         -webkit-background-clip: text;
         background-clip: text;
@@ -106,14 +130,15 @@
         color: transparent;
       }
       .tagline {
-        position: relative;
-        font-size: 26px;
+        font-size: 22px;
         font-weight: 500;
         color: #94a3b8;
-        margin-top: 22px;
-        max-width: 900px;
+        margin-top: 18px;
         line-height: 1.4;
       }
+
+      /* Pills + URL — full-width footer, can extend beneath the logo
+         without colliding because the logo area ends at y ≈ 320. */
       .pills {
         position: relative;
         display: flex;
@@ -126,7 +151,7 @@
         gap: 8px;
         padding: 10px 18px;
         border-radius: 999px;
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 600;
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid rgba(255, 255, 255, 0.12);
@@ -164,7 +189,7 @@
       }
       .url {
         font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 18px;
+        font-size: 17px;
         color: #94a3b8;
         letter-spacing: -0.01em;
       }
@@ -172,19 +197,14 @@
   </head>
   <body>
     <div class="card">
-      <header>
-        <div class="logo">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-            <path
-              d="M16 44L32 16l16 28H40l-3-6h-10l-3 6z"
-              fill="#0a0e1a"
-            />
-          </svg>
+      <div class="top">
+        <div class="brand">ASTRAUDIT</div>
+        <div class="logo-slot">
+          <img src="{{LOGO_DATA_URL}}" alt="" />
         </div>
-        <div class="brand"><strong>ASTRAUDIT</strong></div>
-      </header>
+      </div>
 
-      <div>
+      <div class="body">
         <h1>
           Understand any <em>public GitHub repository</em> in 30 seconds.
         </h1>

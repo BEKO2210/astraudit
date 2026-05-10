@@ -18,14 +18,23 @@
  */
 
 import { readFileSync, writeFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { chromium } from "@playwright/test";
 
 const TEMPLATE = resolve(process.cwd(), "scripts/og-card-template.html");
+const LOGO_PATH = resolve(process.cwd(), "public/Logo_bg_removed.png");
 const OUT_PATH = join(process.cwd(), "public/og-card.png");
 
 async function main(): Promise<void> {
   const html = readFileSync(TEMPLATE, "utf8");
+
+  // Inline the original logo as a base64 data URL so the headless
+  // browser can resolve it without a base href. The template uses
+  // `{{LOGO_DATA_URL}}` as the placeholder.
+  const logoBuf = readFileSync(LOGO_PATH);
+  const logoDataUrl = `data:image/png;base64,${logoBuf.toString("base64")}`;
+  const filledHtml = html.replace("{{LOGO_DATA_URL}}", logoDataUrl);
 
   const browser = await chromium.launch({ headless: true });
   try {
@@ -34,7 +43,7 @@ async function main(): Promise<void> {
       deviceScaleFactor: 1,
     });
     const page = await ctx.newPage();
-    await page.setContent(html, { waitUntil: "networkidle" });
+    await page.setContent(filledHtml, { waitUntil: "networkidle" });
     // Belt-and-suspenders wait so Inter / JetBrains Mono swap in
     // before the screenshot — without this the headline can render
     // in the system fallback font on a cold machine.
@@ -50,9 +59,33 @@ async function main(): Promise<void> {
     await browser.close();
   }
 
-  const { size } = statSync(OUT_PATH);
+  const rawSize = statSync(OUT_PATH).size;
+
+  // Compress in place via pngquant (palette-quantised + stripped of
+  // ancillary chunks). Drops the file from ~700 KB to ~180 KB while
+  // staying lossless-perceptual at our typical render scale.
+  // Skip if pngquant isn't installed locally (CI image always has
+  // it, dev machines may not).
+  try {
+    execFileSync(
+      "pngquant",
+      ["--quality=72-92", "--strip", "--speed", "1", "--output", OUT_PATH, "--force", OUT_PATH],
+      { stdio: "ignore" },
+    );
+  } catch (err) {
+    console.warn(
+      `pngquant unavailable, skipping compression — install via 'apt-get install pngquant' or 'brew install pngquant'`,
+    );
+    void err;
+  }
+
+  const finalSize = statSync(OUT_PATH).size;
   console.log(
-    `OG card written: ${OUT_PATH} (${(size / 1024).toFixed(1)} KB)`,
+    `OG card written: ${OUT_PATH} (${(finalSize / 1024).toFixed(1)} KB${
+      finalSize !== rawSize
+        ? `, compressed from ${(rawSize / 1024).toFixed(1)} KB`
+        : ""
+    })`,
   );
 }
 
