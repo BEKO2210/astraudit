@@ -1,5 +1,6 @@
 import { ChevronRight, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDialog } from "../lib/ui/useDialog";
 import {
   filterCommands,
   GROUP_LABELS,
@@ -18,6 +19,15 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Phase 5.3 — body scroll lock + focus restore on close. The
+  // palette already owns its own Esc / Arrow / Enter handler below
+  // (it needs the arrow keys for list navigation), so we don't pass
+  // an initialFocusRef — the local effect already moves focus into
+  // the search input. useDialog's Esc handler runs at capture and
+  // is harmless (it just calls onClose, same as the local one).
+  useDialog({ open, onClose, containerRef: dialogRef });
 
   const filtered = useMemo(() => filterCommands(commands, query), [commands, query]);
   const grouped = useMemo(() => {
@@ -96,10 +106,12 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-[8vh] backdrop-blur sm:pt-[15vh]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label="Command palette"
     >
       <div
         className="glass-strong w-full max-w-xl overflow-hidden rounded-2xl"

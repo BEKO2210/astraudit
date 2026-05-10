@@ -109,13 +109,24 @@ function renderAurora(opts: BadgeOptions): string {
   const titleSize = 11;
   const scoreSize = 22;
   const gradeSize = 11;
+  const suffixSize = 11;
 
   const fullNameWidth = estimateWidth(fullName, titleSize);
   const scoreText = `${score}`;
+  const suffixText = `/${opts.max}`; // rendered as a <tspan> after the score
   const scoreWidth = estimateWidth(scoreText, scoreSize);
+  const suffixWidth = estimateWidth(suffixText, suffixSize);
   const gradeWidth = estimateWidth(opts.grade, gradeSize);
   const padding = 14;
-  const inner = Math.max(fullNameWidth, scoreWidth + 28 + gradeWidth);
+  // Phase 5.3 follow-up — the grade letter used to land at
+  // `padding + scoreWidth + 14`, ignoring the width of the inline
+  // `/max` tspan that sits between the score number and the grade.
+  // For score "78" / max "100" / grade "B" the tspan was ~26 px
+  // wide, so the grade rendered ~12 px inside the tspan. Now we
+  // include `suffixWidth` in the offset (and in the badge's inner
+  // width) so the three glyphs never overlap.
+  const gradeOffset = scoreWidth + suffixWidth + 14;
+  const inner = Math.max(fullNameWidth, gradeOffset + gradeWidth);
   const width = inner + padding * 2;
   const height = 60;
   const aria = `Astraudit ${fullName}: ${score}/${opts.max} ${opts.grade}`;
@@ -135,8 +146,8 @@ function renderAurora(opts: BadgeOptions): string {
     `<rect width="${width}" height="${height}" rx="9" fill="url(#bg)"/>`,
     `<rect x="0" y="0" width="${width}" height="3" rx="1" fill="url(#accent)"/>`,
     `<text x="${padding}" y="20" fill="#9aa3c2" font-family="${FONT_FAMILY}" font-size="9" letter-spacing="2">ASTRAUDIT</text>`,
-    `<text x="${padding}" y="40" fill="#fff" font-family="${FONT_FAMILY}" font-size="${scoreSize}" font-weight="700">${escapeXml(scoreText)}<tspan font-size="11" fill="#9aa3c2">/${opts.max}</tspan></text>`,
-    `<text x="${padding + scoreWidth + 14}" y="38" fill="${colors.accent}" font-family="${FONT_FAMILY}" font-size="${gradeSize}" font-weight="600">${escapeXml(opts.grade)}</text>`,
+    `<text x="${padding}" y="40" fill="#fff" font-family="${FONT_FAMILY}" font-size="${scoreSize}" font-weight="700">${escapeXml(scoreText)}<tspan font-size="${suffixSize}" fill="#9aa3c2">${escapeXml(suffixText)}</tspan></text>`,
+    `<text x="${padding + gradeOffset}" y="38" fill="${colors.accent}" font-family="${FONT_FAMILY}" font-size="${gradeSize}" font-weight="600">${escapeXml(opts.grade)}</text>`,
     `<text x="${padding}" y="${height - 8}" fill="#9aa3c2" font-family="${FONT_FAMILY}" font-size="9">${escapeXml(fullName)}</text>`,
     `</svg>`,
   ].join("");

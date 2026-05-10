@@ -1,5 +1,6 @@
 import { Keyboard, X } from "lucide-react";
-import { useEffect } from "react";
+import { useId, useRef } from "react";
+import { useDialog } from "../lib/ui/useDialog";
 
 interface ShortcutsDialogProps {
   open: boolean;
@@ -27,22 +28,20 @@ const ROWS: Array<{ keys: string[]; label: string }> = [
 ];
 
 export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  // Phase 5.3 — focus trap + restore + body lock + Esc.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog({ open, onClose, containerRef: dialogRef });
+  const titleId = useId();
 
   if (!open) return null;
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
       <div
         className="bottom-sheet-card glass-strong relative w-full max-w-md rounded-2xl p-5 sm:p-6"
@@ -62,7 +61,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
             <Keyboard className="h-4 w-4 text-aurora-cyan" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 id={titleId} className="text-lg font-semibold text-white">
               Keyboard shortcuts
             </h2>
             <p className="text-xs text-slate-500">

@@ -2466,14 +2466,106 @@ the PR can land.
 Updated totals: **22 Playwright specs** all pass (was 14; +8 from
 the mobile-overflow guard).
 
-### 5.3 · Dialog, popup & overlay hardening
-Every modal in the app — `SettingsDialog`, `HistoryDialog`,
-`CompareDialog`, `ShortcutsDialog`, `BadgeDialog`, the command
-palette, plus the tooltip primitive and the toast host — gets
-re-validated against the WAI-ARIA APG modal pattern: focus trap on
-open, focus restore on close, Esc dismissal, body-scroll lock,
-correct `aria-labelledby` + `aria-describedby`, stacking order
-that doesn't fight with the bottom-sheet variant.
+### 5.3 · Dialog, popup & overlay hardening ✅ shipped
+**Why:** The Phase 5.2 walk found that none of the four runtime
+behaviours the WAI-ARIA APG modal pattern requires (focus trap,
+focus restore, body scroll lock, Esc dismissal) were enforced
+consistently across the six dialogs. Every dialog had Esc, none
+had focus trap or scroll lock, focus restoration was implicit and
+unreliable, and the dialog containers had no accessible name —
+screen readers just heard "dialog" with no context.
+
+**Pre-build research (2026-05-10):**
+- W3C WAI · *Modal Dialog Pattern* (May-2026 APG revision) —
+  focus trap mechanics, focus restoration, body scroll lock
+  semantics, Esc, `aria-modal="true"` only when the application
+  *actually* prevents outside interaction.
+  https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
+
+**Implementation:**
+- New `src/lib/ui/useDialog.ts` hook centralises all four
+  behaviours behind a single `{ open, onClose, containerRef,
+  initialFocusRef }` interface:
+   1. **Focus trap** — Tab + Shift-Tab cycle through focusable
+      descendants of `containerRef` only. Escapes to body are
+      caught + reset.
+   2. **Focus restore** — `document.activeElement` is captured
+      at open time and refocused on close (with
+      `preventScroll: true` so it doesn't scroll-jump).
+   3. **Body scroll lock** — a shared open-count guards the
+      `document.body.style.overflow = "hidden"` mutation so
+      stacked dialogs (rare but possible) only release the lock
+      when every modal has unmounted.
+   4. **Esc dismissal** — listener attached at *capture* phase
+      so a deep-tree `stopPropagation` can't swallow it.
+- All six dialogs (`SettingsDialog`, `HistoryDialog`,
+  `CompareDialog`, `ShortcutsDialog`, `BadgeDialog`,
+  `CommandPalette`) now call `useDialog()` and gain a unique
+  `aria-labelledby` (or `aria-label` for the command palette,
+  which has no visible title). Dialog `<h2>` titles get an `id`
+  generated via `useId()` so the `aria-labelledby` is stable
+  across re-renders.
+- The five legacy `useEffect` Esc handlers are removed — the
+  hook owns Esc now. CommandPalette keeps its specialised
+  arrow-key/enter handler because it needs them for list
+  navigation.
+
+**Tests:** new `tests/visual/dialogHardening.spec.ts` (3
+Playwright cases against the Settings dialog as the canonical
+case, since the others share the same hook):
+- *Opens with focus inside, restores on close, locks scroll* —
+  asserts (a) the dialog mounts visibly, (b) it carries
+  `aria-label` or `aria-labelledby`, (c) initial focus lands
+  inside the dialog, (d) `getComputedStyle(document.body).
+  overflow === "hidden"` while open, (e) Esc closes, (f) body
+  overflow is released, (g) focus is restored to the trigger.
+- *Focus trap cycles inside (Tab + Shift-Tab)* — Tabs and
+  Shift-Tabs 12 times each and asserts the dialog still contains
+  `document.activeElement` after every press.
+- *Backdrop click also closes + restores focus* — locks the
+  outside-click-to-dismiss path's focus-return contract.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 47 files / 610 tests still green.
+- `npx playwright test` — **25 specs all pass** (was 22; +3
+  from the new dialog-hardening spec).
+- `npm run build` — no warnings.
+
+### 5.9 · Aurora badge layout fix
+**Why:** Maintainer reported the badge's grade letter
+overlapped the `/100` suffix on the aurora style. Real bug,
+visible on every shareable badge: the grade x-coordinate was
+computed as `padding + scoreWidth + 14`, which ignored the
+width of the inline `<tspan>/100</tspan>` sitting between the
+score number and the grade. For score 81 / max 100 / grade
+"Very Strong", the grade rendered ~12 px inside the `/100`
+tspan.
+
+**Fix (shipped alongside 5.3):**
+- `src/lib/badge/svgBadge.ts` `renderAurora`: introduces
+  `suffixText = "/" + max` + `suffixWidth = estimateWidth(suffix,
+  11)`. Grade x-offset becomes `padding + scoreWidth +
+  suffixWidth + 14`. The badge's outer `inner` width also grows
+  to `Math.max(fullNameWidth, gradeOffset + gradeWidth)` so the
+  badge box widens to fit instead of clipping.
+- Tspan markup is now built from the same `suffixText`
+  variable + escaped via `escapeXml` (defensive — `max` is a
+  number today but the value type is `number`, so no real XSS
+  risk; the consistency keeps the fix uniform).
+
+**Regression guard:** three new vitest cases in
+`tests/lib/badge/svgBadge.test.ts`:
+- *Positions the grade past the inline `/max` suffix* — parses
+  the grade `<text>` x and asserts ≥ 82 (computed minimum for
+  the sample baseline).
+- *Widens the SVG to accommodate the score+suffix+grade row*
+  — asserts SVG `width` ≥ 169.
+- *Renders the suffix as a real `/max` tspan* — locks the
+  markup shape so a future refactor that drops the tspan can't
+  silently regress.
+
+**Verification:** 17 svgBadge tests pass (was 14; +3 guards).
 
 ### 5.4 · Activity heatmap overhaul
 The Phase 2.6 heatmap shipped as a minimal grid. Phase 5.4

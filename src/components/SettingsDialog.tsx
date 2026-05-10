@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useDialog } from "../lib/ui/useDialog";
 import {
   CheckCircle2,
   Database,
@@ -68,14 +69,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     applyDensity(next);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  // Phase 5.3 — useDialog now handles Esc + focus trap + focus
+  // restore + body scroll lock in one place. The local Esc effect
+  // that used to live here is gone (the hook owns it).
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog({ open, onClose, containerRef: dialogRef, initialFocusRef: inputRef });
+  const titleId = useId();
 
   const runProbe = async () => {
     setProbing(true);
@@ -140,10 +139,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
       <div
         className="bottom-sheet-card glass-strong relative w-full max-w-lg rounded-2xl p-5 sm:p-6"
@@ -163,7 +164,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <KeyRound className="h-4 w-4 text-aurora-mint" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 id={titleId} className="text-lg font-semibold text-white">
               GitHub access settings
             </h2>
             <p className="text-xs text-slate-500">

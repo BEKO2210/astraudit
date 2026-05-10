@@ -1,5 +1,6 @@
 import { ArrowLeftRight, X } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useDialog } from "../lib/ui/useDialog";
 import { EXAMPLE_REPOS } from "../data/exampleRepos";
 
 interface CompareDialogProps {
@@ -22,13 +23,12 @@ export function CompareDialog({
   useEffect(() => {
     if (!open) return;
     setValue("");
-    setTimeout(() => inputRef.current?.focus(), 50);
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [open]);
+
+  // Phase 5.3 — focus trap + restore + body lock + Esc.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialog({ open, onClose, containerRef: dialogRef, initialFocusRef: inputRef });
+  const titleId = useId();
 
   if (!open) return null;
 
@@ -46,10 +46,12 @@ export function CompareDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur sm:items-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
       <div
         className="bottom-sheet-card glass-strong relative w-full max-w-lg rounded-2xl p-5 sm:p-6"
@@ -69,7 +71,9 @@ export function CompareDialog({
             <ArrowLeftRight className="h-4 w-4 text-aurora-cyan" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">Compare</h2>
+            <h2 id={titleId} className="text-lg font-semibold text-white">
+              Compare
+            </h2>
             {leftLabel ? (
               <p className="text-xs text-slate-500">
                 <span className="font-mono text-slate-300">{leftLabel}</span>{" "}
