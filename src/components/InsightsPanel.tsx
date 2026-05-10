@@ -183,14 +183,26 @@ export function InsightsPanel({ insights }: InsightsPanelProps) {
           icon={Rocket}
           label="CI/CD profile"
           value={
-            insights.workflows.total > 0
-              ? `${insights.workflows.total} workflows`
-              : "No workflows"
+            insights.workflows.providers.length > 0
+              ? insights.workflows.providers
+                  .slice(0, 2)
+                  .map((p) => p.label)
+                  .join(" + ") +
+                (insights.workflows.providers.length > 2
+                  ? ` + ${insights.workflows.providers.length - 2} more`
+                  : "")
+              : "No CI detected"
           }
           sub={
-            insights.workflows.buckets.length
-              ? `Covers ${insights.workflows.buckets.join(", ")}`
-              : "No build/test/deploy patterns detected"
+            insights.workflows.providers.length === 0
+              ? "No pipeline files matched any of the supported providers."
+              : insights.workflows.buckets.length
+                ? `Covers ${insights.workflows.buckets.join(", ")}${
+                    insights.workflows.total > 0
+                      ? ` · ${insights.workflows.total} workflow file${insights.workflows.total === 1 ? "" : "s"}`
+                      : ""
+                  }`
+                : "Pipeline files present, but no build/test/deploy keywords matched their names."
           }
         />
         <Card

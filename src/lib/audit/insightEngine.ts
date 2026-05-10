@@ -56,6 +56,8 @@ export interface WorkflowProfile {
   hasCodeQL: boolean;
   hasDependabot: boolean;
   buckets: string[];
+  providers: Array<{ id: string; label: string }>;
+  hasGithubActions: boolean;
 }
 
 export interface TreeShape {
@@ -399,6 +401,8 @@ function analyzeWorkflows(ci: CiSignals): WorkflowProfile {
     hasCodeQL: ci.hasCodeQLWorkflow,
     hasDependabot: false,
     buckets,
+    providers: ci.providers.map((p) => ({ id: p.id, label: p.label })),
+    hasGithubActions: ci.hasGithubActions,
   };
 }
 

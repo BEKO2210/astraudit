@@ -201,14 +201,14 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   if (!ctx.ci.hasWorkflows) {
     findings.push({
       id: id("ci"),
-      title: "No CI workflow detected",
+      title: "No CI/CD pipeline detected",
       category: "ci",
       severity: "medium",
       description:
-        "No GitHub Actions workflows were detected. Without CI, build/test/lint regressions are easy to miss.",
-      evidence: "No .github/workflows/*.yml files.",
+        "No CI/CD configuration was found from any of the providers Astraudit recognizes (GitHub Actions, GitLab CI, CircleCI, Travis, Jenkins, Drone, Woodpecker, Azure Pipelines, Buildkite, AppVeyor, Bitbucket Pipelines, Gitea Actions). Without CI, build/test/lint regressions are easy to miss.",
+      evidence: "No CI configuration files matched.",
       recommendation:
-        "Add a minimal GitHub Actions workflow that runs the build, lint, and tests.",
+        "Add a minimal pipeline (a .github/workflows/*.yml is a fast default) that runs the build, lint, and tests.",
       affectedFiles: [],
       confidence: "high",
     });

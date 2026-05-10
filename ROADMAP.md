@@ -52,22 +52,23 @@ URLs are resolved against the repo's branch — links go to
 `raw.githubusercontent.com/...`. Bundle cost: ~46 KB gz for
 markdown-it.
 
-### 1.4 · Wider CI/CD detection
-We currently only detect GitHub Actions and miss many real CI setups.
-Add file-presence rules for:
-
-- GitLab CI: `.gitlab-ci.yml`
-- CircleCI: `.circleci/config.yml`
-- Drone: `.drone.yml`
-- Woodpecker: `.woodpecker.yml`, `.woodpecker/`
-- Azure Pipelines: `azure-pipelines.yml`, `.azure-pipelines/`
-- Jenkins: `Jenkinsfile`
-- Travis: `.travis.yml`
-- Buildkite: `.buildkite/pipeline.yml`
-- AppVeyor: `appveyor.yml`
-
-Stops the false "no CI workflow detected" finding for non-GitHub-Actions
-projects.
+### 1.4 · Wider CI/CD detection ✅ shipped
+The CI detector now recognises 16 provider catalogs in
+`src/lib/audit/ciDetector.ts` — GitHub Actions, GitLab CI, CircleCI,
+Travis, AppVeyor, Azure Pipelines, Jenkins, Drone, Woodpecker,
+Buildkite, TeamCity, Bitbucket Pipelines, Concourse, Earthly, Tekton,
+Harness, and Gitea Actions. Detection is case-insensitive and runs
+through the central `hasFile` / `hasFolder` lookup. GitHub Actions
+also takes a fast path through the dedicated `/actions/workflows`
+endpoint so very large repos (where the recursive tree response is
+truncated) still report the correct provider. The "No CI workflow
+detected" finding now applies only when *none* of the 16 providers
+are present, killing the false positive for non-GitHub-Actions repos.
+The Insights panel and audit graph list the detected providers; the
+sub-line shows which build/test/lint/deploy/release/codeql buckets
+the workflow names hit. Verified against `python/cpython` (correctly
+reports GitHub Actions + Azure Pipelines) and `torvalds/linux`
+(reports GitHub Actions despite tree truncation).
 
 ### 1.5 · Wider stack detection
 - Frameworks: **Astro**, **SolidStart**, **Qwik**, **Hono**, **Elysia**,
