@@ -1,4 +1,5 @@
 import { Compass, Layers, ShieldQuestion, Sparkles } from "lucide-react";
+import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 
 const FEATURES = [
   {
@@ -25,7 +26,7 @@ const FEATURES = [
 
 export function EmptyState() {
   return (
-    <section className="mt-10 grid gap-4 sm:grid-cols-2">
+    <section className={`mt-10 grid gap-4 sm:grid-cols-2 ${VIEW_ENTER_CLASS}`}>
       {FEATURES.map((f) => (
         <div key={f.title} className="glass p-5">
           <div className="flex items-center gap-2">

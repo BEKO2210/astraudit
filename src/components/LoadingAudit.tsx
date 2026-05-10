@@ -22,6 +22,7 @@
 
 import { Loader2 } from "lucide-react";
 import type { AuditProgressStep } from "../types/audit";
+import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 
 const STEP_LABEL: Record<AuditProgressStep, string> = {
@@ -50,6 +51,7 @@ export function LoadingAudit({ step, repoLabel }: LoadingAuditProps) {
       aria-live="polite"
       aria-busy="true"
       aria-label={announcement}
+      className={VIEW_ENTER_CLASS}
     >
       {/* Status pill — single source of textual progress info. */}
       <div className="mt-8 flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur sm:max-w-fit">

@@ -12,6 +12,7 @@ import {
 import type { CompareResult } from "../lib/compare/diff";
 import { performShare } from "../lib/share/shareAction";
 import { pushToast } from "../lib/ui/toastStore";
+import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 import { CopyButton } from "./CopyButton";
 import { ShareButton } from "./ShareButton";
 import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
@@ -74,7 +75,7 @@ export function CompareDashboard({
   ];
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className={`mt-8 space-y-6 ${VIEW_ENTER_CLASS}`}>
       <CompareHeader
         compare={compare}
         onReset={onReset}

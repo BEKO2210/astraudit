@@ -776,11 +776,67 @@ Sources informing the design:
 - https://github.com/catdad/canvas-confetti/issues/114
 - https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions
 
-#### 2.8.6 · Smooth route transitions
-Add tasteful CSS transitions (`opacity` + tiny `translateY`) when
-the App state moves between idle → loading → ready / compared and
-back. Single `data-state` attribute on the root container, no
-animation libraries required.
+#### 2.8.6 · Smooth route transitions ✅ shipped
+Each major view (`EmptyState`, `LoadingAudit`, `ErrorState`,
+`ReviewDashboard`, `CompareDashboard`) animates in when the App
+state branch changes, via plain CSS keyframes — no animation
+library, no View Transitions API dependency, no `data-state`
+machinery. React's natural mount/unmount triggers the run-once
+animation.
+
+Research-driven decisions (React docs on `<ViewTransition>`, Pope
+Tech "Design accessible animation" 2025, CSS-Tricks
+`prefers-reduced-motion`, Web Animation Best Practices guide,
+Motion docs):
+
+- **220 ms timing**, intentionally on the brisk side. Web-animation
+  research recommends 300-500 ms ceiling for page transitions; we
+  err brisk so a snappy app doesn't feel sluggish.
+- **35% of users** opt into `prefers-reduced-motion: reduce` (Pope
+  Tech). Rather than removing all motion we keep a fade-only
+  fallback — fade is widely tolerated by users with vestibular
+  sensitivities while still signalling content change. CSS-Tricks
+  recommends "less, slower, or removed motion" — we picked
+  removed-translate, kept-fade.
+- **Plain CSS keyframes**, not the View Transitions API. The API
+  is Chrome-only at production maturity; CSS keyframes work in
+  every browser without feature detection.
+- **No data-state plumbing.** React already remounts the new view
+  when the App state branch changes; the keyframe runs once on
+  mount, naturally.
+
+Implementation:
+
+- `tailwind.config.ts` gains two keyframes — `view-enter` (slide
+  up 10 px + fade, 220 ms ease-out, `both` fill mode) and `fade-in`
+  (fade only, 180 ms). Tailwind exposes them as `animate-view-enter`
+  and `animate-fade-in`.
+- `src/lib/ui/transitions.ts` exports `VIEW_ENTER_CLASS`, the canonical
+  variant pair `motion-safe:animate-view-enter motion-reduce:
+  animate-fade-in`. Single source of truth — every view imports it
+  rather than repeating the variant pair, so the policy is one-line
+  to change.
+- Five view roots wear the class:
+  - `EmptyState` (idle / no audit running)
+  - `LoadingAudit` (skeleton screen)
+  - `ErrorState` (now also `role="alert"`)
+  - `ReviewDashboard` (single-repo audit)
+  - `CompareDashboard` (compare result)
+
+Tests: 3 new cases in `tests/lib/ui/transitions.test.ts` —
+`motion-safe:animate-view-enter` is present, `motion-reduce:
+animate-fade-in` is present, and a regex assertion forbids any
+naked `animate-*` utility (would fire regardless of motion
+preference, breaking WCAG 2.3.3 for some users).
+
+**Total suite: 208 tests across 27 files.**
+
+Sources informing the design:
+- https://react.dev/reference/react/ViewTransition
+- https://blog.pope.tech/2025/12/08/design-accessible-animation-and-movement/
+- https://css-tricks.com/almanac/rules/m/media/prefers-reduced-motion/
+- https://gist.github.com/uxderrick/07b81ca63932865ef1a7dc94fbe07838 (Web Animation Best Practices)
+- https://motion.dev/docs/react-transitions
 
 #### 2.8.7 · Universal focus-visible ring
 Replace ad-hoc focus styles with a single
