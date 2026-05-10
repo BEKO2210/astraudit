@@ -1,6 +1,7 @@
 import { Settings, ShieldCheck, Sparkles, Workflow, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeroProps {
   onOpenSettings: () => void;
@@ -33,6 +34,8 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
         <button
           type="button"
           onClick={onOpenSettings}
@@ -60,6 +63,7 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
             </>
           )}
         </button>
+        </div>
       </div>
 
       <div className="mt-10 max-w-3xl">

@@ -12,6 +12,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+      // Apply the saved theme before first paint so light-mode users
+      // never see a flash of dark content (and vice versa).
+      (function () {
+        try {
+          var t = localStorage.getItem("astraudit:theme:v1");
+          var resolved;
+          if (t === "light" || t === "dark") {
+            resolved = t;
+          } else {
+            resolved =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          }
+          if (resolved === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+          }
+        } catch (_) {
+          /* default to dark */
+        }
+      })();
+    </script>
   </head>
   <body class="bg-ink-950 text-slate-200 antialiased">
     <div id="root"></div>

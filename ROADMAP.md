@@ -296,9 +296,32 @@ fact comparison, end-to-end with auditEngine), plus 4 new compare
 URL cases in `tests/lib/share/urlState.test.ts`. Total suite is now
 **114 tests across 14 files**.
 
-### 2.3 · Light & dark theme toggle
-Currently dark only. Add a high-contrast light theme; remember the
-choice in `localStorage`.
+### 2.3 · Light & dark theme toggle ✅ shipped
+A three-way Theme toggle (Dark / Light / System) sits next to the
+Settings/PAT pill in the Hero. The choice persists in `localStorage`
+and the System mode follows `prefers-color-scheme` live.
+
+How it works without refactoring every component:
+
+- Dark stays the default. The opt-in is `data-theme="light"` on
+  `<html>`, and a single CSS block in `globals.css` rewrites the
+  semantic surfaces (glass cards, body, accent text, code blocks,
+  README prose, sticky nav, score-ring track, …) for light mode
+  without touching any component class names.
+- A tiny inline script in `index.html` reads the stored preference
+  before the React bundle loads — no flash of the wrong theme.
+- `src/lib/theme/themeStore.ts` exposes `loadTheme`, `saveTheme`,
+  `resolveTheme`, `applyTheme`, `cycleTheme`, and a
+  `listenSystemPreference` that survives the legacy Safari
+  `addListener` API.
+- `ThemeToggle.tsx` cycles dark → light → system → dark, swaps the
+  icon (Moon / Sun / Monitor), and re-applies on system changes
+  while in System mode. Hidden on print.
+
+Tests: 7 new cases in `tests/lib/theme/themeStore.test.ts` covering
+default fallback, persistence, garbage rejection, OS resolution for
+"system", concrete `dark/light` resolution, and the
+data-theme attribute toggle. **Total suite: 122 tests across 15 files.**
 
 ### 2.4 · Audit history & favorites
 Sidebar: last 20 audits, plus favorites. Stored in `localStorage`.
