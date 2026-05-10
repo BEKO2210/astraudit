@@ -1,158 +1,329 @@
+<div align="center">
+  <img src="public/Logo_bg_removed.png" alt="Astraudit" width="140" />
+
+  <h1>Astraudit</h1>
+
+  <p><strong>Map, score, and understand any public GitHub repository — entirely in your browser.</strong></p>
+
+  <p>
+    <a href="https://beko2210.github.io/astraudit/"><img alt="Live site" src="https://img.shields.io/badge/live-beko2210.github.io%2Fastraudit-7a5cff?style=flat-square"></a>
+    <img alt="Tests" src="https://img.shields.io/badge/tests-724%20passing-42e8c8?style=flat-square">
+    <img alt="License" src="https://img.shields.io/badge/license-MIT-94a3b8?style=flat-square">
+    <img alt="Backend" src="https://img.shields.io/badge/backend-none-94a3b8?style=flat-square">
+    <img alt="Tracking" src="https://img.shields.io/badge/tracking-none-94a3b8?style=flat-square">
+  </p>
+</div>
+
+---
+
+> **TL;DR** — paste a `github.com/owner/repo` URL, get a 100‑point readiness score across eight categories, an interactive audit graph, prioritized next steps, and a printable PDF report. **No backend. No login. No tokens. No AI inference.**
+
 <p align="center">
-  <img src="public/Logo_bg_removed.png" alt="Astraudit logo" width="160" />
+  <img src="docs/readme/desktop-dark.png" alt="Astraudit on desktop in dark mode" width="900" />
 </p>
 
-# Astraudit
+---
 
-Understand any public GitHub repository before you trust it.
+## Table of contents
 
-Astraudit maps, scores, and explains public GitHub repositories — **entirely in
-the browser**, with no backend, no login, no tokens, and no execution of any
-third-party code.
+- [What Astraudit does](#what-astraudit-does)
+- [Screenshots](#screenshots)
+- [How it works](#how-it-works)
+- [The eight scored categories](#the-eight-scored-categories)
+- [Exports & sharing](#exports--sharing)
+- [Operating constraints](#operating-constraints)
+- [What Astraudit will never do](#what-astraudit-will-never-do)
+- [Local development](#local-development)
+- [Testing & CI](#testing--ci)
+- [Deployment](#deployment)
+- [Project structure](#project-structure)
+- [Roadmap & contributions](#roadmap--contributions)
 
-> Browser-only static analysis. No code execution. No secrets. Public
-> repositories only.
+---
 
-## What is Astraudit?
+## What Astraudit does
 
-Astraudit is a static, browser-only auditor for public GitHub repositories.
-Paste a URL, and Astraudit will:
+Drop a `github.com/owner/repo` URL into the search box. Astraudit then:
 
-1. Fetch repository metadata, the file tree, README, and known config files
-   from GitHub's public API.
-2. Detect the stack (language, runtime, package manager, frameworks, build,
-   test, and lint tooling).
-3. Run rule-based detectors for documentation, structure, code quality,
-   security, maintenance, developer experience, ecosystem, and CI/CD.
-4. Compute a 0–100 score across eight categories and assign a letter-style
-   grade.
-5. Produce a structured **Repo Story**, an interactive **Audit Graph**, a
-   filterable **Findings** list, and seven prioritized **Next Steps**.
+1. **Fetches** repository metadata, the file tree, README, key config files, the org's `.github` repo (community‑health fallback), recent commits, releases, and an issue snapshot — all from GitHub's public REST API.
+2. **Detects** the stack: language profile, runtime, package manager, frameworks, build / test / lint tooling, monorepo signals, and ecosystem.
+3. **Runs ~70 rule‑based detectors** across documentation, structure, code quality, security, maintenance, developer experience, ecosystem, and CI/CD.
+4. **Scores** the repo 0–100 across eight weighted categories and assigns a letter‑style grade ("Strong", "Risky", "Avoid", …).
+5. **Renders** a structured Repo Story, an interactive audit graph, a filterable findings list, an onboarding recipe, and prioritized next steps.
 
-Everything runs locally in the browser. The audit engine runs in a Web Worker
-so the UI stays smooth even on large repositories.
+Everything runs locally in the browser. The audit engine ships in a dedicated Web Worker so the UI stays smooth even on large repositories.
 
-## Features
+---
 
-- **Smart input parsing** — accepts `https://github.com/owner/repo`,
-  `github.com/owner/repo`, `owner/repo`, `owner/repo.git`, etc.
-- **Eight scored categories** — Documentation, Structure, Code Quality,
-  Security, Maintenance, Developer Experience, Ecosystem, CI/CD.
-- **Interactive graph** — built with React Flow, color-coded by status, with
-  per-node evidence and recommendations.
-- **Findings panel** — severity- and category-filterable, with evidence,
-  affected files, and confidence labels.
-- **File structure intelligence** — detected important files, missing baseline
-  files, recognized folders, and suspicious filename matches.
-- **Maintenance signals** — recent commits, releases, issue/PR counts, topics.
-- **Stack detection** — frameworks, build tools, test tools, lint/format
-  tools, monorepo tooling, runtimes, and package managers.
-- **Premium dark UI** — glass cards, aurora gradients, and a calm,
-  high-contrast color system.
+## Screenshots
 
-## Why no backend?
+### Desktop (1280 × 800)
 
-- No database to host or secure.
-- No tokens to manage or leak.
-- No supply chain risk from running third-party code.
-- Trivial, free, fully reproducible deployment to GitHub Pages.
+<table width="100%">
+  <tr>
+    <td width="50%" valign="top">
+      <p align="center"><strong>Dark theme</strong> — the default.</p>
+      <img src="docs/readme/desktop-dark.png" alt="Astraudit dashboard in dark theme" />
+    </td>
+    <td width="50%" valign="top">
+      <p align="center"><strong>Light theme</strong> — full WCAG AA contrast.</p>
+      <img src="docs/readme/desktop-light.png" alt="Astraudit dashboard in light theme" />
+    </td>
+  </tr>
+</table>
 
-If a signal can be derived from the public file tree or metadata, it can be
-derived right in the browser.
+### Audit graph
 
-## Security model
+The interactive React Flow graph color‑codes every detector by status (`strong` / `partial` / `missing` / `info`), shows evidence on click, and includes a one‑click **Focus failing** affordance to fly the viewport over weak nodes only.
 
-Astraudit deliberately does **not**:
+<p align="center">
+  <img src="docs/readme/desktop-graph-dark.png" alt="Astraudit audit graph showing detectors color-coded by status with a side panel of evidence" width="900" />
+</p>
 
-- Execute any third-party code.
-- `git clone` or `npm install` the audited repository.
-- Read file contents to scan for secret values (it only matches *filenames*).
-- Use any AI API (Claude, OpenAI, Gemini, …) to generate findings.
-- Support private repositories.
-- Use any private tokens.
+### Multi‑format export
 
-All findings come from rule-based detectors over public GitHub metadata,
-filenames, and a limited set of well-known config files (e.g. `package.json`,
-`tsconfig.json`, `LICENSE`, `SECURITY.md`).
+Every audit can be downloaded as **Markdown**, **JSON**, or **AsciiDoc** — or printed to PDF via a dedicated print stylesheet that strips chrome, remaps colours, and avoids splitting cards across page boundaries.
 
-When a signal cannot be confidently established, Astraudit will display
-`Not detected` or `Insufficient evidence` rather than guess.
+<p align="center">
+  <img src="docs/readme/desktop-export.png" alt="Export menu open with Markdown, JSON, and AsciiDoc options" width="900" />
+</p>
 
-Astraudit executes no third-party code.
-Astraudit only reads public GitHub metadata and files.
-Astraudit does not support private repositories.
-Astraudit may hit GitHub unauthenticated API rate limits.
-Astraudit findings are static signals, not a full security audit.
+### Mobile (390 × 844, iPhone 14 Pro)
 
-## Limits & known caveats
+<table width="100%">
+  <tr>
+    <td width="50%" valign="top">
+      <p align="center"><strong>Dark theme</strong></p>
+      <img src="docs/readme/mobile-dark.png" alt="Astraudit on mobile in dark theme" />
+    </td>
+    <td width="50%" valign="top">
+      <p align="center"><strong>Light theme</strong></p>
+      <img src="docs/readme/mobile-light.png" alt="Astraudit on mobile in light theme" />
+    </td>
+  </tr>
+</table>
 
-- Astraudit uses **unauthenticated** GitHub API calls. Public rate limits
-  apply (~60 requests/hour per IP). Heavy users may need to retry later.
-- Branch protection rules, repository secrets, and most GitHub settings
-  cannot be inspected by a public static audit and are flagged as
-  "not available from public static audit."
-- Findings are **static signals**, not a complete security audit. A clean
-  Astraudit report does **not** mean a project is free of vulnerabilities.
-- Very large repositories may be reported as truncated by the GitHub tree
-  API; Astraudit displays this and continues with available data.
-- Astraudit does not analyze repositories larger than ~60k tree entries to
-  keep the browser responsive.
+The viewport‑pinned **floating action button** (bottom‑right) opens a Material‑3‑style speed‑dial cluster with Compare, Share, Badge, and Save‑as‑PDF actions. Below the `md` breakpoint, the audit graph hands the touch stream back to the page so vertical scrolling never wobbles.
 
-## Tech stack
+---
 
-- [Vite](https://vitejs.dev/) — build tool
-- [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/) — styling
-- [React Flow](https://reactflow.dev/) — interactive audit graph
-- [lucide-react](https://lucide.dev/) — icons
-- A dedicated **Web Worker** runs the audit engine so the UI never blocks
-- GitHub REST API (public, unauthenticated) + raw.githubusercontent.com for
-  config file content
+## How it works
 
-## Local installation
+```
+┌──────────────────────┐    fetch     ┌─────────────────────────┐
+│  GitHub public API   │  ◀─────────  │  src/lib/github/*       │
+│  api.github.com      │              │  (typed fetchers + 24h  │
+│  raw.githubusercontent│              │   localStorage cache)   │
+│  .com / org .github  │              └─────────────────────────┘
+└──────────────────────┘                            │
+                                                    ▼
+                                       ┌─────────────────────────┐
+                                       │   Web Worker            │
+                                       │   src/workers/audit.*   │
+                                       │   runs ~70 detectors    │
+                                       └─────────────────────────┘
+                                                    │
+                                                    ▼
+                                       ┌─────────────────────────┐
+                                       │   AuditResult           │
+                                       │   (categories, story,   │
+                                       │   findings, graph,      │
+                                       │   recommendations,      │
+                                       │   onboarding)           │
+                                       └─────────────────────────┘
+                                                    │
+                       ┌────────────────────────────┼─────────────────────────────┐
+                       ▼                            ▼                             ▼
+              ┌────────────────┐          ┌──────────────────┐           ┌─────────────────┐
+              │  Dashboard UI  │          │  PDF (print CSS) │           │  MD / JSON /     │
+              │  (React + RF)  │          │  Phase 5.7       │           │  AsciiDoc export │
+              └────────────────┘          └──────────────────┘           └─────────────────┘
+```
+
+Detectors live in [`src/lib/audit/`](./src/lib/audit/) — one module per concern (`securityDetector.ts`, `dependencyDetector.ts`, `ciDetector.ts`, …). The `auditEngine` orchestrates them, the `scoreEngine` weights the outputs, the `graphEngine` renders the relationships, and the `copyEngine` writes the human‑readable story.
+
+---
+
+## The eight scored categories
+
+| # | Category | Max | Examples of what it inspects |
+|---|---|---:|---|
+| 1 | **Documentation** | 15 | README presence + length, install / usage sections, badges, table of contents, CHANGELOG, public docs folder |
+| 2 | **Structure** | 15 | Recognized top‑level layout, src/tests separation, lockfile presence, monorepo signals, suspicious filenames |
+| 3 | **Code Quality Signals** | 15 | TypeScript / strict mode, ESLint + Prettier configs, test fixtures, scripts coverage |
+| 4 | **Security & Trust** | 15 | LICENSE, SECURITY.md (incl. org `.github` fallback), CODEOWNERS coverage, Dependabot config, CodeQL workflow, committed `.env` |
+| 5 | **Maintenance** | 15 | Push freshness, recent commit cadence, release flow, open issue / PR ratio, distinct authors |
+| 6 | **Developer Experience** | 10 | `.env.example`, Dockerfile, docker‑compose, Makefile, examples folder, CONTRIBUTING.md |
+| 7 | **Ecosystem & Dependencies** | 10 | Manifest health, runtime/dev dep counts, registry lookups (npm / PyPI / crates.io), CHANGELOG sanity |
+| 8 | **CI/CD & Automation** |  5 | `.github/workflows/` content, deployment workflows, automated test runs |
+
+The full per‑detector contract is documented in [`docs/RULES.md`](./docs/RULES.md) and rendered in‑app at [`#/rules`](https://beko2210.github.io/astraudit/#/rules).
+
+---
+
+## Exports & sharing
+
+| Output | Use it for |
+|---|---|
+| **PDF** (browser print) | Stakeholder hand‑off; archive with the rest of your due‑diligence docs |
+| **Markdown** (`.md`) | Paste straight into a GitHub issue, PR description, or Notion page |
+| **JSON** (`.json`) | Pipe into `jq`, dashboards, or CI gates — versioned schema |
+| **AsciiDoc** (`.adoc`) | Antora / Asciidoctor docs pipelines |
+| **Share URL** | `https://…/astraudit/#/audit/owner/repo` — opens straight into the audit |
+| **Compare URL** | `https://…/astraudit/#/compare/owner/repo+other/repo` — side‑by‑side diff |
+| **SVG badge** | A README badge with the live score + grade (`docs/RULES.md` covers the schema) |
+
+Filenames follow `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}` and slugify special characters so Safari's Content‑Disposition parser doesn't reject them.
+
+---
+
+## Operating constraints
+
+Four constraints, applied to every roadmap item before it ships:
+
+| Constraint | What it means | Enforced by |
+|---|---|---|
+| 🌐 **Browser‑only** | Audit runs entirely in your browser, with no backend | Static GitHub Pages deploy; CI rejects any added server / serverless dependency |
+| 🆓 **Free forever** | No paid tier. No signup. No tracking. | Anti‑roadmap (below) |
+| 📂 **Public repos only** | Private‑repo support requires server‑held secrets | Astraudit only uses unauthenticated GitHub APIs (or your local PAT, never transmitted elsewhere) |
+| 📐 **Rule‑based** | No AI inference for findings | Detectors are pure TypeScript with documented rules and fixture tests |
+
+---
+
+## What Astraudit will never do
+
+These are out, permanently, because each would compromise a constraint:
+
+- ❌ A backend, even *"just"* for caching, badges, or PDF generation
+- ❌ Serverless functions of any kind (Vercel, Netlify, Cloudflare Workers, Lambda)
+- ❌ Managed databases (Supabase, Firebase, PlanetScale, …)
+- ❌ Auth / OAuth flows. No Astraudit account, ever
+- ❌ Any AI / LLM API (OpenAI, Claude, Gemini, …). Findings stay rule‑based
+- ❌ Private repository support — that would require server‑held secrets
+- ❌ Cloning, installing, or executing code from the audited repo
+- ❌ Per‑visitor analytics, fingerprinting, or any tracking pixels
+
+If a new feature needs any of the above, we drop the feature.
+
+---
+
+## Local development
+
+**Prerequisites:** Node.js 20+, npm 10+.
 
 ```bash
+git clone https://github.com/beko2210/astraudit.git
+cd astraudit
 npm install
-npm run dev
+npm run dev          # http://localhost:5173/astraudit/
 ```
 
-Then open the printed local URL.
-
-Other useful scripts:
+Other scripts:
 
 ```bash
-npm run typecheck   # strict TypeScript build (no emit)
-npm run build       # production build to dist/
-npm run preview     # preview the production build locally
+npm run build        # production build → dist/
+npm run preview      # serve dist/ locally on :4173
+npm run typecheck    # strict tsc -b --noEmit
+npm test             # vitest run (724 tests)
+npm run test:visual  # Playwright snapshot suite (chromium)
 ```
 
-## Deployment to GitHub Pages
+### Optional: a personal access token
+
+Astraudit defaults to **unauthenticated** GitHub API calls (60 req/hour). If you hit the limit, open **Settings** in the dashboard and paste a fine‑grained PAT with **public‑repo read‑only** scope. The token lives in `localStorage` only — it never leaves your browser, and it's never sent anywhere except `api.github.com`.
+
+---
+
+## Testing & CI
+
+| Suite | Tool | Specs |
+|---|---|---:|
+| Unit / integration | Vitest | 724 tests across 55 files (`tests/`) |
+| Visual regression | Playwright + Chromium | All major routes at desktop + 320 / 360 / 390 / 768 / 1280 |
+| Accessibility | Playwright + axe‑core | Home, Impressum, Datenschutzerklärung, Rule book |
+| Mobile gesture | Playwright | Audit graph touch‑action contract on `< md` viewports |
+| Print | Playwright PDF + `pdftotext` | Page count, section presence, sparse‑page heuristic |
+| Performance | Lighthouse CI | Score floors enforced per `lighthouserc.json` |
+| Detection | Live harness | 53 popular real‑world repos (`scripts/validate-org-health.ts`) |
+
+CI gates live in [`.github/workflows/`](./.github/workflows/):
+
+- `quality.yml` — Lighthouse CI + axe-core a11y
+- `visual.yml` — Playwright snapshots
+- `deploy.yml` — Build + publish to GitHub Pages on `main`
+
+The build is run as its own step before Playwright so the webServer probe (60 s) only has to start `vite preview`, not pack a cold TypeScript + Vite build.
+
+---
+
+## Deployment
 
 1. Push this repository to GitHub as a public repo named `astraudit`.
-2. In **Settings → Pages**, set the **Source** to **GitHub Actions**.
-3. The workflow at `.github/workflows/deploy.yml` will run on every push to
-   `main`, build the app, and publish `dist/` to GitHub Pages.
+2. **Settings → Pages → Source → GitHub Actions.**
+3. Every push to `main` triggers `.github/workflows/deploy.yml`, which builds and publishes `dist/` to GitHub Pages.
 
-The `base` in `vite.config.ts` is set to `/astraudit/` so the build resolves
-correctly under `https://<owner>.github.io/astraudit/`.
+The Vite `base` is set to `/astraudit/` (see [`vite.config.ts`](./vite.config.ts)). If you fork under a different repo name, update both `vite.config.ts` and the absolute URLs in [`index.html`](./index.html) (Open Graph + canonical) and [`public/sitemap.xml`](./public/sitemap.xml).
 
-If you fork this under a different name, update `vite.config.ts` accordingly.
+---
 
-## Roadmap
+## Project structure
 
-The full roadmap lives in [`ROADMAP.md`](./ROADMAP.md). It is organized
-into four phases (quick wins → UX upgrades → smarter detection →
-polish) plus a strict **anti-roadmap** that records the things
-Astraudit will never do — backend, serverless, AI APIs, OAuth, private
-repos, code execution. Every roadmap item is checked against the
-four operating constraints (browser-only, free, public-only,
-rule-based) before it is accepted.
+```
+astraudit/
+├── index.html                    # SEO + Open Graph + Twitter Card + JSON-LD
+├── public/
+│   ├── og-card.png               # 1200 × 630 social-media card
+│   ├── robots.txt                # allow-all + sitemap declaration
+│   └── sitemap.xml               # four canonical routes
+├── src/
+│   ├── App.tsx                   # SPA shell + routing
+│   ├── components/               # ~50 React components
+│   ├── lib/
+│   │   ├── audit/                # detector modules + score / graph / copy engines
+│   │   ├── github/               # typed fetchers, error mapping, rate-limit handling
+│   │   ├── export/               # Markdown / JSON / AsciiDoc serializers
+│   │   ├── share/                # URL hash routing + Web Share API
+│   │   ├── badge/                # SVG badge generator
+│   │   └── ui/                   # cross-cutting UI utilities (toasts, density, theme)
+│   ├── workers/audit.worker.ts   # off-main-thread audit
+│   └── styles/globals.css        # design tokens + light/dark/print
+├── tests/
+│   ├── components/               # SSR-style component tests
+│   ├── lib/                      # unit tests for detectors, engines, helpers
+│   ├── visual/                   # Playwright specs (a11y, snapshots, mobile gestures)
+│   └── styles/                   # CSS contract tests (print + SEO)
+├── scripts/
+│   ├── validate-org-health.ts    # 53-repo live detection sweep
+│   ├── validate-print-output.ts  # PDF-rendering harness
+│   ├── generate-og-card.ts       # one-shot OG image generator
+│   ├── capture-readme-shots.ts   # this README's screenshot generator
+│   ├── sample-exports.ts         # writes one .md / .json / .adoc sample
+│   └── test-audit.ts             # bench against 10 real repos with caching
+├── docs/
+│   ├── RULES.md                  # public rule book
+│   ├── readme/                   # README screenshots (this section's images)
+│   └── …
+├── .github/workflows/            # CI: deploy / quality / visual
+├── ROADMAP.md
+└── CONTRIBUTING.md
+```
 
-## Documentation
+---
 
-- [`docs/RULES.md`](./docs/RULES.md) — the public **rule book**:
-  every detector and exactly what triggers it. Also rendered in-app
-  at `#/rules`.
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — how to set up the dev
-  env, add a new audit rule, write fixture-based tests, and clear
-  every CI gate before opening a PR.
+## Roadmap & contributions
+
+- The full roadmap (with a strict **anti‑roadmap** of things Astraudit will never do) lives in [`ROADMAP.md`](./ROADMAP.md).
+- Every detector and exactly what triggers it is documented in [`docs/RULES.md`](./docs/RULES.md) and rendered in‑app at `#/rules`.
+- Setup, "how to add a new audit rule", fixture conventions, and the CI gates a PR must clear are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+PRs that respect the four constraints (browser‑only, free, public‑only, rule‑based) are very welcome. Issues and bug reports — especially screenshots of broken layout — are equally welcome.
+
+---
+
+<div align="center">
+  <sub>
+    Built with Vite, React 18, TypeScript, Tailwind CSS, React Flow, and the GitHub public API.<br/>
+    Astraudit is a hobby‑scale tool. Findings are static signals — they're a useful first pass, not a substitute for a full security review.<br/>
+    <a href="https://beko2210.github.io/astraudit/#/impressum">Impressum</a> · <a href="https://beko2210.github.io/astraudit/#/datenschutz">Datenschutz</a> · <a href="https://beko2210.github.io/astraudit/#/rules">Rule book</a>
+  </sub>
+</div>

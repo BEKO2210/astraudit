@@ -63,12 +63,27 @@ export default defineConfig({
       caret: "hide",
     },
   },
+  /* webServer notes — Phase 5.x bugfix.
+
+     The CI a11y + visual specs were timing out because we used to run
+     `npm run build && npm run preview` here, packing a 60-90 s
+     TypeScript + Vite build into the 120 s probe window. With
+     `stdout: "ignore"` we couldn't even tell which half was stuck
+     ("[WebServer] Some chunks are larger than 500 kB" was the entire
+     diagnostic).
+
+     Fix: build is its own GitHub Actions step now (see
+     `.github/workflows/visual.yml` and `quality.yml`), so this
+     command only spins up the preview server — which binds in <2 s.
+     Locally the preview-only command also matches the dev workflow
+     and stays interactive. `stdout: "pipe"` so the next time we hit
+     a timeout we can actually see the Vite output. */
   webServer: {
-    command: "npm run build && npm run preview -- --port 4173 --strictPort",
+    command: "npm run preview -- --port 4173 --strictPort --host 127.0.0.1",
     url: "http://127.0.0.1:4173/astraudit/",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: "ignore",
+    timeout: 60_000,
+    stdout: "pipe",
     stderr: "pipe",
   },
 });
