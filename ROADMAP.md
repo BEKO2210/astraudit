@@ -408,27 +408,346 @@ section id, and `isEditableTarget` correctly treats input / textarea
 / select / contenteditable nodes as editable. **Total suite: 139
 tests across 18 files.**
 
-### 2.6 · Activity heatmap
-Visualize the recent commit dates as a small calendar heatmap. We
-already fetch the data — we just don't show it.
+### 2.6 · Activity heatmap ✅ shipped
+The Maintenance section now opens with a GitHub-style commit
+heatmap covering the **last 12 weeks (84 days)** — 12 columns × 7
+rows, Monday-aligned, ending on the current week's Sunday. Each
+cell is hover-titled with `Mon, May 5 — 3 commits` and uses one of
+five aurora-mint intensities scaled against the day-with-the-most.
+A tiny "Less / More" legend sits in the bottom-right.
 
-### 2.7 · Astraudit badge (SVG)
-A maintainer can embed a generated SVG badge in their own README:
+To make the window meaningful we bumped `fetchCommits` from 15 to
+**100 (the GitHub API max for a single page)** — same number of
+HTTP round-trips, just a wider payload, so it costs no extra rate
+limit budget.
 
-```
-[![Astraudit](https://beko2210.github.io/astraudit/badge.svg?owner=foo&repo=bar&score=78&grade=Strong)](https://...)
-```
+Implementation:
 
-Trade-off honest: since we have no backend, the badge values come from
-URL parameters. Maintainers regenerate the badge whenever they want to
-publish a new score. Fully free, fully static, never lies because the
-maintainer signs off on every value.
+- `src/lib/audit/activityHeatmap.ts`:
+  - `toIsoDay`, `monIndex`, `countCommitsByDay` — pure helpers,
+    UTC-based, immune to time-zone surprises.
+  - `buildHeatmapGrid(commits, now?)` returns exactly
+    `HEATMAP_DAYS` cells aligned to Monday columns ending Sunday,
+    with `total / max / uniqueDays` summary.
+  - `intensityBucket(count, max)` maps a per-cell count into 0..4.
 
-### 2.8 · Mobile polish round 2
-- Bottom-anchored "jump to next section" FAB on small screens.
-- Swipeable score / story / findings cards on phones.
-- Better one-handed reach: keep primary actions in the bottom 2/3 of the
-  viewport.
+- `src/components/ActivityHeatmap.tsx`: column-major grid render
+  with row labels (Mon/Wed/Fri visible) and a sparse month banner
+  on top. Mounted inside `MaintenancePanel` above the existing
+  "Recent commits" list. Print-friendly: `break-inside: avoid`.
+
+Tests: 14 new cases in `tests/lib/audit/activityHeatmap.test.ts`
+covering ISO formatting, Monday-indexed weekdays, per-day counts
+(including duplicate dates and bad input), grid alignment to
+Sunday, empty-input behaviour, and every intensity-bucket
+boundary. **Total suite: 153 tests across 19 files.**
+
+### 2.7 · Astraudit badge (SVG) ✅ shipped
+A new "Badge" pill in the score header opens a dialog that generates
+an SVG badge for the current audit. Three styles: **Flat** (shields-
+io look), **Aurora** (Astraudit brand with grade), **Minimal** (a
+score-only chip). Live preview, **Download** as `astraudit-<owner>-
+<repo>-<style>.svg`, plus copy buttons for the SVG source and a
+ready-to-paste Markdown snippet that links the badge back to a fresh
+Astraudit run for the repo via `formatShareUrl`.
+
+Honest trade-off acknowledged in the dialog copy: since Astraudit
+has no backend, the badge values are baked into the file at download
+time. Maintainers commit the SVG into their repo (`./astraudit-…
+.svg`) and re-export when they want to publish a new score.
+
+Implementation:
+
+- `src/lib/badge/svgBadge.ts` — pure string-builder, no DOM. Three
+  renderers (`renderFlat`, `renderAurora`, `renderMinimal`) all
+  produce self-contained SVG (inline attribute styling, system-font
+  stack, no external assets, `role="img"` + `aria-label`). Every
+  user-provided string flows through `escapeXml`. `colorForScore`
+  matches the dashboard's tier colors. `clampScore` keeps the
+  rendered number inside `[0, max]` even if a caller passes garbage.
+  `buildBadgeMarkdown` produces the `[![alt](path)](shareUrl)` line.
+- `src/components/BadgeDialog.tsx` — preview, style toggle, download
+  via `Blob` + `URL.createObjectURL`, copy SVG / copy Markdown.
+  Inline-rendered preview is safe because the SVG is built from
+  fully escaped inputs and contains no `<script>`.
+- `src/components/ReviewDashboard.tsx` — Badge pill (mint accent)
+  next to Compare / Share / Save as PDF, mounts the dialog.
+
+Tests: 14 new cases in `tests/lib/badge/svgBadge.test.ts` —
+`escapeXml` covers all five XML metacharacters, `colorForScore`
+returns the right accent per tier, every renderer round-trip,
+snapshot-style assertions for the aurora style, the aria-label
+contract, score clamping at both ends, no parseable `<script>` /
+`<img onerror=` survives malicious input, escaped form is present,
+and the Markdown builder. **Total suite: 167 tests across 20
+files.**
+
+### 2.8 · UI polish round (ten focused improvements)
+
+A dedicated UI-polish phase — one PR-shaped slice per item, all tested
+where there is meaningful logic, all hidden on print where they would
+add ink-only chrome.
+
+#### 2.8.1 · Toast notifications ✅ shipped
+A research-driven toast system (Sonner / Radix Toast / ARIA APG /
+Adrian Roselli + WCAG 2.1 AA). Lives in
+`src/lib/ui/toastStore.ts` (pure pub/sub, no React) and
+`src/components/ToastHost.tsx` (single live region).
+
+Honours the toast-UX rules backed by the research:
+
+- **Use sparingly** — `CopyButton` and `ShareButton` keep the
+  inline icon-flip as the primary success affordance and only emit
+  a toast on the failure path. Toasts are reserved for actions
+  whose outcome isn't visually evident: badge download saved,
+  GitHub PAT saved/removed, audit cache cleared, history cleared.
+- **Per-tone semantics**: success / info / loading map to
+  `role="status"` + `aria-live="polite"`; warn / error map to
+  `role="alert"` + `aria-live="assertive"`.
+- **TTL defaults**: 4 s success/info, 5 s warn, 6 s error,
+  ∞ loading. Override per call. Loading toasts can be promoted
+  into success/error via `updateToast`.
+- **WCAG 2.2.1 timing**: pause-on-hover, pause-on-focus-within,
+  pause-on-tab-hidden — all preserve millisecond precision so
+  resuming continues from the remaining time, not from zero.
+- **Esc dismisses all** — but only when no `[role="dialog"]
+  [aria-modal="true"]` is open, so dialog Esc still wins.
+- **Stack cap** at `MAX_VISIBLE = 4`. Older toasts queue silently.
+- **`prefers-reduced-motion`** is respected via `motion-safe:`.
+- **Icon + colour** for every tone (never colour alone).
+
+Dialogs that emit useful toasts:
+- `BadgeDialog` → "Badge saved" with the filename on download
+  success; an error toast when the Blob/anchor flow throws.
+- `SettingsDialog` → "GitHub token saved", "GitHub token removed",
+  "Audit cache cleared (~X KB freed)".
+- `HistoryDialog` → "Audit history cleared (X entries removed)".
+- `CopyButton` / `ShareButton` → warn/error toasts only on
+  clipboard failure.
+
+Tests: 12 cases in `tests/lib/ui/toastStore.test.ts` covering
+push + monotonic ids, per-tone TTL defaults, auto-dismiss timing
+with fake timers, loading-tone persistence, pause/resume
+preserves remaining time + idempotency, dismiss / dismissAll
+clear pending timers, `updateToast` resets timer + ignores
+unknown ids, `MAX_VISIBLE` constant. **Total suite: 179 tests
+across 21 files.**
+
+Sources informing the design:
+- Radix Primitives Toast docs (sensitivity model, foreground vs.
+  background)
+- Sonner (TTL defaults, pause-on-hover, stack of 3-4)
+- Adrian Roselli, "Defining 'Toast' Messages" (timing-adjustable
+  WCAG criterion, role semantics)
+- Scott O'Hara, "A toast to a11y toasts" (no focus trap, polite
+  vs assertive)
+- WCAG 2.1 success criterion 2.2.1 timing-adjustable
+
+#### 2.8.2 · Skeleton loaders for the dashboard ✅ shipped
+Replaces the old vertical step-list during audit with a
+**content-shaped** skeleton that mirrors every dashboard section so
+the layout stays still the moment data arrives — overview header,
+twelve-cell heatmap, score ring, story grid, insights grid, score
+breakdown, findings list, recommendations.
+
+Architecture:
+
+- `src/components/Skeleton.tsx` — generic primitive.
+  - Renders a `<div>` (or `<span>` when `inline`).
+  - `aria-hidden="true"` by default so screen readers don't read
+    placeholder gibberish — the surrounding live region in
+    `LoadingAudit` carries the textual loading announcement.
+  - Optional `label` prop flips the element to `role="img"` with
+    `aria-label`, useful for solo placeholders.
+- `src/components/DashboardSkeleton.tsx` — composite that mirrors
+  the actual `ReviewDashboard` layout 1:1. Hard-coded structure is
+  intentional: zero coupling to data, deterministic shape, no
+  surprises after load.
+- `src/components/LoadingAudit.tsx` — drops the step-list, mounts
+  the skeleton, and shows the current pipeline step as a single
+  status pill at the top (the only textual progress info — never
+  doubled-up with the skeleton).
+
+Accessibility (WCAG-conscious):
+
+- Wrapper section is `role="status"` `aria-live="polite"` with a
+  full sentence in `aria-label` ("Loading audit for owner/repo —
+  Mapping file tree."). Plus `aria-busy="true"` for the screen
+  readers that honour it (JAWS).
+- A `sr-only` paragraph mirrors the announcement so software that
+  ignores `aria-label` on a section still picks it up.
+- `.skeleton-shimmer` in `globals.css` defines the slide animation
+  with a `@media (prefers-reduced-motion: reduce)` block that
+  switches to a static fill — required by WCAG 2.3.3.
+- Light theme override re-tints the shimmer so the placeholder is
+  legible on both backgrounds.
+- `@media print` hides every shimmer block — they have no place on
+  paper.
+
+Tests: 4 new cases in `tests/components/Skeleton.test.tsx` —
+default `<div>` + shimmer class, inline mode renders `<span>`,
+`aria-hidden` by default, labeled mode flips to `role="img"` with
+`aria-label` and drops the `aria-hidden`. **Total suite: 183 tests
+across 22 files.**
+
+Sources informing the design:
+- LogRocket "Skeleton loading screen design"
+- GitLab Pajamas Design System — Skeleton loader
+- Adrian Roselli, "More Accessible Skeletons"
+- Sara Soueidan, "Accessible notifications with ARIA Live Regions"
+- Microsoft Fluent 2 — React Skeleton usage
+- WCAG 2.1 success criterion 2.3.3 animation from interactions
+
+#### 2.8.3 · Sticky score header on scroll ✅ shipped
+Once the user scrolls past the Score section, a slim 48 px bar
+slides in from the top showing **`owner/repo · 81/100 · Strong`**
+plus the most-needed actions (Compare, Share, Badge, Save as PDF,
+Copy verdict). Disappears the moment the Score section is back in
+view, so the screen stays free during reading.
+
+Implementation:
+
+- `src/components/StickyScoreBar.tsx` uses an
+  `IntersectionObserver` on the `#score` section (rather than a
+  scroll listener) — the IO callback runs once per crossing while
+  scroll events fire on every paint and force layout reads.
+  `rootMargin: "-46px 0px 0px 0px"` accounts for the existing
+  `<SectionNav>` height. The component bails out gracefully when
+  IntersectionObserver is undefined (SSR / very old browsers).
+- The bar is `position: fixed top: 0` so it overlays the page when
+  visible and disappears from layout when not. It exposes a CSS
+  custom property `--sticky-offset` which is `48px` while the bar
+  is shown and `0px` otherwise — the existing `<SectionNav>` reads
+  that variable through its inline `style.top`, transitions to
+  `top: 48px`, and stacks naturally.
+- Slide-in / slide-out is `translate-y-full ↔ 0` with a 200 ms
+  ease and a `motion-reduce:transition-none` escape hatch.
+- `role="region" aria-label="Audit summary"`, `aria-hidden="true"`
+  while the bar is hidden, action buttons get `tabIndex={-1}` while
+  hidden so keyboard users don't tab into invisible chrome.
+- WCAG 2.4.11 (Focus Not Obscured) handled at the `<html>` level
+  via `scroll-padding-top: calc(56px + var(--sticky-offset))` so
+  programmatic anchor scrolling never parks focus under the bars.
+- `print:hidden` keeps the bar out of PDF exports.
+
+Tests: 2 new cases in `tests/components/StickyScoreBar.test.tsx`
+— the exported `STICKY_OFFSET_VAR` and `BAR_HEIGHT_PX` constants
+(used by the CSS scroll-padding rule and SectionNav offset), plus
+an SSR smoke render that asserts the role / label / hidden-state
+attributes are correct on initial paint when IntersectionObserver
+is absent. **Total suite: 185 tests across 23 files.**
+
+Sources informing the design:
+- Chrome for Developers, "An event for CSS position:sticky"
+- TPGi/Vispero, "Prevent focused elements from being obscured by
+  sticky headers" (WCAG 2.4.11)
+- ParallelHQ, "What is a Sticky Header? UX Best Practices &
+  2026 Design Guide" (height, persistence, double-up)
+- Ryan Mulligan, "Sticky Page Header Shadow on Scroll"
+  (IntersectionObserver pattern)
+
+#### 2.8.4 · Mobile FAB cluster ✅ shipped
+On phones (`< sm`), a Material-3 Speed-Dial sits in the bottom-
+right thumb zone. Tapping the main FAB expands a stack of pill-
+shaped, **labeled** mini-buttons above it — Compare, Share, Badge,
+Save as PDF on the audit dashboard, plus Exit on the compare view.
+Tap again, click outside, or hit Esc to close. The desktop UI
+keeps the existing action cluster in the StickyScoreBar; the FAB
+is `sm:hidden` to avoid duplication.
+
+Research-driven decisions (Material 3 FAB guidelines, Mobbin
+glossary, Apple HIG, Danny Payne on FAB a11y, Elaris on thumb
+zones, WCAG 4.1.2 / 2.4.7):
+
+- **One FAB per screen.** Material's "no multi-FAB" rule is
+  honoured via the Speed Dial pattern — a single 56 × 56 FAB
+  expands into a menu rather than scattering buttons.
+- **Bottom-right placement** matches the right-handed thumb zone
+  (statistical majority on mobile UX research). Mini items open
+  upward so labels stay above the thumb.
+- **Touch targets**: main FAB 56 px (Material), mini items 44 px
+  pills with visible label text — icon-only is always paired with
+  a name to satisfy WCAG 4.1.2 and avoid the icon-confusion trap.
+- **Speed Dial ARIA**: main button is `aria-haspopup="menu"`,
+  `aria-expanded`, `aria-controls`. Menu container is `role="menu"`
+  with `aria-hidden` flipping with state. Mini items are
+  `role="menuitem"`. `tabIndex={-1}` while collapsed so keyboard
+  users don't tab into invisible chrome (Danny Payne's caveat for
+  absolutely-positioned FABs).
+- **Esc + outside-click** close the menu. Esc restores focus to the
+  main FAB so the user can re-open with Space/Enter without
+  re-tabbing.
+- `motion-reduce:transition-none` honours `prefers-reduced-motion`.
+- `print:hidden` keeps the FAB out of PDFs.
+
+DRY refactor:
+
+- `src/lib/share/shareAction.ts` extracts the share/clipboard flow
+  from `ShareButton` into a typed, pure helper (`performShare`)
+  returning a discriminated `ShareOutcome`. The button uses it,
+  the FAB uses it, the CompareDashboard FAB uses it. The "user
+  cancelled the share sheet" case is now a first-class
+  `kind: "cancelled"` return so callers don't surface a misleading
+  "couldn't share" toast.
+- `ShareButton` slimmed down to ~15 lines of click handler.
+- `StickyScoreBar` action cluster wrapped in `hidden sm:flex` so
+  on mobile the FAB owns the action surface and the score bar
+  stays at-a-glance.
+
+Tests: 13 new cases.
+
+- `tests/lib/share/shareAction.test.ts` (6) — share-then-shared,
+  AbortError → cancelled, share-rejected → clipboard fallback,
+  no-share → clipboard, clipboard-rejected → error, neither API →
+  unavailable.
+- `tests/components/SpeedDialFAB.test.tsx` (7) — main FAB has
+  `aria-haspopup` + `aria-expanded`, menu starts `aria-hidden`,
+  mini items each have `role="menuitem"` + `tabindex="-1"`, the
+  custom `ariaLabel` propagates, `hidden=true` and empty actions
+  short-circuit the render to nothing, the cluster carries
+  `sm:hidden` and `print:hidden`.
+
+**Total suite: 198 tests across 25 files.**
+
+Sources informing the design:
+- https://m3.material.io/components/floating-action-button/guidelines
+- https://mobbin.com/glossary/floating-action-button
+- https://danny-payne.medium.com/accessibility-options-for-floating-action-buttons-99bdf8146988
+- https://elaris.software/blog/mobile-ux-thumb-zones-2025/
+
+#### 2.8.5 · Empty-state celebration
+When a repo audits with **zero findings** (rare but real — see
+facebook/react), the Findings section flips to a celebratory
+"All clear" panel with a star burst, the score line, and a hint to
+Compare against another repo.
+
+#### 2.8.6 · Smooth route transitions
+Add tasteful CSS transitions (`opacity` + tiny `translateY`) when
+the App state moves between idle → loading → ready / compared and
+back. Single `data-state` attribute on the root container, no
+animation libraries required.
+
+#### 2.8.7 · Universal focus-visible ring
+Replace ad-hoc focus styles with a single
+`:focus-visible` ring tuned per theme (aurora-violet on dark,
+indigo-600 on light). Audit every interactive element so keyboard
+users have an unambiguous target.
+
+#### 2.8.8 · Lightweight tooltip primitive
+A small `Tooltip` helper (CSS-only, no library) used by
+`CopyButton`, `PrintButton`, `ThemeToggle`, the FAB cluster, and the
+heatmap legend. Positioned via `aria-describedby` for assistive tech.
+
+#### 2.8.9 · Density toggle (comfortable / compact)
+A new "Density" choice in the Settings dialog drops vertical paddings
+and font sizes by ~15 % across glass cards. Useful for power users
+running 1080p screens. Persisted in `localStorage`.
+
+#### 2.8.10 · Mobile bottom-sheet dialogs
+The existing dialogs (Settings, History, Compare, Badge, Shortcuts,
+Command palette) become true **bottom-sheets** on phones — anchored
+to the bottom edge, rounded only on top, swipe-friendly height,
+better one-handed reach. Auto-resolves to centred modal on `sm:`+.
 
 ---
 

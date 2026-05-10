@@ -1,5 +1,12 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { pushToast } from "../lib/ui/toastStore";
+
+// Inline icon-flip stays the primary success affordance for copies —
+// every research-backed toast guideline (Sonner, Radix, ARIA APG)
+// recommends *not* emitting a toast when the affordance already shows
+// inline confirmation. We only escalate to a toast when something
+// fails, so the user actually learns the outcome.
 
 interface CopyButtonProps {
   value: string;
@@ -28,15 +35,25 @@ export function CopyButton({
   const handleCopy = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      pushToast({
+        tone: "warn",
+        message: "Clipboard unavailable",
+        detail:
+          "Try long-pressing or right-clicking to copy manually — your browser blocks the modern API in this context.",
+      });
+      return;
+    }
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Permissions or non-secure context — silent fallback. We don't
-      // surface an error toast here because the affected user is going
-      // to long-press / right-click to copy anyway.
+      pushToast({
+        tone: "error",
+        message: "Could not copy to clipboard",
+        detail: "Browser blocked the request.",
+      });
     }
   };
 

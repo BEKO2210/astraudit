@@ -1,4 +1,13 @@
-import { ArrowLeftRight, Award } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Award,
+  Printer as PrinterIcon,
+  Share2 as ShareIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { performShare } from "../lib/share/shareAction";
+import { pushToast } from "../lib/ui/toastStore";
+import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
 import { ScoreRing } from "./ScoreRing";
@@ -19,6 +28,8 @@ import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 import { ShareButton } from "./ShareButton";
+import { BadgeDialog } from "./BadgeDialog";
+import { StickyScoreBar } from "./StickyScoreBar";
 
 interface ReviewDashboardProps {
   result: AuditResult;
@@ -42,9 +53,64 @@ const SECTIONS: SectionItem[] = [
 
 export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
+  const [badgeOpen, setBadgeOpen] = useState(false);
+
+  // Mobile speed-dial cluster (Phase 2.8.4). The desktop UI surfaces
+  // these via the StickyScoreBar; on phones the action surface lives
+  // in the bottom-right thumb zone.
+  const fabActions: SpeedDialAction[] = [
+    {
+      id: "share",
+      label: "Share",
+      icon: ShareIcon,
+      onClick: async () => {
+        const outcome = await performShare({
+          owner: result.bundle.metadata.owner.login,
+          repo: result.bundle.metadata.name,
+        });
+        if (outcome.kind === "copied") {
+          pushToast({ tone: "success", message: "Link copied to clipboard" });
+        } else if (outcome.kind === "error") {
+          pushToast({
+            tone: "warn",
+            message: "Could not copy the share link",
+            detail: "The full URL is in your address bar.",
+          });
+        }
+      },
+    },
+    {
+      id: "badge",
+      label: "Badge",
+      icon: Award,
+      onClick: () => setBadgeOpen(true),
+      toneClass: "bg-aurora-mint/15 hover:bg-aurora-mint/25 border-aurora-mint/40 text-aurora-mint",
+    },
+    {
+      id: "print",
+      label: "Save as PDF",
+      icon: PrinterIcon,
+      onClick: () => window.print(),
+    },
+  ];
+
+  if (onOpenCompare) {
+    fabActions.unshift({
+      id: "compare",
+      label: "Compare",
+      icon: ArrowLeftRight,
+      onClick: onOpenCompare,
+      toneClass: "bg-aurora-cyan/15 hover:bg-aurora-cyan/25 border-aurora-cyan/40 text-aurora-cyan",
+    });
+  }
 
   return (
     <div className="mt-8 space-y-6">
+      <StickyScoreBar
+        result={result}
+        onOpenCompare={onOpenCompare}
+        onOpenBadge={() => setBadgeOpen(true)}
+      />
       <SectionNav sections={SECTIONS} />
 
       <div className="print-only mb-2 border-b border-slate-200 pb-3 text-[11px] uppercase tracking-[0.18em] text-slate-500">
@@ -88,6 +154,14 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
                     repo: result.bundle.metadata.name,
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setBadgeOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-3 py-1 text-xs font-medium text-aurora-mint transition hover:bg-aurora-mint/20 print:hidden"
+                >
+                  <Award className="h-3.5 w-3.5" />
+                  Badge
+                </button>
                 <CopyButton
                   value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
                   label="Copy verdict"
@@ -164,6 +238,18 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
       <section id="next">
         <RecommendationsPanel recommendations={result.recommendations} />
       </section>
+
+      <BadgeDialog
+        open={badgeOpen}
+        onClose={() => setBadgeOpen(false)}
+        owner={result.bundle.metadata.owner.login}
+        repo={result.bundle.metadata.name}
+        score={result.totalScore}
+        max={result.maxScore}
+        grade={result.grade}
+      />
+
+      <SpeedDialFAB actions={fabActions} hidden={badgeOpen} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   type HistoryEntry,
 } from "../lib/history/historyStore";
 import { formatRelative } from "../lib/utils/formatDate";
+import { pushToast } from "../lib/ui/toastStore";
 
 interface HistoryDialogProps {
   open: boolean;
@@ -64,8 +65,16 @@ export function HistoryDialog({
   };
 
   const handleClearAll = () => {
+    const total = recent.length + favorites.length;
     clearAll();
     setReloadTick((t) => t + 1);
+    if (total > 0) {
+      pushToast({
+        tone: "success",
+        message: "Audit history cleared",
+        detail: `${total} entr${total === 1 ? "y" : "ies"} removed from this browser.`,
+      });
+    }
   };
 
   const items = tab === "favorites" ? favorites : recent;

@@ -1,7 +1,12 @@
 import { Check, Share2 } from "lucide-react";
 import { useState } from "react";
 import type { RepoCoordinates } from "../types/github";
-import { formatShareUrl } from "../lib/share/urlState";
+import { performShare } from "../lib/share/shareAction";
+import { pushToast } from "../lib/ui/toastStore";
+
+// Inline "Link copied" pill is the primary success affordance, same
+// as CopyButton. Toasts here are only for the async-failure path so
+// users actually learn what went wrong.
 
 interface ShareButtonProps {
   coords: RepoCoordinates;
@@ -13,37 +18,28 @@ interface ShareButtonProps {
  *
  * Uses the native Web Share API when available (mobile + some desktop
  * browsers), otherwise falls back to copying the URL with a 1.8 s
- * "Copied" confirmation. Hidden when printing.
+ * "Copied" confirmation. Hidden when printing. The share / copy
+ * orchestration lives in `lib/share/shareAction.ts` so the SpeedDial
+ * FAB can re-use the exact same flow.
  */
 export function ShareButton({ coords, className = "" }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleClick = async () => {
-    const url = formatShareUrl(coords);
-    const title = `Astraudit · ${coords.owner}/${coords.repo}`;
-
-    type ShareableNavigator = Navigator & {
-      share?: (data: { title?: string; url?: string }) => Promise<void>;
-    };
-    const nav = navigator as ShareableNavigator;
-    if (typeof nav.share === "function") {
-      try {
-        await nav.share({ title, url });
-        return;
-      } catch {
-        // User cancelled or share failed — fall through to clipboard copy.
-      }
+    const outcome = await performShare(coords);
+    if (outcome.kind === "copied") {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } else if (outcome.kind === "error") {
+      pushToast({
+        tone: "warn",
+        message: "Could not copy the share link",
+        detail:
+          "Browser blocked clipboard access. The full URL is in your address bar.",
+      });
     }
-
-    if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1800);
-      } catch {
-        // Silent: in a non-secure context the user will see the URL in the bar anyway.
-      }
-    }
+    // "shared", "cancelled", "unavailable" stay silent — the OS share
+    // sheet either succeeded or the user dismissed it.
   };
 
   return (

@@ -22,6 +22,7 @@ import {
 } from "../lib/auth/tokenStore";
 import { probeRateLimit, type RateLimitProbe } from "../lib/github/githubClient";
 import { clearAll as clearAuditCache, getStats as getCacheStats, type CacheStats } from "../lib/cache/auditCache";
+import { pushToast } from "../lib/ui/toastStore";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -83,6 +84,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setMeta(loadTokenMeta());
     setTokenInput("");
     await runProbe();
+    pushToast({
+      tone: "success",
+      message: "GitHub token saved",
+      detail:
+        "Stored only in this browser. Astraudit can now make 5,000 requests / hour.",
+    });
   };
 
   const handleClear = () => {
@@ -90,11 +97,24 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setMeta(null);
     setProbe(null);
     void runProbe();
+    pushToast({
+      tone: "info",
+      message: "GitHub token removed",
+      detail: "Back to the public 60 req/h limit.",
+    });
   };
 
   const handleClearCache = () => {
+    const before = getCacheStats();
     clearAuditCache();
     setCacheStats(getCacheStats());
+    if (before.count > 0) {
+      pushToast({
+        tone: "success",
+        message: "Audit cache cleared",
+        detail: `${before.count} cached audit${before.count === 1 ? "" : "s"} dropped (~${before.sizeKB} KB freed).`,
+      });
+    }
   };
 
   if (!open) return null;
