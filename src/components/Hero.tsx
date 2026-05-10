@@ -185,7 +185,7 @@ export function Hero({
           href="https://github.com/BEKO2210/astraudit/blob/main/docs/mcp.md"
           target="_blank"
           rel="noreferrer"
-          className="pill transition hover:border-aurora-violet/40 hover:bg-aurora-violet/10 hover:text-aurora-violet"
+          className="pill !py-1 transition hover:border-aurora-violet/40 hover:bg-aurora-violet/10 hover:text-aurora-violet"
           title="Astraudit ships an MCP server so AI clients (Claude Desktop, Cursor, Zed, VS Code) can run audits as a native tool. Click for the walkthrough."
         >
           <Bot className="h-3.5 w-3.5 text-aurora-violet" />

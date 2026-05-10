@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#05070d" />
 
+    <!-- Phase 6.32 — Content-Security-Policy. Strict by default. The two
+         inline <script> blocks below (JSON-LD structured data + the
+         pre-paint theme loader) are allow-listed by SHA-256 hash so any
+         byte-level edit forces a CSP update. Tests in
+         tests/lib/security/csp.test.ts verify the hashes match the file.
+         `frame-ancestors` is intentionally omitted — meta-equiv CSP can't
+         carry it; Phase 6.51 will add it via the GitHub Pages headers shim. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'sha256-Gc+mTGgho1vGGXXiG+liOgOc92B3eLB+oxwL/R+cxlo=' 'sha256-Fg2jbbH4exoaHrBmnRos212EgSHE8PcsEQqAgwCrObc='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.github.com https://raw.githubusercontent.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
+
     <!-- Phase 5.12 — SEO + social-card meta block.
 
          Per-repo cards would require a backend (crawlers don't run
@@ -80,9 +92,10 @@
 
     <link rel="preconnect" href="https://api.github.com" />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Phase 6.33 — fonts are self-hosted via @fontsource (Inter +
+         JetBrains Mono, latin/latin-ext subsets). No CDN fetch, no
+         preconnect to fonts.googleapis.com / fonts.gstatic.com. -->
+
     <script>
       // Apply the saved theme before first paint so light-mode users
       // never see a flash of dark content (and vice versa).

@@ -53,6 +53,8 @@
     "prepack": "tsx scripts/build-bin.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "lucide-react": "^0.468.0",
     "markdown-it": "^14.1.1",
