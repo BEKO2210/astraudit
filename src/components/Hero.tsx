@@ -20,11 +20,11 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
   return (
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-violet/40 to-aurora-mint/30 border border-white/10">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-violet/40 to-aurora-mint/30 border border-white/10">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold tracking-wider text-white/90">
               Astraudit
             </p>
@@ -36,7 +36,7 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
         <button
           type="button"
           onClick={onOpenSettings}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
             hasToken
               ? "border-aurora-mint/40 bg-aurora-mint/10 text-aurora-mint hover:bg-aurora-mint/20"
               : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"
@@ -45,14 +45,16 @@ export function Hero({ onOpenSettings, authTick }: HeroProps) {
         >
           {hasToken ? (
             <>
-              <Zap className="h-3 w-3" />
+              <Zap className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline">Auth · 5k/h</span>
               <span className="sm:hidden">Auth</span>
-              {prefix ? <span className="font-mono">{prefix}…</span> : null}
+              {prefix ? (
+                <span className="hidden font-mono md:inline">{prefix}…</span>
+              ) : null}
             </>
           ) : (
             <>
-              <Settings className="h-3 w-3" />
+              <Settings className="h-3 w-3 shrink-0" />
               <span className="hidden sm:inline">Settings · public 60/h</span>
               <span className="sm:hidden">Settings</span>
             </>

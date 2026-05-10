@@ -19,14 +19,14 @@ export function RepoStory({ story }: RepoStoryProps) {
         {story.map((section, idx) => (
           <div
             key={section.heading}
-            className={`rounded-xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-white/10 ${
+            className={`overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-white/10 ${
               idx === 0 ? "md:col-span-2 xl:col-span-3" : ""
             }`}
           >
             <h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               {section.heading}
             </h4>
-            <p className="mt-2 text-sm leading-relaxed text-slate-200/90">
+            <p className="mt-2 break-words text-sm leading-relaxed text-slate-200/90">
               {section.body}
             </p>
           </div>

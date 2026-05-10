@@ -35,12 +35,12 @@ export function RecommendationsPanel({
         {recommendations.map((r, idx) => (
           <li
             key={r.id}
-            className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3"
+            className="flex items-start gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3"
           >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-xs font-semibold text-white">
               {idx + 1}
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h4 className="text-sm font-semibold text-white">
                   {r.title}

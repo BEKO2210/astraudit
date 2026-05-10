@@ -173,7 +173,7 @@ export default function App() {
   const showLoading = state.kind === "fetching" || state.kind === "auditing";
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
+    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col overflow-x-hidden px-4 sm:px-6 lg:px-8">
       <Hero
         onOpenSettings={() => setSettingsOpen(true)}
         authTick={authTick}

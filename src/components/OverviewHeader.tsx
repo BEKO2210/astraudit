@@ -21,9 +21,9 @@ interface OverviewHeaderProps {
 
 export function OverviewHeader({ metadata }: OverviewHeaderProps) {
   return (
-    <section className="glass relative overflow-hidden p-6">
+    <section className="glass relative overflow-hidden p-5 sm:p-6">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-1 items-start gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
           <img
             src={metadata.owner.avatarUrl}
             alt=""
@@ -32,9 +32,9 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
             loading="lazy"
             className="h-12 w-12 rounded-xl border border-white/10 bg-ink-800 object-cover"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-xl font-semibold text-white">
+              <h2 className="min-w-0 break-words text-lg font-semibold text-white sm:text-xl">
                 {metadata.fullName}
               </h2>
               <a
@@ -139,10 +139,10 @@ interface StatProps {
 
 function Stat({ icon: Icon, label, value }: StatProps) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+    <div className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
       </div>
       <div className="mt-1 truncate text-sm font-medium text-white">{value}</div>
     </div>

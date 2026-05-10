@@ -270,17 +270,17 @@ interface CardProps {
 
 function Card({ icon: Icon, label, value, sub, accent, pillClass, customValue }: CardProps) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition hover:border-white/10 hover:bg-white/[0.04]">
+    <div className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3.5 transition hover:border-white/10 hover:bg-white/[0.04]">
       <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
       </div>
       {customValue ? (
-        <div className="mt-2">{customValue}</div>
+        <div className="mt-2 break-words">{customValue}</div>
       ) : (
         <>
           <div
-            className={`mt-1.5 text-base font-semibold ${accent ?? "text-white"}`}
+            className={`mt-1.5 break-words text-base font-semibold ${accent ?? "text-white"}`}
           >
             {value}
           </div>
@@ -289,7 +289,7 @@ function Card({ icon: Icon, label, value, sub, accent, pillClass, customValue }:
               {sub}
             </span>
           ) : sub ? (
-            <div className="mt-1 text-[11px] leading-relaxed text-slate-400">
+            <div className="mt-1 break-words text-[11px] leading-relaxed text-slate-400">
               {sub}
             </div>
           ) : null}

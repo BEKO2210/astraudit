@@ -43,11 +43,11 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
             {bundle.recentCommits.slice(0, 6).map((c) => (
               <li
                 key={c.sha}
-                className="flex items-start gap-2 rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-xs text-slate-300"
+                className="flex items-start gap-2 overflow-hidden rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-xs text-slate-300"
               >
-                <GitCommit className="mt-0.5 h-3.5 w-3.5 text-slate-500" />
-                <div className="min-w-0">
-                  <p className="truncate text-slate-200">{c.message}</p>
+                <GitCommit className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 break-words text-slate-200">{c.message}</p>
                   <p className="text-[11px] text-slate-500">
                     {c.authorName ?? "Unknown"} · {formatRelative(c.authorDate)}
                   </p>
@@ -65,13 +65,13 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
             {bundle.releases.slice(0, 6).map((r) => (
               <li
                 key={r.tagName + (r.publishedAt ?? "")}
-                className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-xs"
+                className="flex items-center gap-2 overflow-hidden rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-xs"
               >
-                <Tag className="h-3.5 w-3.5 text-aurora-violet" />
-                <span className="truncate text-slate-200">
+                <Tag className="h-3.5 w-3.5 shrink-0 text-aurora-violet" />
+                <span className="min-w-0 flex-1 truncate text-slate-200">
                   {r.name ?? r.tagName}
                 </span>
-                <span className="ml-auto text-[11px] text-slate-500">
+                <span className="shrink-0 text-[11px] text-slate-500">
                   {formatRelative(r.publishedAt)}
                 </span>
               </li>

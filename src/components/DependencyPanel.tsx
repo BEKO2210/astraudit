@@ -125,13 +125,13 @@ interface FieldProps {
 function Field({ icon: Icon, label, value }: FieldProps) {
   const isMissing = value === "Not detected" || value === "Missing";
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+    <div className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-        <Icon className="h-3.5 w-3.5" />
-        {label}
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
       </div>
       <div
-        className={`mt-1 text-sm ${isMissing ? "text-slate-500" : "text-white"}`}
+        className={`mt-1 break-words text-sm ${isMissing ? "text-slate-500" : "text-white"}`}
       >
         {value}
       </div>
