@@ -16,6 +16,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
 import { Impressum } from "./components/legal/Impressum";
 import { Datenschutzerklaerung } from "./components/legal/Datenschutzerklaerung";
+import { RuleBook } from "./components/legal/RuleBook";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -44,12 +45,23 @@ import type { RepoBundle, RepoCoordinates } from "./types/github";
 
 type CompareSide = "left" | "right";
 
-/** Map a hash fragment to one of the legal-page slugs (or null). */
-function routeFromHash(hash: string): "impressum" | "datenschutz" | null {
+/** Map a hash fragment to one of the doc-page slugs (or null). */
+function routeFromHash(
+  hash: string,
+): "impressum" | "datenschutz" | "rules" | null {
   const normalized = hash.replace(/^#\/?/, "").toLowerCase();
   if (normalized === "impressum") return "impressum";
   if (normalized === "datenschutz" || normalized === "datenschutzerklaerung") {
     return "datenschutz";
+  }
+  // Phase 4.5 — public rule book at `#/rules` (also accept `#/rule-book`
+  // and `#/rulebook` so anyone guessing the URL still lands).
+  if (
+    normalized === "rules" ||
+    normalized === "rulebook" ||
+    normalized === "rule-book"
+  ) {
+    return "rules";
   }
   return null;
 }
@@ -98,7 +110,7 @@ export default function App() {
   // hash-based router rather than touching the existing audit/compare
   // hash logic — the legal hashes are independent and never overlap.
   const [legalRoute, setLegalRoute] = useState<
-    "impressum" | "datenschutz" | null
+    "impressum" | "datenschutz" | "rules" | null
   >(() => routeFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
@@ -587,6 +599,7 @@ export default function App() {
   // visually — clicking "Zurück zur App" returns to it intact.
   if (legalRoute === "impressum") return <Impressum />;
   if (legalRoute === "datenschutz") return <Datenschutzerklaerung />;
+  if (legalRoute === "rules") return <RuleBook />;
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">

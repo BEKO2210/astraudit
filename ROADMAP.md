@@ -2001,22 +2001,395 @@ honestly on first run):
 - Visual regression baselines for the home-light theme regenerated
   to reflect the contrast bumps.
 
-### 4.3 · Internationalization (en + de)
-Externalize all UI copy into a string table; ship `de` first since the
-maintainer is German-speaking.
+### 4.3 · Audit graph improvements ✅ shipped
+**Why (rescope):** Originally planned as i18n (en + de). The
+maintainer rescoped: English is already the international default
+for technical documentation, and the dependency graph component —
+the centrepiece of the audit dashboard — needed real interactivity.
+A static node-and-edge picture without filters or focus is
+beautiful but only useful at first glance.
 
-### 4.4 · Bundle splitting
-Lazy-load React Flow only after the dashboard first paints. The graph
-is below the fold on most viewports — no need to ship it in the
-critical bundle.
+**What changed in the graph:**
+- **Status filter chips** — one chip per status
+  (`Missing`/`Partial`/`Strong`/`Info`/`Not detected`) with live
+  counts from the current audit. Clicking a chip hides nodes of
+  every other status (and any edges touching them), so users can
+  zoom in on the failures without panning around. The root `repo`
+  node is always visible — the explicit guard keeps the graph from
+  becoming a disconnected mess.
+- **Per-category icons on every node** — each node id maps to a
+  domain-meaningful Lucide glyph (License → ShieldCheck, CI →
+  GitBranch, Releases → Rocket, Maintenance → Activity, etc.).
+  Replaces the previous lone status dot — much faster to scan.
+- **Edges colour-coded by target status** — edges leading to a
+  `missing` node turn red, pulse via React Flow's `animated: true`,
+  and ship a slightly thicker stroke. Edges to `strong` nodes go
+  mint, `partial` violet, `info` cyan. Eyes are pulled to failures
+  immediately.
+- **"Focus failing" button** — uses `useReactFlow().fitView({nodes})`
+  to imperatively zoom + pan to the missing/partial subset, with a
+  600 ms tween. Disables itself (with a tooltip explanation) when
+  every node is healthy. Pre-selects the first failing node so the
+  side panel updates in lock-step.
+- **Auto-refit on filter change** — when the filter set is reduced,
+  the viewport refits to the visible portion so the user always
+  sees what they asked for.
+- **`<ReactFlowProvider>` wrapping** — required for the `fitView`
+  imperative call from the inner component. Public `<AuditGraph>`
+  API unchanged.
 
-### 4.5 · Public rule book
-A rendered Markdown page that lists **every** detector and exactly what
-triggers it. Helps users trust the findings and contribute new rules.
+**Implementation:**
+- Pure logic extracted to `src/components/auditGraphHelpers.ts`
+  (`countByStatus`, `hiddenNodeIds`, `isEdgeHidden`,
+  `toggleStatusInSet`, `failingNodes`, `STATUS_ORDER`, `STATUS_LABEL`).
+  Lives in its own file so vitest (node env, no DOM) can exercise
+  the logic without touching React Flow.
+- `AuditGraph.tsx` refactored: split into `<AuditGraph>` (provider
+  wrapper) + `<AuditGraphInner>` (consumes the provider context).
+  All filter/icon/edge-styling state lives in the inner component.
+- New `NODE_ICONS` map — falls back to `CircleDot` for any future
+  detector node before its icon is wired.
+- New `STATUS_COLORS[s].edgeStroke` colour added to the existing
+  status palette so the edge styling stays in one table with the
+  node styling.
+- The "Show all" reset button only appears when at least one chip
+  is unticked — keeps the toolbar quiet by default.
 
-### 4.6 · Contribution guide
-A `CONTRIBUTING.md` for adding new detectors, with the same fixture
-test pattern as Phase 1.6.
+**Tests:** new `tests/components/auditGraphHelpers.test.ts` (17 cases):
+- `countByStatus` over empty + sample graph (2 cases).
+- `hiddenNodeIds` covering full-active, single-active, and the
+  always-visible `repo` invariant (3).
+- `isEdgeHidden` for source-hidden / target-hidden / both-visible (3).
+- `toggleStatusInSet` for add / remove / never-empty / immutability (4).
+- `failingNodes` for sample graph / no failures / info+unknown
+  excluded (3).
+- `STATUS_ORDER` + `STATUS_LABEL` shape guards (2).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 45 files / 594 tests green (was 44 / 577).
+- `npm run build` — 629 KB JS (the +5 KB lift comes from the new
+  Lucide icons + helper module), no warnings.
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+
+**Note on accessibility:** filter chips use `role="toolbar"` +
+`aria-pressed="true|false"` per the WAI-ARIA APG toggle-button
+pattern, so screen-reader users get the same on/off feedback as
+sighted users.
+
+### 4.4 · Bundle splitting ✅ shipped
+**Why:** `reactflow` + its CSS together weighed in at ~150 KB
+minified — about a quarter of the home page's first-paint payload —
+even though the audit graph is below the fold on every viewport
+and only mounts after a successful audit. Lazy-loading it cuts the
+initial JS by that quarter without changing a single user-facing
+behaviour.
+
+**Pre-build research (2026-05-10):**
+- Vite Docs · *Dynamic Import*: `React.lazy(() => import("./X"))`
+  is the canonical pattern. Vite's chunk-splitting automatically
+  emits a separate `.js` file *and* parallel-fetches it, so there's
+  no waterfall penalty — the lazy chunk arrives roughly when the
+  user starts scrolling.
+- The CSS import follows the JS into the new chunk *as long as the
+  `import "reactflow/dist/style.css"` lives in the lazy module*.
+  Ours used to live in `main.tsx`, which kept it in the main CSS
+  bundle even though the JS was about to be split. Moving the
+  import into `AuditGraph.tsx` puts JS and CSS into the same lazy
+  chunk.
+  https://vite.dev/guide/features#dynamic-import
+
+**Implementation:**
+- `src/components/AuditGraph.tsx` adds a `default` export and
+  imports `reactflow/dist/style.css` at the top of the file.
+- `src/main.tsx` drops the static CSS import — replaced with a
+  comment pointing the reader at the new home.
+- `src/components/ReviewDashboard.tsx` switches to
+  `const AuditGraph = lazy(() => import("./AuditGraph"))` and
+  wraps the rendered `<AuditGraph>` in `<Suspense fallback={
+  <AuditGraphSkeleton />}>`.
+- New `src/components/AuditGraphSkeleton.tsx` mirrors the live
+  graph's chrome so the layout doesn't reflow when the chunk
+  arrives — same glass card, same toolbar height, the canvas
+  shows six node-shaped skeletons in the rough positions of the
+  real graph. Built on the existing `<Skeleton>` primitive
+  (Phase 2.8.2).
+
+**Build output (May 2026 baseline):**
+- **Before:** `index.js` 629 KB / 204 KB gzipped, single
+  `index.css` 64 KB / 13 KB gzipped.
+- **After:**
+   · `index.js` **481 KB / 157 KB gzipped** (-148 KB / -47 KB,
+     **24 % lighter on first paint**).
+   · `index.css` **58 KB / 11 KB gzipped** (-7 KB).
+   · New lazy chunks: `AuditGraph.js` 151 KB / 50 KB gzipped +
+     `AuditGraph.css` 7 KB / 1.6 KB gzipped (only loaded after
+     the dashboard mounts).
+- Lighthouse FCP **465 ms**, TBT **0 ms**, Speed Index **465 ms**.
+  The Lighthouse score itself stays 0.78 because the LCP element
+  is the maintainer's intentional 5 MB
+  `public/Logo_bg_removed.png` — that's the metric ceiling, not
+  bundle weight.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 45 files / 594 tests still green.
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+- `npx lhci autorun` — every assertion passes (perf 0.78,
+  a11y 1.0, best 0.95, SEO 1.0).
+
+### 4.5 · Public rule book ✅ shipped
+**Why:** "Rule-based, not AI-judged" is one of Astraudit's four
+operating constraints, and a curious user has no way to verify
+that today — the rules live across a dozen detector files. A
+canonical, human-readable rule book turns that promise into a
+checkable artefact: every finding has a documented trigger you can
+look up by ID, and every panel-only detector explains what it
+measures.
+
+**Implementation:**
+- New canonical doc: `docs/RULES.md`. Single source of truth for
+   the rule catalog. Renders cleanly on GitHub *and* inside the
+   app — contributors edit one file, both views update.
+   Sections:
+    1. **Score & grade model** — total-score → letter-grade table,
+       status ribbons (`Strong`/`Partial`/`Missing`/`Info`/`Not
+       detected`) and what each means.
+    2. **Findings catalog** — every finding-emitting rule grouped
+       by category, with rule ID, trigger description, and
+       severity. Documents all 16 entries from `riskEngine.ts`.
+    3. **Panel outputs** — the Phase 3 detectors that don't emit
+       findings (readability, Dependabot, CODEOWNERS, security
+       policy, runtime contract, CHANGELOG cadence, topic rules,
+       registry signals, license tone) each get a paragraph with
+       the input file/format and the surfaced output.
+    4. **Operating constraints + rule proposal flow.**
+- New `src/components/legal/DocPage.tsx` — generic full-screen doc
+   chrome, takes a `backLabel` and a `nav: DocPageNav[]` for
+   cross-links. `LegalPage.tsx` now delegates to it, so the German
+   "Zurück zur App" copy stays on the legal pages while the rule
+   book gets English chrome.
+- New `src/components/legal/RuleBook.tsx` — imports
+   `docs/RULES.md` via Vite's `?raw` attribute, renders with
+   `markdown-it` (already a dep — re-used from the README preview
+   pipeline), `html: false` for the same XSS-defensive baseline.
+   Renders inside the existing `.legal-prose` typography stack.
+- New TypeScript declaration `src/vite-env.d.ts` for the
+   `*.md?raw` import shape.
+- `App.tsx` extends `routeFromHash` to recognise `#/rules`,
+   `#/rulebook`, and `#/rule-book`. The legal-route state widens to
+   `"impressum" | "datenschutz" | "rules" | null`.
+- `Footer.tsx` adds "Rule book" alongside Impressum + Datenschutz.
+
+**Tests:** `tests/components/ruleBook.test.tsx` (9 cases):
+- Locks down every rule ID emitted by `riskEngine.ts` (16 IDs)
+   plus the four Phase 3.9 license-tone IDs — the doc would
+   otherwise drift away from the source over time.
+- Score-grade table + the five status ribbons.
+- Each of the four operating constraints.
+- `<RuleBook />` rendering: chrome (title + back link), cross-links
+   to the legal pages, real `<code>` tags from the catalog (proves
+   markdown-it ran), real `<table>` for the grade matrix, and a
+   negative XSS guard (no `<script>` / `<iframe>` ever in output).
+
+**Bundle impact:**
+- `index.js` 481 → 495 KB / 157 → 162 KB gzipped (+14 KB raw,
+   +5 KB gzipped). The whole rule book ships in the main chunk
+   so the doc is one fewer fetch away. Could be lazy-loaded
+   later, but at ~12 KB raw it's not worth a Suspense round-trip.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 46 files / 603 tests green (was 45 / 594).
+- `npx playwright test` — 4 visual + 3 axe specs still pass.
+- Manual: `#/rules` renders the doc with proper typography, both
+   themes; back-link returns to the app; cross-links to
+   Impressum/Datenschutz work.
+
+### 4.6 · Contribution guide ✅ shipped
+**Why:** A first-time contributor today has to reverse-engineer the
+project's conventions from `git log` and a dozen detector files. A
+proper `CONTRIBUTING.md` turns "where does the new rule go?" from
+a 30-minute archaeology session into a 5-minute checklist, and
+locks in the operating constraints + testing conventions so they
+don't drift over time.
+
+**Implementation:**
+- New `CONTRIBUTING.md` with 13 sections (~430 lines), structured
+  for both quick-reference and deep onboarding:
+   1. The four operating constraints (browser-only / free /
+      public-only / rule-based) — repeated up front because
+      they're the most common reason a feature gets pushed back.
+   2. Code of conduct (Contributor Covenant on the way).
+   3. Quick start (clone → install → dev) plus a script-name
+      cheatsheet.
+   4. Repo layout — annotated directory tree with one-line
+      explanations of every top-level folder.
+   5. Adding a new finding-emitting rule — end-to-end checklist
+      with a worked example ("no Code of Conduct"), the actual
+      `Finding` interface fields (description, evidence string,
+      recommendation, affectedFiles, confidence), and the relation
+      between rule-book IDs (`doc-no-coc`) and runtime
+      `Finding.id` (`f-coc-N`).
+   6. Adding a new panel detector — for Phase 3-style enrichment
+      that doesn't emit findings.
+   7. Writing tests with the fixture builders — uses
+      `makeTree`, `makeImportantFiles`, `makeBundle` from
+      `tests/fixtures/builders.ts` so synthetic repos stay
+      deterministic + offline.
+   8. Running every CI gate locally —
+      `npm run typecheck` / `npm test` / `npm run build` /
+      `npx playwright test` / `npx lhci autorun`, in the order CI
+      runs them.
+   9. Updating the rule book — every emitted ID must survive in
+      `docs/RULES.md`; the rule-book test fails CI otherwise.
+  10. Pull request workflow — branch naming, commit message style,
+      one-concern-per-PR rule, draft-vs-ready toggle.
+  11. Review expectations — six concrete checks reviewers will
+      apply (constraint compliance, determinism, no silent
+      failures, negative-path tests, rule book entry, bundle
+      weight, accessibility parity).
+  12. Reporting security issues — direct email path
+      (`belkis.aslani@gmail.com`) per the Datenschutzerklärung
+      contact.
+  13. Recognition + licence.
+- README gets a new "Documentation" section pointing at both
+  `docs/RULES.md` and `CONTRIBUTING.md` so the discoverability
+  path is explicit.
+
+**Tests:** `tests/components/contributing.test.ts` (6 cases) —
+locks the structural contract so a regression is caught in CI:
+- Four operating constraints are quoted verbatim.
+- Every canonical section heading is present.
+- Every CI command is quoted (so a contributor can copy/paste
+  without re-deriving them).
+- The fixture-builder + rule-book paths are referenced.
+- The worked example uses the actual `Finding` shape — guards
+  against the doc drifting from `src/types/finding.ts`.
+- The security email is present.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 47 files / 609 tests green (was 46 / 603).
+- `npm run build` — no warnings.
+
+---
+
+### Phase 4 wrap
+
+All six Phase 4 items now ship:
+
+- **4.1** Visual regression tests (Playwright + GH Actions)
+- **4.2** Lighthouse + axe CI gates
+- **4.3** Audit graph improvements (rescoped from i18n at the
+  maintainer's request — filters / icons / edge colours / focus-
+  failing button)
+- **4.4** Bundle splitting (lazy-load AuditGraph, 24 % first-paint
+  reduction)
+- **4.5** Public rule book at `#/rules` + `docs/RULES.md`
+- **4.6** Contribution guide (`CONTRIBUTING.md`)
+
+Suite grew across Phase 4 from 39 / 482 (start) to **47 / 609**
+(end), plus 4 visual + 3 axe Playwright specs and a 4-floor
+Lighthouse gate.
+
+---
+
+## Phase 5 — Deep UX & control review
+
+A focused pass over every interactive surface in the app. Each
+sub-phase is a self-contained run (research → audit → fix → tests),
+matching the Phase 2.8 / 3.x pattern. The goal: zero unloved
+buttons, zero rough edges, zero "wait, why doesn't *that* work?"
+moments.
+
+### 5.1 · Scroll & focus reset on route changes
+**Why:** Today, navigating from the home page to `#/impressum`
+preserves the user's scroll position — so a visitor who scrolled
+to the footer to click "Datenschutz" lands halfway down the legal
+page instead of at the top. Same for `#/audit/owner/repo` deep
+links and the future hash routes. Every route transition should
+scroll to top **and** move keyboard focus to the page's first
+heading (announced by screen readers as the new context).
+
+### 5.2 · Interactive control audit
+A line-by-line walk over every `<button>`, `<a>`, `<select>`,
+`<input>`, pill, chip, toggle, and tab in the app. Each control
+gets verified against a checklist: visible focus, keyboard
+activation, correct ARIA, hover / active / disabled states,
+theme parity (dark + light + forced-colors), tooltip when
+non-obvious, hit area ≥ 24×24 (WCAG 2.5.8). Expected output is a
+table of fixes + a tracking doc so future contributions don't
+regress.
+
+### 5.3 · Dialog, popup & overlay hardening
+Every modal in the app — `SettingsDialog`, `HistoryDialog`,
+`CompareDialog`, `ShortcutsDialog`, `BadgeDialog`, the command
+palette, plus the tooltip primitive and the toast host — gets
+re-validated against the WAI-ARIA APG modal pattern: focus trap on
+open, focus restore on close, Esc dismissal, body-scroll lock,
+correct `aria-labelledby` + `aria-describedby`, stacking order
+that doesn't fight with the bottom-sheet variant.
+
+### 5.4 · Activity heatmap overhaul
+The Phase 2.6 heatmap shipped as a minimal grid. Phase 5.4
+revisits it with: hover tooltip showing the exact date + commit
+count (not just a colour), keyboard navigation across cells,
+explicit legend with counts, axis labels (months on top, weekdays
+on left), a higher-contrast palette for the missing-data cells in
+light mode, and mobile-friendly cell sizing that doesn't squash
+six months into a thumbnail.
+
+### 5.5 · Empty, loading & error state pass
+Every major panel — Insights, Topic Checks, Registry, Story,
+Findings, Graph, Compare dashboard — gets a coherent loading
+skeleton (matching the dashboard skeleton from 2.8.2), a dignified
+empty state with an icon + one-line explanation, and an
+actionable error state with a retry CTA where it makes sense.
+Today these vary panel-to-panel; this pass aligns them to a
+single visual + accessibility baseline.
+
+### 5.6 · Error & rate-limit messaging review
+Every error path users can hit: invalid repo input, 404, 403
+(GitHub unauthenticated rate limit), 403 (PAT scope), abort,
+parse failure, registry timeout. Each gets reviewed for:
+clarity (no jargon), actionability (what should the user *do*?),
+recovery affordance (retry / open settings / clear cache), and
+consistency with the Phase 2.8.1 toast tone system. Includes a
+"What does this error mean?" companion section in the docs.
+
+### 5.7 · Print stylesheet v2
+Re-walk every panel under `@media print` — every detector card,
+every Insight pill, the new Topic Checks + Registry panels added
+in Phase 3, plus the legal pages. The print stylesheet has grown
+ad-hoc since 1.7; v2 audits it with real sample audits and locks
+the contract down with a Playwright print-preview snapshot run.
+
+### 5.8 · Multi-format audit export
+**Why:** Today the audit is read in the browser or printed to PDF
+via 1.7's stylesheet. That covers humans, but downstream tooling
+(static-site indexers, security dashboards, GitOps pipelines,
+internal docs) wants structured output. We add three exports —
+all generated client-side, all browser-safe, no backend:
+
+- **JSON** — the full `AuditResult` (categories, findings, story,
+  insights, derived metrics) with a stable, versioned schema.
+  Drop-in for `jq` or any JSON-aware tool.
+- **Markdown** — a complete narrative report (overview, score
+  breakdown, every finding with severity + recommendation, the
+  Repo Story, next steps). Pasteable into a GitHub issue or a
+  team wiki without further edits.
+- **AsciiDoc** — same content as the Markdown, but in AsciiDoc
+  syntax for users on Antora / Asciidoctor docs pipelines. The
+  three formats share a single intermediate representation so a
+  rule that lands in one always lands in the other two.
+
+Each export is exposed in the existing FAB cluster + Settings
+dialog as a "Download" button, never opens a new tab. File names
+follow `astraudit-{owner}-{repo}-{YYYY-MM-DD}.{ext}` so multiple
+downloads sort nicely on disk. The schema is documented in
+`docs/export-schema.md` and locked with a fixture-based test that
+fails on any unintentional shape change.
 
 ---
 

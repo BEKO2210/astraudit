@@ -4,7 +4,8 @@ import {
   Printer as PrinterIcon,
   Share2 as ShareIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import { AuditGraphSkeleton } from "./AuditGraphSkeleton";
 import { performShare } from "../lib/share/shareAction";
 import { pushToast } from "../lib/ui/toastStore";
 import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
@@ -15,7 +16,12 @@ import { ScoreRing } from "./ScoreRing";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { RepoStory } from "./RepoStory";
 import { FindingsPanel } from "./FindingsPanel";
-import { AuditGraph } from "./AuditGraph";
+// Phase 4.4 — lazy-load AuditGraph so React Flow + its CSS only ship
+// after the dashboard has painted. The graph is below the fold on
+// most viewports, so the user typically never notices the second
+// fetch — and on narrower viewports we render the skeleton fallback
+// while the chunk arrives.
+const AuditGraph = lazy(() => import("./AuditGraph"));
 import { FileStructurePanel } from "./FileStructurePanel";
 import { DependencyPanel } from "./DependencyPanel";
 import { SecurityPanel } from "./SecurityPanel";
@@ -218,7 +224,9 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
       </section>
 
       <section id="graph">
-        <AuditGraph graph={result.graph} />
+        <Suspense fallback={<AuditGraphSkeleton />}>
+          <AuditGraph graph={result.graph} />
+        </Suspense>
         <PrintGraphSummary graph={result.graph} />
       </section>
 
