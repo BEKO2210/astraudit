@@ -109,36 +109,13 @@ The viewport‑pinned **floating action button** (bottom‑right) opens a Materi
 
 ## How it works
 
-```
-┌──────────────────────┐    fetch     ┌─────────────────────────┐
-│  GitHub public API   │  ◀─────────  │  src/lib/github/*       │
-│  api.github.com      │              │  (typed fetchers + 24h  │
-│  raw.githubusercontent│              │   localStorage cache)   │
-│  .com / org .github  │              └─────────────────────────┘
-└──────────────────────┘                            │
-                                                    ▼
-                                       ┌─────────────────────────┐
-                                       │   Web Worker            │
-                                       │   src/workers/audit.*   │
-                                       │   runs ~70 detectors    │
-                                       └─────────────────────────┘
-                                                    │
-                                                    ▼
-                                       ┌─────────────────────────┐
-                                       │   AuditResult           │
-                                       │   (categories, story,   │
-                                       │   findings, graph,      │
-                                       │   recommendations,      │
-                                       │   onboarding)           │
-                                       └─────────────────────────┘
-                                                    │
-                       ┌────────────────────────────┼─────────────────────────────┐
-                       ▼                            ▼                             ▼
-              ┌────────────────┐          ┌──────────────────┐           ┌─────────────────┐
-              │  Dashboard UI  │          │  PDF (print CSS) │           │  MD / JSON /     │
-              │  (React + RF)  │          │  Phase 5.7       │           │  AsciiDoc export │
-              └────────────────┘          └──────────────────┘           └─────────────────┘
-```
+<p align="center">
+  <img
+    src="docs/readme/data-flow.svg"
+    alt="Astraudit data-flow diagram: a GitHub public API request travels through the typed fetchers (with a 24-hour localStorage cache) into a Web Worker that runs about seventy rule-based detectors, producing an AuditResult that fans out to the dashboard UI, the printed PDF, and the Markdown / JSON / AsciiDoc exports."
+    width="900"
+  />
+</p>
 
 Detectors live in [`src/lib/audit/`](./src/lib/audit/) — one module per concern (`securityDetector.ts`, `dependencyDetector.ts`, `ciDetector.ts`, …). The `auditEngine` orchestrates them, the `scoreEngine` weights the outputs, the `graphEngine` renders the relationships, and the `copyEngine` writes the human‑readable story.
 
