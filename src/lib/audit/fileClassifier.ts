@@ -83,12 +83,43 @@ export function classifyFiles(
     return false;
   });
 
+  const NOISE_FOLDER_PREFIXES = [
+    "test/",
+    "tests/",
+    "__tests__/",
+    "spec/",
+    "specs/",
+    "e2e/",
+    "cypress/",
+    "playwright/",
+    "fixtures/",
+    "fixture/",
+    "examples/",
+    "example/",
+    "demo/",
+    "demos/",
+    "samples/",
+    "sample/",
+    "docs/",
+    "doc/",
+    "website/",
+  ];
+  const NOISE_BASENAME_HINTS = ["tokenizer", "tokenize", "tokenization"];
+  const NOISE_EXTENSIONS = [".lock", ".md", ".mdx", ".rst", ".txt"];
+  const isInNoiseFolder = (lower: string): boolean =>
+    NOISE_FOLDER_PREFIXES.some(
+      (prefix) => lower.startsWith(prefix) || lower.includes(`/${prefix}`),
+    );
+
   const suspiciousFiles: string[] = [];
   for (const path of blobPaths) {
     const lower = path.toLowerCase();
     if (isAllowedSuspicious(path)) continue;
+    if (NOISE_EXTENSIONS.some((ext) => lower.endsWith(ext))) continue;
+    if (isInNoiseFolder(lower)) continue;
+    const basename = lower.split("/").pop() ?? lower;
+    if (NOISE_BASENAME_HINTS.some((hint) => basename.includes(hint))) continue;
     if (SUSPICIOUS_FILE_HINTS.some((hint) => lower.includes(hint))) {
-      if (lower.endsWith(".lock") || lower.endsWith(".md")) continue;
       suspiciousFiles.push(path);
     }
   }

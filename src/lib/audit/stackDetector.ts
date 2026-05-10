@@ -108,18 +108,39 @@ function detectPackageManager(classified: ClassifiedFiles): string | null {
 function detectRuntime(
   classified: ClassifiedFiles,
   pkg: PackageJson | null,
+  primaryLang: string | null,
 ): string | null {
-  if (classified.blobPaths.has("deno.json")) return "Deno";
-  if (classified.blobPaths.has("bun.lockb")) return "Bun";
-  if (classified.blobPaths.has("Cargo.toml")) return "Rust";
-  if (classified.blobPaths.has("go.mod")) return "Go";
-  if (classified.blobPaths.has("pyproject.toml") || classified.blobPaths.has("requirements.txt"))
-    return "Python";
-  if (classified.blobPaths.has("Gemfile")) return "Ruby";
-  if (classified.blobPaths.has("composer.json")) return "PHP";
-  if (classified.blobPaths.has("pom.xml") || classified.blobPaths.has("build.gradle"))
-    return "JVM";
-  if (pkg) return "Node.js";
+  const blob = classified.blobPaths;
+  if (blob.has("deno.json")) return "Deno";
+  if (blob.has("bun.lockb")) return "Bun";
+
+  const lang = primaryLang ? primaryLang.toLowerCase() : null;
+  const hasNodeManifest = !!pkg;
+  const isJsProject =
+    lang === "javascript" || lang === "typescript" || lang === "coffeescript";
+
+  // Strong signal: primary language matches a runtime ecosystem.
+  if (lang === "rust") return "Rust";
+  if (lang === "go") return "Go";
+  if (lang === "ruby") return "Ruby";
+  if (lang === "php") return "PHP";
+  if (lang === "java" || lang === "kotlin" || lang === "scala") return "JVM";
+  if (lang === "python") return "Python";
+
+  // Fall back to config-file heuristics only when the project isn't
+  // dominantly JavaScript/TypeScript — otherwise auxiliary build tooling
+  // (e.g. pyproject.toml in a JS repo) would falsely set the runtime.
+  if (!isJsProject) {
+    if (blob.has("Cargo.toml")) return "Rust";
+    if (blob.has("go.mod")) return "Go";
+    if (blob.has("Gemfile")) return "Ruby";
+    if (blob.has("composer.json")) return "PHP";
+    if (blob.has("pom.xml") || blob.has("build.gradle")) return "JVM";
+    if (blob.has("pyproject.toml") || blob.has("requirements.txt"))
+      return "Python";
+  }
+
+  if (hasNodeManifest || isJsProject) return "Node.js";
   return null;
 }
 
@@ -167,7 +188,7 @@ export function detectStack(
   const language = languagesArr[0]?.name ?? null;
   const monorepoTool = detectMonorepo(classified, pkg);
   const packageManager = detectPackageManager(classified);
-  const runtime = detectRuntime(classified, pkg);
+  const runtime = detectRuntime(classified, pkg, language);
 
   const hasLockfile =
     !!packageManager &&
