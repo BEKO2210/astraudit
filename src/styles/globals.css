@@ -724,11 +724,19 @@ html[data-theme="light"] .glass-strong {
    the attribute selector uses a single forward slash, NOT an
    escaped one. Without these, Lighthouse + axe both flag the hero
    wordmark and subtitle as failing 4.5:1 contrast against the
-   near-white surface. */
+   near-white surface.
+
+   Phase 5.12 follow-up: `text-slate-200/<alpha>` was missing from
+   the override list, leaving the body of the Repo Story panel
+   (and 6 other components — CategoryPanel, SecurityPanel,
+   ReviewDashboard, CompareDashboard, ScoreBreakdown,
+   PrintGraphSummary) rendering as ghost text on the near-white
+   light-mode surface. Maintainer screenshot bug. */
 html[data-theme="light"] .text-white,
 html[data-theme="light"] .text-slate-100,
 html[data-theme="light"] .text-slate-200,
-html[data-theme="light"] [class*="text-white/"] {
+html[data-theme="light"] [class*="text-white/"],
+html[data-theme="light"] [class*="text-slate-200/"] {
   color: #0f172a !important;
 }
 html[data-theme="light"] .text-slate-300,

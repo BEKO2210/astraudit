@@ -120,6 +120,24 @@ function nonPrintCss(css: string): string {
 
 const NON_PRINT = nonPrintCss(CSS);
 
+describe("globals.css — light-theme contrast overrides (5.12 follow-up)", () => {
+  it("remaps `text-slate-200/<alpha>` to dark ink in light theme", () => {
+    // Maintainer screenshot bug: the Repo Story body + 6 other panels
+    // used `text-slate-200/90` and rendered as ghost text on the
+    // near-white surface. The override must cover the alpha-variant
+    // attribute selector.
+    expect(NON_PRINT).toMatch(/\[class\*="text-slate-200\/"\]/);
+  });
+
+  it("remaps `text-slate-300/<alpha>` to dark ink in light theme", () => {
+    expect(NON_PRINT).toMatch(/\[class\*="text-slate-300\/"\]/);
+  });
+
+  it("remaps `text-white/<alpha>` to dark ink in light theme", () => {
+    expect(NON_PRINT).toMatch(/\[class\*="text-white\/"\]/);
+  });
+});
+
 describe("globals.css — print-only escape hatch", () => {
   it("declares a `.print-only` rule that defaults to display: none on screen", () => {
     // The screen rule must live OUTSIDE every @media print block —
