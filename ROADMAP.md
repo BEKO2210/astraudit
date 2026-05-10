@@ -442,17 +442,45 @@ covering ISO formatting, Monday-indexed weekdays, per-day counts
 Sunday, empty-input behaviour, and every intensity-bucket
 boundary. **Total suite: 153 tests across 19 files.**
 
-### 2.7 · Astraudit badge (SVG)
-A maintainer can embed a generated SVG badge in their own README:
+### 2.7 · Astraudit badge (SVG) ✅ shipped
+A new "Badge" pill in the score header opens a dialog that generates
+an SVG badge for the current audit. Three styles: **Flat** (shields-
+io look), **Aurora** (Astraudit brand with grade), **Minimal** (a
+score-only chip). Live preview, **Download** as `astraudit-<owner>-
+<repo>-<style>.svg`, plus copy buttons for the SVG source and a
+ready-to-paste Markdown snippet that links the badge back to a fresh
+Astraudit run for the repo via `formatShareUrl`.
 
-```
-[![Astraudit](https://beko2210.github.io/astraudit/badge.svg?owner=foo&repo=bar&score=78&grade=Strong)](https://...)
-```
+Honest trade-off acknowledged in the dialog copy: since Astraudit
+has no backend, the badge values are baked into the file at download
+time. Maintainers commit the SVG into their repo (`./astraudit-…
+.svg`) and re-export when they want to publish a new score.
 
-Trade-off honest: since we have no backend, the badge values come from
-URL parameters. Maintainers regenerate the badge whenever they want to
-publish a new score. Fully free, fully static, never lies because the
-maintainer signs off on every value.
+Implementation:
+
+- `src/lib/badge/svgBadge.ts` — pure string-builder, no DOM. Three
+  renderers (`renderFlat`, `renderAurora`, `renderMinimal`) all
+  produce self-contained SVG (inline attribute styling, system-font
+  stack, no external assets, `role="img"` + `aria-label`). Every
+  user-provided string flows through `escapeXml`. `colorForScore`
+  matches the dashboard's tier colors. `clampScore` keeps the
+  rendered number inside `[0, max]` even if a caller passes garbage.
+  `buildBadgeMarkdown` produces the `[![alt](path)](shareUrl)` line.
+- `src/components/BadgeDialog.tsx` — preview, style toggle, download
+  via `Blob` + `URL.createObjectURL`, copy SVG / copy Markdown.
+  Inline-rendered preview is safe because the SVG is built from
+  fully escaped inputs and contains no `<script>`.
+- `src/components/ReviewDashboard.tsx` — Badge pill (mint accent)
+  next to Compare / Share / Save as PDF, mounts the dialog.
+
+Tests: 14 new cases in `tests/lib/badge/svgBadge.test.ts` —
+`escapeXml` covers all five XML metacharacters, `colorForScore`
+returns the right accent per tier, every renderer round-trip,
+snapshot-style assertions for the aurora style, the aria-label
+contract, score clamping at both ends, no parseable `<script>` /
+`<img onerror=` survives malicious input, escaped form is present,
+and the Markdown builder. **Total suite: 167 tests across 20
+files.**
 
 ### 2.8 · Mobile polish round 2
 - Bottom-anchored "jump to next section" FAB on small screens.

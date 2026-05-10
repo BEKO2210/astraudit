@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Award } from "lucide-react";
+import { useState } from "react";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
 import { ScoreRing } from "./ScoreRing";
@@ -19,6 +20,7 @@ import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
 import { ShareButton } from "./ShareButton";
+import { BadgeDialog } from "./BadgeDialog";
 
 interface ReviewDashboardProps {
   result: AuditResult;
@@ -42,6 +44,7 @@ const SECTIONS: SectionItem[] = [
 
 export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
+  const [badgeOpen, setBadgeOpen] = useState(false);
 
   return (
     <div className="mt-8 space-y-6">
@@ -88,6 +91,14 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
                     repo: result.bundle.metadata.name,
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setBadgeOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-3 py-1 text-xs font-medium text-aurora-mint transition hover:bg-aurora-mint/20 print:hidden"
+                >
+                  <Award className="h-3.5 w-3.5" />
+                  Badge
+                </button>
                 <CopyButton
                   value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
                   label="Copy verdict"
@@ -164,6 +175,16 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
       <section id="next">
         <RecommendationsPanel recommendations={result.recommendations} />
       </section>
+
+      <BadgeDialog
+        open={badgeOpen}
+        onClose={() => setBadgeOpen(false)}
+        owner={result.bundle.metadata.owner.login}
+        repo={result.bundle.metadata.name}
+        score={result.totalScore}
+        max={result.maxScore}
+        grade={result.grade}
+      />
     </div>
   );
 }
