@@ -18,6 +18,7 @@ import { PrintButton } from "./PrintButton";
 import { PrintGraphSummary } from "./PrintGraphSummary";
 import { ReadmePreview } from "./ReadmePreview";
 import { SectionNav, type SectionItem } from "./SectionNav";
+import { ShareButton } from "./ShareButton";
 
 interface ReviewDashboardProps {
   result: AuditResult;
@@ -70,6 +71,12 @@ export function ReviewDashboard({ result }: ReviewDashboardProps) {
                 Astraudit verdict
               </div>
               <div className="flex items-center gap-2">
+                <ShareButton
+                  coords={{
+                    owner: result.bundle.metadata.owner.login,
+                    repo: result.bundle.metadata.name,
+                  }}
+                />
                 <CopyButton
                   value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
                   label="Copy verdict"

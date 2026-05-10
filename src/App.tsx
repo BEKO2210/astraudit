@@ -9,6 +9,11 @@ import { ReviewDashboard } from "./components/ReviewDashboard";
 import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { readBundle, writeBundle } from "./lib/cache/auditCache";
+import {
+  applyAuditHash,
+  clearAuditHash,
+  parseShareHash,
+} from "./lib/share/urlState";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import {
   GithubError,
@@ -71,7 +76,7 @@ export default function App() {
   }, []);
 
   const startAudit = useCallback(
-    async (rawInput: string) => {
+    async (rawInput: string, options: { fromHash?: boolean } = {}) => {
       const parsed = parseRepoInput(rawInput);
       if (!parsed.ok || !parsed.coords) {
         setValidationError(parsed.error ?? "Invalid input.");
@@ -79,6 +84,12 @@ export default function App() {
       }
       setValidationError(null);
       setInput(`${parsed.coords.owner}/${parsed.coords.repo}`);
+
+      // Sync the URL hash so the audit is shareable. push=true on a
+      // user-initiated submit so the back button reverts to the prior
+      // view; replace on a hash-driven kickoff to avoid duplicate
+      // history entries.
+      applyAuditHash(parsed.coords, { push: !options.fromHash });
 
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
@@ -180,7 +191,54 @@ export default function App() {
     if (abortRef.current) abortRef.current.abort();
     setState({ kind: "idle" });
     setValidationError(null);
+    clearAuditHash({ push: true });
   }, []);
+
+  // On first mount, honour any audit hash already in the URL — this is
+  // the entire reason the share link works as a deep link.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const initial = parseShareHash(window.location.hash);
+    if (initial) {
+      void startAudit(`${initial.coords.owner}/${initial.coords.repo}`, {
+        fromHash: true,
+      });
+    }
+    // We intentionally only do this once at mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Back / forward navigation: re-derive the audit (or reset) from the
+  // hash. We compare against the currently-shown state to avoid kicking
+  // off the same audit twice.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => {
+      const parsed = parseShareHash(window.location.hash);
+      if (!parsed) {
+        // Hash cleared — revert to the empty state.
+        if (abortRef.current) abortRef.current.abort();
+        setState({ kind: "idle" });
+        setValidationError(null);
+        return;
+      }
+      const currentLabel =
+        state.kind === "fetching" || state.kind === "auditing"
+          ? state.repoLabel
+          : state.kind === "ready"
+            ? state.result.bundle.metadata.fullName
+            : "";
+      const targetLabel = `${parsed.coords.owner}/${parsed.coords.repo}`;
+      if (currentLabel.toLowerCase() === targetLabel.toLowerCase()) return;
+      void startAudit(targetLabel, { fromHash: true });
+    };
+    window.addEventListener("popstate", handler);
+    window.addEventListener("hashchange", handler);
+    return () => {
+      window.removeEventListener("popstate", handler);
+      window.removeEventListener("hashchange", handler);
+    };
+  }, [state, startAudit]);
 
   const showLoading = state.kind === "fetching" || state.kind === "auditing";
 

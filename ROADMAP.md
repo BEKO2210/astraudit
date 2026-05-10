@@ -212,10 +212,46 @@ that the module loads even when `navigator.clipboard` is missing
 
 ## Phase 2 — UX upgrades
 
-### 2.1 · Shareable URL-encoded results
-Encode the repo coordinate (and optionally a content hash) into the URL
-hash so a link reproduces the same view: `#/audit/owner/repo`. Pure
-client-side. No URL shortener, no backend.
+### 2.1 · Shareable URL-encoded results ✅ shipped
+Audit results now have shareable URLs of the form
+`https://beko2210.github.io/astraudit/#/audit/owner/repo`. Hash-only
+state — no backend, no shortener — and we deliberately encode only
+the repo coordinates so audit-rule improvements apply on every
+re-visit.
+
+Implementation in `src/lib/share/urlState.ts`:
+- `parseShareHash` accepts the `#/audit/<owner>/<repo>` form, tolerates
+  trailing GitHub-URL segments (`#/audit/owner/repo/tree/main`), and
+  re-uses the existing `parseRepoInput` slug validator.
+- `formatShareHash` / `formatShareUrl` produce the canonical hash and
+  fully-qualified URL (the latter preserves the deployed path so the
+  link works under `/astraudit/`).
+- `applyAuditHash` updates the URL via `history.pushState` on a fresh
+  user submit and `history.replaceState` on hash-driven kickoffs to
+  avoid duplicate history entries.
+- `clearAuditHash` removes the audit fragment without touching the
+  search part of the URL.
+
+App.tsx wires the routing:
+- On mount, any `#/audit/...` already in the URL auto-triggers the
+  audit (this is what makes shared links a deep link).
+- `startAudit` accepts an optional `{ fromHash }` flag so the URL
+  update uses replaceState in that path.
+- A combined `popstate` + `hashchange` listener re-derives the audit
+  (or resets to idle) when the user uses the browser back/forward
+  buttons.
+- `handleReset` clears the hash with `pushState`.
+
+UI:
+- New `ShareButton` in `src/components/ShareButton.tsx` sits next to
+  "Copy verdict" / "Save as PDF". Uses the native Web Share API on
+  supported devices (mobile mostly), falls back to clipboard copy
+  with a 1.8 s "Link copied" confirmation. Hidden when printing.
+
+Tests: 8 new cases in `tests/lib/share/urlState.test.ts` covering
+happy paths, malformed fragments, trailing-segment tolerance, and
+the parse↔format round-trip. Total suite is now **102 tests across
+13 files**.
 
 ### 2.2 · Compare two repositories side-by-side
 A second "Compare against…" input. Two score rings, two stories, a diff
