@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CheckCircle2,
   Database,
@@ -7,6 +7,8 @@ import {
   EyeOff,
   KeyRound,
   Loader2,
+  Rows3,
+  Rows4,
   ShieldCheck,
   ShieldOff,
   Trash2,
@@ -22,6 +24,12 @@ import {
 } from "../lib/auth/tokenStore";
 import { probeRateLimit, type RateLimitProbe } from "../lib/github/githubClient";
 import { clearAll as clearAuditCache, getStats as getCacheStats, type CacheStats } from "../lib/cache/auditCache";
+import {
+  applyDensity,
+  loadDensity,
+  saveDensity,
+  type Density,
+} from "../lib/density/densityStore";
 import { pushToast } from "../lib/ui/toastStore";
 
 interface SettingsDialogProps {
@@ -37,7 +45,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [probe, setProbe] = useState<RateLimitProbe | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [density, setDensity] = useState<Density>("comfortable");
   const inputRef = useRef<HTMLInputElement>(null);
+  const densityGroupId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -47,9 +57,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setError(null);
     setProbe(null);
     setCacheStats(getCacheStats());
+    setDensity(loadDensity());
     void runProbe();
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
+
+  const handleDensityChange = (next: Density) => {
+    setDensity(next);
+    saveDensity(next);
+    applyDensity(next);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -306,6 +323,79 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </button>
           </div>
         ) : null}
+
+        {/* Density toggle (Phase 2.8.9). A radiogroup is the WAI-ARIA
+            APG pattern for two mutually-exclusive view choices and
+            keeps focus / announcement behaviour clean. The labels carry
+            real visible text + an icon (Rows3 / Rows4 reads as "more
+            rows = compact"). Click target stays well above 24×24 px
+            (WCAG 2.5.8) regardless of which mode is active. */}
+        <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
+          <div
+            id={`${densityGroupId}-label`}
+            className="font-medium text-white"
+          >
+            Density
+          </div>
+          <p
+            id={`${densityGroupId}-desc`}
+            className="mt-0.5 text-slate-500"
+          >
+            Compact tightens card padding ~20 % and shrinks body text
+            slightly. Click targets stay full size.
+          </p>
+          <div
+            role="radiogroup"
+            aria-labelledby={`${densityGroupId}-label`}
+            aria-describedby={`${densityGroupId}-desc`}
+            className="mt-2 grid grid-cols-2 gap-2"
+          >
+            {(
+              [
+                {
+                  key: "comfortable",
+                  label: "Comfortable",
+                  Icon: Rows3,
+                  hint: "Original spacing.",
+                },
+                {
+                  key: "compact",
+                  label: "Compact",
+                  Icon: Rows4,
+                  hint: "Tighter cards, smaller text.",
+                },
+              ] as const
+            ).map(({ key, label, Icon, hint }) => {
+              const checked = density === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  onClick={() => handleDensityChange(key)}
+                  className={`group flex min-h-[3rem] items-start gap-2 rounded-lg border px-3 py-2 text-left transition ${
+                    checked
+                      ? "border-aurora-violet/50 bg-aurora-violet/10 text-white"
+                      : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <Icon
+                    className={`mt-0.5 h-4 w-4 shrink-0 ${
+                      checked ? "text-aurora-violet" : "text-slate-400"
+                    }`}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{label}</span>
+                    <span className="block text-[11px] text-slate-500">
+                      {hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
           <div className="flex items-center justify-between gap-3">

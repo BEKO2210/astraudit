@@ -814,6 +814,212 @@ html[data-theme="light"] select option {
 }
 
 /* =========================================================================
+   DENSITY MODES — Phase 2.8.9.
+
+   Activated by `<html data-density="compact">`. The default (no
+   attribute) preserves the comfortable spacing exactly. Compact
+   reduces card padding ~20 % and shrinks body font 1 px so the
+   dashboard fits more above the fold.
+
+   WCAG 2.5.8 hard rule: we never shrink interactive targets below
+   24×24 CSS px. Compact only touches *padding around content* and
+   *font-size of body text*, never the height of buttons, selects, or
+   tap targets. The score-bar height, FAB diameter, button heights
+   and tooltip target areas are all unchanged.
+   ========================================================================= */
+html[data-density="compact"] body {
+  font-size: 15px;
+}
+
+/* Glass cards — the dominant card paddings in this codebase are
+   `p-6` (1.5rem) and `p-5` (1.25rem). Override them when present on
+   a glass / glass-strong surface. Specificity (0,3,1) beats Tailwind's
+   single-class utility (0,1,0). */
+html[data-density="compact"] .glass.p-6,
+html[data-density="compact"] .glass-strong.p-6 {
+  padding: 1.25rem;
+}
+html[data-density="compact"] .glass.p-5,
+html[data-density="compact"] .glass-strong.p-5 {
+  padding: 1rem;
+}
+html[data-density="compact"] .glass.p-4,
+html[data-density="compact"] .glass-strong.p-4 {
+  padding: 0.75rem;
+}
+html[data-density="compact"] .glass.p-3,
+html[data-density="compact"] .glass-strong.p-3 {
+  padding: 0.625rem;
+}
+
+/* Vertical stack rhythm. Tailwind's `space-y-6` compiles to a margin-top
+   chain; we just override the gap. Same for explicit `gap-*`. */
+html[data-density="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1.25rem;
+}
+html[data-density="compact"] .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem;
+}
+html[data-density="compact"] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem;
+}
+html[data-density="compact"] .gap-6 {
+  gap: 1.25rem;
+}
+
+/* Section heading sizes — the dashboard's ~`text-xl` titles go down
+   half a step so they don't visually shout in compact mode. We deliberately
+   leave the page-level `<h1>` at its current size (it's the only spot the
+   user expects "branding"). */
+html[data-density="compact"] h2 {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+html[data-density="compact"] h3 {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+/* Hero header padding — still leaves enough breathing room. */
+html[data-density="compact"] header.relative.pt-10 {
+  padding-top: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+/* =========================================================================
+   TOOLTIP PRIMITIVE — Phase 2.8.8.
+
+   CSS-only show/hide via :hover and :focus-within so the trigger needs
+   no JS to render the bubble. JS is only used to handle Esc dismissal
+   (WCAG 2.2 SC 1.4.13 Dismissible) via the data-tt-dismissed attribute.
+
+   Layout: the wrapper is `inline-flex` so it doesn't add width around
+   icon buttons. The bubble is absolutely positioned and uses an
+   invisible 6 px buffer (via `padding`) on the side facing the trigger,
+   so the cursor can travel from trigger → bubble without losing the
+   hover state — that's the WCAG 1.4.13 *Hoverable* requirement.
+
+   Sources:
+     - https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+     - https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
+     - https://inclusive-components.design/tooltips-toggletips/
+   ========================================================================= */
+.tt-wrap {
+  position: relative;
+  display: inline-flex;
+  /* The wrapper carries the keyboard listener for Escape. It must be
+     able to receive focus for that listener to fire from the trigger.
+     We keep tabindex off the wrapper itself — the trigger inside is
+     the focusable element, and React's onKeyDown bubbles up. */
+}
+
+.tt-bubble {
+  position: absolute;
+  left: 50%;
+  z-index: 60;
+  pointer-events: none; /* enabled below when visible */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s linear 120ms;
+
+  /* Visual */
+  white-space: nowrap;
+  max-width: 16rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 20, 36, 0.96);
+  color: rgb(241, 245, 249);
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 8px 24px -8px rgba(0, 0, 0, 0.6);
+}
+
+/* Top placement: bubble sits above the trigger. The bottom side has
+   extra padding so the gap between trigger and bubble is still part
+   of the bubble's hit area (WCAG Hoverable). */
+.tt-wrap[data-tt-placement="top"] > .tt-bubble {
+  bottom: 100%;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+}
+.tt-wrap[data-tt-placement="bottom"] > .tt-bubble {
+  top: 100%;
+  margin-top: 6px;
+  padding-top: 4px;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Show on hover, keyboard focus inside, OR direct hover on the bubble
+   (in case the cursor traversed onto the tooltip from the trigger). */
+.tt-wrap:hover > .tt-bubble,
+.tt-wrap:focus-within > .tt-bubble,
+.tt-bubble:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s;
+}
+
+/* Esc-dismissed (WCAG 1.4.13 Dismissible). The flag is reset on blur /
+   pointerleave by the React component. */
+.tt-wrap[data-tt-dismissed="true"] > .tt-bubble {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Reduced motion: no slide-in, no fade — just appear / disappear. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-bubble {
+    transition: none;
+    transform: translateX(-50%);
+  }
+  .tt-wrap:hover > .tt-bubble,
+  .tt-wrap:focus-within > .tt-bubble,
+  .tt-bubble:hover {
+    transform: translateX(-50%);
+  }
+}
+
+/* Tooltips are decorative ink on paper, suppress them on print. */
+@media print {
+  .tt-bubble {
+    display: none !important;
+  }
+}
+
+/* Light theme — invert surface and border. */
+html[data-theme="light"] .tt-bubble {
+  background: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.4);
+}
+
+/* Forced-colors users (Windows High Contrast) get system-defined
+   surfaces so the bubble respects their palette. */
+@media (forced-colors: active) {
+  .tt-bubble {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+}
+
+/* =========================================================================
    SKELETON LOADERS — Phase 2.8.2.
    Research:
    - LogRocket: skeletons should reflect the final layout, fast motion

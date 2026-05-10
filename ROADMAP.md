@@ -899,15 +899,128 @@ obviously visible against every surface in the app, in both themes.
 - `npx vitest run` — 28 files / 215 tests green (was 27 / 208).
 - `npm run build` — 574 KB JS / 58.9 KB CSS, no warnings.
 
-#### 2.8.8 · Lightweight tooltip primitive
-A small `Tooltip` helper (CSS-only, no library) used by
-`CopyButton`, `PrintButton`, `ThemeToggle`, the FAB cluster, and the
-heatmap legend. Positioned via `aria-describedby` for assistive tech.
+#### 2.8.8 · Lightweight tooltip primitive ✅ shipped
+**Why:** The codebase had been leaning on the `title=` HTML attribute
+to surface hover hints on icon-only buttons. `title` is a textbook
+*almost works* attribute: it's invisible to keyboard users (Tab does
+not trigger it), invisible on touch, and screen readers announce it
+inconsistently — Heydon Pickering's blunt summary is "if you want to
+hide content from mobile, tablet, AT, and keyboard users, use the
+title attribute." We need a real tooltip primitive that any icon
+button can opt into without re-inventing the wheel.
 
-#### 2.8.9 · Density toggle (comfortable / compact)
-A new "Density" choice in the Settings dialog drops vertical paddings
-and font sizes by ~15 % across glass cards. Useful for power users
-running 1080p screens. Persisted in `localStorage`.
+**Pre-build research (2026-05-10):**
+- WAI-ARIA APG · *Tooltip Pattern* — bubble carries `role="tooltip"`,
+  trigger references it via `aria-describedby` (auxiliary information)
+  or `aria-labelledby` (when the bubble *is* the accessible name).
+  Tooltips never receive focus. Escape dismisses without moving focus.
+  https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
+- Heydon Pickering · *Tooltips & Toggletips* — when a trigger already
+  has a sufficient `aria-label`, an additional `aria-describedby`
+  with the same text is redundant; either drop the wiring or vary the
+  text. CSS-only show/hide via `:hover` + `:focus-visible` is fine for
+  desktop, but touch users need a different affordance (toggletips).
+  https://inclusive-components.design/tooltips-toggletips/
+- W3C WAI · *Understanding SC 1.4.13 Content on Hover or Focus* (AA):
+   · *Dismissible* — Escape (or other mechanism) closes the tooltip
+     without moving focus or pointer.
+   · *Hoverable*   — pointer must be able to traverse onto the bubble
+     without it disappearing.
+   · *Persistent*  — visible until trigger blur, dismissal, or
+     content invalidation.
+  https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html
+
+**Implementation:**
+- New `src/components/ui/Tooltip.tsx`. Single React element trigger,
+  sibling `<span role="tooltip">` bubble, both wrapped in
+  `<span class="tt-wrap">`. `useId()` generates a stable id for the
+  bubble (referenced via `aria-describedby` when consumer opts in).
+- CSS lives in `src/styles/globals.css` (new "TOOLTIP PRIMITIVE"
+  block before the skeleton block). Visibility is driven entirely by
+  CSS: `.tt-wrap:hover > .tt-bubble`, `.tt-wrap:focus-within > .tt-bubble`,
+  AND `.tt-bubble:hover` (the third selector satisfies WCAG 1.4.13
+  Hoverable — once the cursor leaves the trigger, the bubble's own
+  `:hover` keeps it open).
+- Bubble uses `padding-bottom: 4px; margin-bottom: 6px` (top placement)
+  so the gap between trigger and bubble is part of the bubble's hit
+  area — no JS measurement needed.
+- Esc handling is the only JS: `onKeyDown` on the wrapper sets
+  `data-tt-dismissed="true"` which a CSS rule (`!important`) then
+  honours. The flag resets on `onBlur` / `onPointerLeave` so the next
+  interaction shows the bubble again.
+- Light theme + `forced-colors: active` overrides keep the bubble
+  visible across themes and Windows High-Contrast mode.
+- `prefers-reduced-motion: reduce` zeros out the slide/fade transition.
+- `@media print` hides every bubble.
+- Wired into four call sites that previously used `title=`:
+  `CopyButton`, `ShareButton`, `PrintButton`, `ThemeToggle`. Each now
+  drops the `title` attribute and gains the new bubble while keeping
+  its existing `aria-label` (so SR users still get the name; we don't
+  add `describe` because the bubble text equals the label).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 29 files / 227 tests green (was 28 / 215).
+- `npm run build` — 574 KB JS / 60.4 KB CSS, no warnings.
+
+#### 2.8.9 · Density toggle (comfortable / compact) ✅ shipped
+**Why:** Astraudit's glass-card layout breathes nicely on a 27" monitor
+but eats vertical space on 1080p / 13" laptop screens — power users
+have been asking for a tighter mode that fits more above the fold.
+Industry standard: a *user-controlled* density toggle, not a viewport
+heuristic, so the user keeps agency over their layout.
+
+**Pre-build research (2026-05-10):**
+- Material Design 3 / Atlassian / IBM Carbon all converge on the same
+  pattern: density is a single attribute on the document root and the
+  CSS rules are scoped to it. The user picks once, the choice
+  persists, no view-port magic. Atlassian explicitly notes that
+  spacing tokens lay "a foundation for customisable UI density" —
+  attribute-driven scoping is the canonical implementation.
+  https://atlassian.design/foundations/spacing
+- WCAG 2.2 SC 2.5.8 *Target Size (Minimum)* (Level AA): interactive
+  controls must remain ≥ 24×24 CSS px. The criterion explicitly
+  acknowledges the trade-off: "users with visual field loss may
+  prefer a more condensed layout while users with low vision may
+  prefer larger." A *user-controlled* density toggle is therefore an
+  **accessibility improvement**, but the compact path must never
+  shrink interactive targets below the 24×24 floor.
+  https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+- WAI-ARIA APG · *Radio Group Pattern*: two mutually-exclusive view
+  options use `role="radiogroup"` with each option as a `role="radio"`
+  + `aria-checked`. We use a `<button>` for each option (allows
+  custom styling, full-text labels, and respects WCAG 2.4.7 focus
+  visibility).
+
+**Implementation:**
+- New `src/lib/density/densityStore.ts` — pub-style store with
+  `loadDensity()`, `saveDensity()`, `applyDensity()`, `toggleDensity()`,
+  modelled on the existing theme store. Storage key
+  `astraudit:density:v1` (versioned to allow future migrations).
+  Default is "comfortable" so existing layouts are unchanged.
+- New `globals.css "DENSITY MODES"` block. Activated by
+  `<html data-density="compact">`. Reduces:
+   · `body` font-size 16 px → 15 px
+   · `.glass.p-6` / `.glass-strong.p-6` 1.5 rem → 1.25 rem
+   · `.p-5` 1.25 rem → 1 rem; `.p-4` 1 rem → 0.75 rem
+   · `space-y-6` chain 1.5 rem → 1.25 rem; same for `gap-6`
+   · `<h2>` 1 rem; `<h3>` 0.9375 rem
+   · Hero header padding-top 2.5 rem → 2 rem
+  We never override interactive heights (`h-6`, `h-7`, `h-8`,
+  `min-h-*`); WCAG 2.5.8 stays intact. A test scans the density
+  block and fails if any of those utilities sneak in.
+- `App.tsx` calls `applyDensity(loadDensity())` on first mount so
+  compact applies on refresh, not only after Settings opens.
+- `SettingsDialog.tsx` adds a new "Density" panel above the Audit
+  cache box. Two `role="radio"` buttons inside a
+  `role="radiogroup"`, labelled / described via `aria-labelledby` +
+  `aria-describedby`. Each button is a 3 rem-min-height target so
+  WCAG 2.5.8 passes even in compact mode.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 30 files / 236 tests green (was 29 / 227).
+- `npm run build` — 577 KB JS / 61.4 KB CSS, no warnings.
 
 #### 2.8.10 · Mobile bottom-sheet dialogs
 The existing dialogs (Settings, History, Compare, Badge, Shortcuts,

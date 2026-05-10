@@ -1,6 +1,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { pushToast } from "../lib/ui/toastStore";
+import { Tooltip } from "./ui/Tooltip";
 
 // Inline icon-flip stays the primary success affordance for copies —
 // every research-backed toast guideline (Sonner, Radix, ARIA APG)
@@ -72,21 +73,29 @@ export function CopyButton({
       ? "border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.1]"
       : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white";
 
+  // Tooltip visual hint replaces the legacy `title=` attribute (which is
+  // unreliable on keyboard, mobile, and most screen readers — see
+  // ./ui/Tooltip.tsx for the full research notes). The button keeps its
+  // `aria-label` so SR users still get a name; we skip aria-describedby
+  // because the bubble text would be redundant with the label.
+  const tooltipLabel = copied ? "Copied!" : label;
+
   return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      aria-label={copied ? "Copied" : label}
-      title={copied ? "Copied!" : label}
-      data-print-hide="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border transition print:hidden ${variantClass} ${sizeClass} ${className}`}
-    >
-      {copied ? (
-        <Check className={`text-aurora-mint ${iconSize}`} />
-      ) : (
-        <Copy className={iconSize} />
-      )}
-      {withText ? <span>{copied ? "Copied" : label}</span> : null}
-    </button>
+    <Tooltip label={tooltipLabel}>
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label={copied ? "Copied" : label}
+        data-print-hide="true"
+        className={`inline-flex shrink-0 items-center justify-center rounded-md border transition print:hidden ${variantClass} ${sizeClass} ${className}`}
+      >
+        {copied ? (
+          <Check className={`text-aurora-mint ${iconSize}`} />
+        ) : (
+          <Copy className={iconSize} />
+        )}
+        {withText ? <span>{copied ? "Copied" : label}</span> : null}
+      </button>
+    </Tooltip>
   );
 }
