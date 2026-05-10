@@ -1,4 +1,4 @@
-import { History, Settings, ShieldCheck, Sparkles, Workflow, Zap } from "lucide-react";
+import { History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
 import { getStats as getHistoryStats } from "../lib/history/historyStore";
@@ -39,9 +39,21 @@ export function Hero({
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-violet/40 to-aurora-mint/30 border border-white/10">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
+          <a
+            href={`${import.meta.env.BASE_URL}#`}
+            aria-label="Astraudit home"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10 transition hover:ring-aurora-violet/40"
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}Logo_bg_removed.png`}
+              alt=""
+              width={36}
+              height={36}
+              decoding="async"
+              loading="eager"
+              className="h-9 w-9 rounded-xl object-contain"
+            />
+          </a>
           <div className="min-w-0">
             <p className="text-sm font-semibold tracking-wider text-white/90">
               Astraudit

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/Logo_bg_removed.png" alt="Astraudit logo" width="160" />
+</p>
+
 # Astraudit
 
 Understand any public GitHub repository before you trust it.
