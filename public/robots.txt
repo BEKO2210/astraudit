@@ -1,0 +1,12 @@
+# Astraudit — robots policy.
+#
+# Astraudit is a public, browser-only tool. Every page is safe to
+# crawl — no user data, no auth pages, no admin surfaces. The hash
+# routes (#/audit/owner/repo, #/compare/...) aren't indexable
+# anyway because hash fragments aren't sent to servers, but listing
+# `Allow: /` here makes the intent explicit.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://beko2210.github.io/astraudit/sitemap.xml

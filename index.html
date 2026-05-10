@@ -5,8 +5,79 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237a5cff'/><stop offset='1' stop-color='%2342e8c8'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='%230a0e1a'/><path d='M16 44L32 16l16 28H40l-3-6h-10l-3 6z' fill='url(%23g)'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#05070d" />
-    <meta name="description" content="Astraudit maps, scores, and explains public GitHub repositories." />
+
+    <!-- Phase 5.12 — SEO + social-card meta block.
+
+         Per-repo cards would require a backend (crawlers don't run
+         JS), so this set is deliberately one canonical Astraudit-brand
+         card that works for every shared link. The card describes the
+         tool; the URL itself does the per-repo identification.
+
+         Absolute URLs (https://beko2210.github.io/astraudit/…) are
+         required by Open Graph / Twitter Card crawlers — relative
+         paths fail silently in the previews. -->
     <title>Astraudit · Understand any public GitHub repository</title>
+    <meta
+      name="description"
+      content="Astraudit maps, scores, and explains a public GitHub repo's structure, security posture, maintenance signals, and onboarding path — entirely in your browser. Free forever, no backend, no signup."
+    />
+    <meta name="author" content="Astraudit" />
+    <meta name="keywords" content="github, repository, audit, code review, security, browser, free, open source" />
+    <link rel="canonical" href="https://beko2210.github.io/astraudit/" />
+
+    <!-- Open Graph (Facebook, LinkedIn, Slack, Discord, Bluesky) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Astraudit" />
+    <meta property="og:title" content="Astraudit · Understand any public GitHub repository" />
+    <meta
+      property="og:description"
+      content="Maps, scores, and explains a public GitHub repo's structure, security posture, maintenance signals, and onboarding path — entirely in your browser."
+    />
+    <meta property="og:url" content="https://beko2210.github.io/astraudit/" />
+    <meta property="og:image" content="https://beko2210.github.io/astraudit/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Astraudit — understand any public GitHub repository in 30 seconds. Browser-only · Free forever · Public repos · Rule-based." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Astraudit · Understand any public GitHub repository" />
+    <meta
+      name="twitter:description"
+      content="Maps, scores, and explains a public GitHub repo's structure, security posture, maintenance signals, and onboarding path — in your browser."
+    />
+    <meta name="twitter:image" content="https://beko2210.github.io/astraudit/og-card.png" />
+    <meta name="twitter:image:alt" content="Astraudit — understand any public GitHub repository in 30 seconds." />
+
+    <!-- JSON-LD structured data: Schema.org WebApplication.
+         Helps Google + DuckDuckGo render a richer search result. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Astraudit",
+        "url": "https://beko2210.github.io/astraudit/",
+        "description": "Astraudit maps, scores, and explains a public GitHub repo's structure, security posture, maintenance signals, and onboarding path — entirely in your browser.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any (browser-based)",
+        "browserRequirements": "Requires JavaScript. Modern Chromium / Firefox / Safari.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "image": "https://beko2210.github.io/astraudit/og-card.png",
+        "featureList": [
+          "Detects stack, package manager, and language profile",
+          "Grades security posture (LICENSE, SECURITY.md, CODEOWNERS, Dependabot, CodeQL)",
+          "Surfaces maintenance signals (commit activity, releases, open issues)",
+          "Generates a printable PDF report and Markdown / JSON / AsciiDoc exports",
+          "100% browser-only — no backend, no tracking, no signup"
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://api.github.com" />
     <link rel="preconnect" href="https://raw.githubusercontent.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

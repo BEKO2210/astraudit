@@ -2800,7 +2800,7 @@ and fought the page scroll.
   `<Controls>` still renders so explicit pan/zoom remains
   available. All 4 pass against the production build.
 
-### 5.12 · SEO & social-media cards
+### 5.12 · SEO & social-media cards ✅ shipped
 **Why:** Astraudit is shared as a link in pull-request reviews,
 Slack threads, Bluesky / Twitter posts, blog write-ups. Today
 those previews show whatever the user agent guesses — usually the
@@ -2828,23 +2828,38 @@ this?" to a recognisable Astraudit card.
    the specific repo — the URL itself does the per-repo
    identification.
 
-**What ships:**
-- A 1200 × 630 PNG OG image in `public/og-card.png` showing the
-  Astraudit wordmark + tagline + the four constraint pills
-  (browser-only / free / public-only / rule-based).
-- `<head>` block in `index.html` with all OG + Twitter + JSON-LD
-  tags, set up so `<base>` resolves correctly under
-  `/astraudit/` on GitHub Pages.
-- New `public/robots.txt` allowing every page; new
-  `public/sitemap.xml` listing the four canonical routes (`/`,
-  `#/rules`, `#/impressum`, `#/datenschutz`).
-- A vitest (or Playwright) spec that loads `dist/index.html` and
-  asserts each meta tag is present + carries the expected value
-  — locks the contract down so a future build that drops a tag
-  fails CI.
-- ROADMAP entry documents that per-repo cards would require a
-  backend and are explicitly out of scope (lands in the
-  anti-roadmap if anyone proposes them).
+**What shipped:**
+- 1200 × 630 PNG OG image at `public/og-card.png` (660 KB) —
+  generated from `scripts/og-card-template.html` via a one-shot
+  Playwright + Chromium headless screenshot
+  (`scripts/generate-og-card.ts`). Aurora gradient background,
+  Astraudit wordmark, hero headline ("Understand any public
+  GitHub repository in 30 seconds"), tagline, and the four
+  constraint pills (browser-only / free / public / rule-based).
+- `<head>` block in `index.html`:
+  - canonical URL pointing at `https://beko2210.github.io/astraudit/`
+  - 9 Open Graph tags (type/site_name/title/description/url/
+    image + image:width/height/alt + locale) — every URL absolute
+    so Twitter / Facebook / Slack / Discord crawlers don't fall
+    over relative paths
+  - 5 Twitter Card tags (`summary_large_image`)
+  - JSON-LD `WebApplication` structured data with a free Offer
+    block, browser-requirements line, and a featureList — helps
+    Google + DuckDuckGo render a richer search result.
+- `public/robots.txt` — Allow every URL; declares the sitemap.
+- `public/sitemap.xml` — lists the four canonical routes (`/`,
+  `#/rules`, `#/impressum`, `#/datenschutz`). Per-audit hash URLs
+  are deliberately omitted since they're parameterized into
+  infinity and search engines drop the hash fragment anyway.
+- 30 vitest cases (`tests/styles/seoContract.test.ts`) lock the
+  contract: every required Open Graph tag, every Twitter Card
+  tag, the JSON-LD schema (`@type: WebApplication`, free Offer,
+  featureList ≥ 3 items), the canonical URL prefix, the
+  description length window (120-320 chars), the OG image's
+  exact 1200×630 dimensions, and the PNG signature on disk.
+- Per-repo cards are documented in the anti-roadmap as
+  permanently out of scope (would require a backend; crawlers
+  don't run JS).
 
 ---
 
