@@ -1652,12 +1652,96 @@ and the UI helpers (status formatter, summarise rollup).
 - `npx vitest run` — 39 files / 482 tests green (was 38 / 448).
 - `npm run build` — 600 KB JS, no warnings.
 
-### 3.8 · Free public registry lookups
-For Node packages, hit the **public** `https://registry.npmjs.org/{name}`
-(no auth, no quota): surface latest version, last publish date, weekly
-download trend. Same idea for **PyPI** (`https://pypi.org/pypi/{name}/json`)
-and **crates.io** if relevant. All free, all unauthenticated, all
-public.
+### 3.8 · Free public registry lookups ✅ shipped
+**Why:** Astraudit's audit so far is *file-bound* — everything we
+report is derivable from the repo's own files + GitHub metadata. But
+adopters' biggest practical question is "are the dependencies
+*alive*?", and that answer lives outside the repo. Three free,
+unauthenticated, browser-CORS-friendly registries (`registry.npmjs.org`,
+`pypi.org`, `crates.io`) expose enough metadata to answer it without
+introducing any backend.
+
+**Pre-build research (2026-05-10):**
+- npm Registry API: `GET https://registry.npmjs.org/{name}` returns
+  the packument with `dist-tags.latest`, `time.{version}`, top-level
+  `deprecated` string, plus per-version `versions[v].deprecated`.
+  CORS-allowed for unauthenticated reads — that's how `unpkg.com` and
+  the Yarn web UI hit it.
+  https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md
+- PyPI Warehouse: `GET https://pypi.org/pypi/{name}/json` returns
+  `info.version`, `info.home_page`, `info.project_urls`, plus a
+  `releases` map with `upload_time_iso_8601` per artefact. CORS-OK.
+  https://docs.pypi.org/api/json/
+- crates.io: `GET https://crates.io/api/v1/crates/{name}` returns
+  `crate.max_stable_version`, `crate.updated_at`,
+  `crate.recent_downloads` (last 90 days — the most useful staleness
+  signal), `crate.repository`, `crate.homepage`. CORS-OK.
+- Each fetcher is wrapped in an 8 s `AbortController` timeout so a
+  slow registry can't stall the dashboard.
+
+**Implementation:**
+- New `src/lib/registries/` module:
+   · `types.ts` — shared `RegistryMetadata` + `RegistryOutcome`
+     envelope (`ok` / `not-found` / `error`).
+   · `npmRegistry.ts` — handles scoped-package URL encoding
+     (`@types/react` → `@types%2Freact`) and both forms of npm
+     deprecation (top-level + per-version).
+   · `pypiRegistry.ts` — picks the correct release timestamp from the
+     `info.version` entry in the `releases` map; falls back to the
+     latest across all releases.
+   · `cratesRegistry.ts` — prefers `max_stable_version` over
+     `max_version` (matches `cargo add` default), surfaces the
+     `recent_downloads` signal.
+   · `registryCache.ts` — localStorage TTL cache (24 h, 200-entry
+     cap) keyed by `astraudit:registry:v1:{ecosystem}:{name}`.
+     Stale entries evict lazily on read; cap eviction drops oldest
+     by `cachedAt`.
+   · `extractDependencyNames.ts` — line-based parsers for
+     `requirements.txt`, `pyproject.toml` (PEP 621 + Poetry), and
+     `Cargo.toml`. Tracks section state explicitly so a
+     `[dev-dependencies]` table can't bleed into the production
+     list, and bracket-counts the PEP 621 array so extras notation
+     (`pydantic[email]>=2.0`) survives.
+   · `index.ts` — orchestrator that serves cached entries first
+     (with `cached: true` flag), then runs concurrent live fetches
+     capped at 6 in-flight workers, capped at 30 total packages
+     (12 npm + 10 PyPI + 10 crates per audit). Each in-flight
+     request honours the parent `AbortSignal` so the dashboard
+     unmounting cancels the fan-out cleanly.
+   · `bucketStaleness` — coarse `fresh` (≤ 90 d) / `recent` (≤ 365 d)
+     / `stale` (≤ 730 d) / `abandoned` bucket for the UI pill.
+- New `src/components/RegistryPanel.tsx` — renders below the existing
+  Topic-checks panel in `ReviewDashboard`. Streams results in via
+  `onProgress`, shows a per-row staleness pill, marks deprecated npm
+  packages explicitly, surfaces crates.io's 90-day download count,
+  and shows a `cached` chip when a row was served from localStorage.
+- The new third-party network calls are also disclosed in the
+  Datenschutzerklärung (Art. 13 DSGVO Section 4a) — registry
+  operator (npm Inc., PSF, Rust Foundation), what data flows
+  (IP only), per-audit cap, and the 24 h cache TTL.
+
+**Tests:** 39 cases across four files:
+- `extractDependencyNames.test.ts` (12 cases) — requirements.txt
+  with options/markers/comments, PEP 621 arrays incl. extras
+  notation, Poetry table form with `python` skip, Cargo
+  `[dependencies]` block + sub-tables + `[dev-dependencies]`
+  isolation.
+- `registryCache.test.ts` (6 cases) — round-trip,
+  case-insensitivity, stale-eviction, cap-eviction
+  (200-entry cap → oldest evicted), SSR safety, full-clear.
+- `registryFetchers.test.ts` (13 cases) — every fetcher's typical
+  parse, scoped-package URL, npm deprecation (top-level +
+  per-version), PyPI homepage fallback to project_urls.Homepage,
+  crates `max_stable_version` vs `max_version` fallback, all three
+  fetchers' 404 / network-failure / malformed-body paths.
+- `orchestrator.test.ts` (8 cases) — cache short-circuit,
+  onProgress streaming, `maxPackages` cap, `bucketStaleness`
+  thresholds, null/invalid date handling.
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 43 files / 521 tests green (was 39 / 482).
+- `npm run build` — 615 KB JS, no warnings.
 
 ### 3.9 · License-aware tone in dependency stories
 Categorize the licenses of detected top-level dependencies (best-effort

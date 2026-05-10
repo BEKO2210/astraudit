@@ -96,6 +96,46 @@ export function Datenschutzerklaerung() {
         GitHub-API werden ausschließlich in Ihrem Browser ausgewertet.
       </p>
 
+      <h2>4a. Öffentliche Paket-Registries (Drittanbieter)</h2>
+      <p>
+        Wenn das auditierte Repository ein <code>package.json</code> (Node.js),
+        eine <code>requirements.txt</code> bzw. <code>pyproject.toml</code> (Python)
+        oder eine <code>Cargo.toml</code> (Rust) enthält, fragt Astraudit zu den
+        dort deklarierten Top-Level-Abhängigkeiten ergänzende Metadaten von den
+        jeweiligen <strong>öffentlichen, unauthentifizierten</strong>
+        Read-Only-Endpunkten ab:
+      </p>
+      <ul>
+        <li>
+          <code>registry.npmjs.org</code> — Anbieter: GitHub, Inc., 88 Colin
+          P Kelly Jr St, San Francisco, CA 94107, USA.
+        </li>
+        <li>
+          <code>pypi.org</code> — Anbieter: Python Software Foundation, 9450
+          SW Gemini Dr ECM #90772, Beaverton, OR 97008, USA.
+        </li>
+        <li>
+          <code>crates.io</code> — Anbieter: The Rust Foundation, 401 Edgewater
+          Place, Suite 600, Wakefield, MA 01880, USA.
+        </li>
+      </ul>
+      <p>
+        Pro abgefragter Bibliothek wird Ihre IP-Adresse an den jeweiligen
+        Registry-Betreiber übermittelt. Die Anzahl der Anfragen ist je
+        Audit pro Ökosystem auf höchstens 12 (npm) bzw. 10 (PyPI / crates.io)
+        Pakete begrenzt; Antworten werden 24 Stunden lang ausschließlich in
+        Ihrem Browser zwischengespeichert, sodass Wiederholungs-Audits ohne
+        weitere Netzwerk-Anfragen auskommen.
+      </p>
+      <p>
+        Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes
+        Interesse an der Anreicherung der Audit-Ausgabe um veröffentlichte
+        Versions- und Veröffentlichungsdaten). Es werden ausschließlich
+        öffentlich verfügbare Paket-Metadaten abgefragt — Astraudit
+        übermittelt keine Daten an diese Anbieter und empfängt keine
+        Antworten an einem eigenen Server.
+      </p>
+
       <h2>5. Lokale Speicherung im Browser (localStorage)</h2>
       <p>
         Astraudit speichert ausschließlich auf Ihrem Endgerät, im
