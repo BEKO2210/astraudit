@@ -43,18 +43,15 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   if (ctx.security.hasCommittedEnv) {
     findings.push({
       id: id("env-committed"),
-      title: "An .env file appears committed",
+      title: "An .env file appears committed outside test fixtures",
       category: "security",
       severity: "high",
       description:
-        ".env files are typically used for secrets and should not be committed. Treat as suspected leakage and rotate.",
-      evidence:
-        "A file matching .env was detected in the tree (template files like .env.example are excluded).",
+        ".env files are typically used for secrets and should not be committed. Treat as suspected leakage and rotate. Files inside test/, fixtures/, examples/, and docs/ have already been excluded.",
+      evidence: ctx.security.committedEnvFiles.slice(0, 4).join(", "),
       recommendation:
-        "Remove the .env file, add it to .gitignore, rotate any associated secrets, and use .env.example instead.",
-      affectedFiles: Array.from(ctx.classified.blobPaths).filter((p) =>
-        /(^|\/)\.env($|\.)/.test(p) && !/\.env\.example$/.test(p),
-      ),
+        "Remove the .env file from the working tree, add the path to .gitignore, rotate any associated secrets, and use .env.example as the template instead.",
+      affectedFiles: ctx.security.committedEnvFiles,
       confidence: "medium",
     });
   }
@@ -165,8 +162,12 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   }
 
   if (
-    !ctx.classified.blobPaths.has("CONTRIBUTING.md") &&
-    !ctx.classified.blobPaths.has(".github/CONTRIBUTING.md")
+    !ctx.classified.hasFile(
+      "CONTRIBUTING.md",
+      ".github/CONTRIBUTING.md",
+      "docs/CONTRIBUTING.md",
+      "Contributing.md",
+    )
   ) {
     findings.push({
       id: id("contributing"),

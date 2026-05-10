@@ -279,13 +279,19 @@ function analyzeTree(classified: ClassifiedFiles): TreeShape {
   else if (rootFiles > 18) rootDensity = "moderate";
 
   let monorepoShape: TreeShape["monorepoShape"] = "single";
-  if (
-    classified.blobPaths.has("turbo.json") ||
-    classified.blobPaths.has("nx.json") ||
-    classified.blobPaths.has("pnpm-workspace.yaml") ||
-    classified.blobPaths.has("lerna.json") ||
-    Array.from(classified.blobPaths).some((p) => p.startsWith("packages/"))
-  ) {
+  const monorepoConfig = classified.hasFile(
+    "turbo.json",
+    "nx.json",
+    "pnpm-workspace.yaml",
+    "pnpm-workspace.yml",
+    "lerna.json",
+    "rush.json",
+    "moon.yml",
+  );
+  const hasPackagesFolder = Array.from(classified.blobPathsLower.keys()).some(
+    (p) => p.startsWith("packages/") || p.startsWith("apps/"),
+  );
+  if (monorepoConfig || hasPackagesFolder) {
     monorepoShape = "monorepo";
   } else if (rootFiles === 0 && total > 0) {
     monorepoShape = "polyrepo";
@@ -481,9 +487,10 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
   const commits = analyzeCommits(bundle.recentCommits);
   const releases = analyzeReleases(bundle.releases);
   const workflows = analyzeWorkflows(ci);
-  workflows.hasDependabot =
-    classified.blobPaths.has(".github/dependabot.yml") ||
-    classified.blobPaths.has(".github/dependabot.yaml");
+  workflows.hasDependabot = !!classified.hasFile(
+    ".github/dependabot.yml",
+    ".github/dependabot.yaml",
+  );
 
   const tree = analyzeTree(classified);
   const lic = buildLicenseSummary(
@@ -493,11 +500,20 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
 
   let trustScore = 0;
   if (meta.license) trustScore += 25;
-  if (classified.blobPaths.has("SECURITY.md") || classified.blobPaths.has(".github/SECURITY.md"))
+  if (classified.hasFile(
+    "SECURITY.md",
+    ".github/SECURITY.md",
+    "docs/SECURITY.md",
+    "SECURITY",
+  ))
     trustScore += 20;
   if (workflows.hasDependabot) trustScore += 15;
   if (workflows.hasCodeQL) trustScore += 15;
-  if (classified.blobPaths.has("CODEOWNERS") || classified.blobPaths.has(".github/CODEOWNERS"))
+  if (classified.hasFile(
+    "CODEOWNERS",
+    ".github/CODEOWNERS",
+    "docs/CODEOWNERS",
+  ))
     trustScore += 10;
   if (workflows.total > 0) trustScore += 10;
   if (!classified.suspiciousFiles.length) trustScore += 5;

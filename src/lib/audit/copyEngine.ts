@@ -346,22 +346,31 @@ export function buildOnboarding(ctx: CopyContext): OnboardingStep[] {
     });
   }
 
-  if (classified.blobPaths.has(".env.example")) {
+  const envExample = classified.hasFile(
+    ".env.example",
+    ".env.sample",
+    ".env.template",
+  );
+  if (envExample) {
     steps.push({
       id: "env",
       title: `Copy the environment template`,
-      command: `cp .env.example .env`,
-      rationale: `An .env.example exists — use it as a starting point and fill in real values locally.`,
+      command: `cp ${envExample} .env`,
+      rationale: `${envExample} exists — use it as a starting point and fill in real values locally.`,
     });
   }
 
   if (stack.containerized) {
+    const compose = classified.hasFile(
+      "docker-compose.yml",
+      "docker-compose.yaml",
+      "compose.yml",
+      "compose.yaml",
+    );
     steps.push({
       id: "docker",
       title: `Try the Docker path`,
-      command: classified.blobPaths.has("docker-compose.yml") || classified.blobPaths.has("docker-compose.yaml")
-        ? `docker compose up`
-        : `docker build -t ${repoName} .`,
+      command: compose ? `docker compose up` : `docker build -t ${repoName} .`,
       rationale: `Container assets are present, which usually means a one-command local environment.`,
       optional: true,
     });
@@ -391,18 +400,25 @@ export function buildOnboarding(ctx: CopyContext): OnboardingStep[] {
     });
   }
 
-  if (
-    classified.blobPaths.has("CONTRIBUTING.md") ||
-    classified.blobPaths.has(".github/CONTRIBUTING.md")
-  ) {
+  const contributing = classified.hasFile(
+    "CONTRIBUTING.md",
+    ".github/CONTRIBUTING.md",
+    "docs/CONTRIBUTING.md",
+  );
+  if (contributing) {
     steps.push({
       id: "contrib",
-      title: `Read CONTRIBUTING.md before opening a PR`,
+      title: `Read ${contributing} before opening a PR`,
       rationale: `The repo publishes contribution guidelines — follow them to avoid the most common rejection reasons.`,
     });
   }
 
-  if (classified.blobPaths.has("CODE_OF_CONDUCT.md")) {
+  const coc = classified.hasFile(
+    "CODE_OF_CONDUCT.md",
+    ".github/CODE_OF_CONDUCT.md",
+    "docs/CODE_OF_CONDUCT.md",
+  );
+  if (coc) {
     steps.push({
       id: "coc",
       title: `Skim the Code of Conduct`,

@@ -67,14 +67,16 @@ function scoreDocumentation(ctx: ScoreContext): CategoryScore {
     score += 1;
     evidence.push("Badges detected in README.");
   }
-  if (classified.blobPaths.has("CHANGELOG.md")) {
+  if (classified.hasFile("CHANGELOG.md", "CHANGELOG", "CHANGELOG.markdown", "HISTORY.md")) {
     score += 1;
-    evidence.push("CHANGELOG.md present.");
+    evidence.push("Changelog present.");
   }
-  if (
-    classified.blobPaths.has("CONTRIBUTING.md") ||
-    classified.blobPaths.has(".github/CONTRIBUTING.md")
-  ) {
+  if (classified.hasFile(
+    "CONTRIBUTING.md",
+    ".github/CONTRIBUTING.md",
+    "docs/CONTRIBUTING.md",
+    "Contributing.md",
+  )) {
     score += 1;
     evidence.push("Contributing guide present.");
   }
@@ -144,11 +146,17 @@ function scoreStructure(ctx: ScoreContext): CategoryScore {
   if (stack.buildTools.length > 0) {
     score += 2;
     evidence.push(`Build tooling detected: ${stack.buildTools.join(", ")}.`);
-  } else if (
-    classified.blobPaths.has("Makefile") ||
-    classified.blobPaths.has("build.gradle") ||
-    classified.blobPaths.has("Cargo.toml")
-  ) {
+  } else if (classified.hasFile(
+    "Makefile",
+    "makefile",
+    "GNUmakefile",
+    "build.gradle",
+    "build.gradle.kts",
+    "Cargo.toml",
+    "CMakeLists.txt",
+    "BUILD.bazel",
+    "BUILD",
+  )) {
     score += 2;
     evidence.push("Build configuration file detected.");
   }
@@ -402,7 +410,7 @@ function scoreMaintenance(ctx: ScoreContext): CategoryScore {
 }
 
 function scoreDx(ctx: ScoreContext): CategoryScore {
-  const { dx, deps, classified } = ctx;
+  const { dx, deps } = ctx;
   const evidence: string[] = [];
   let score = 0;
   if (dx.hasSetupInstructions) {
@@ -437,12 +445,13 @@ function scoreDx(ctx: ScoreContext): CategoryScore {
     score += 1;
     evidence.push("package.json scripts are well-defined.");
   }
-  if (
-    classified.blobPaths.has("CONTRIBUTING.md") ||
-    classified.blobPaths.has(".github/CONTRIBUTING.md")
-  ) {
+  if (dx.hasContributingGuide) {
     score += 1;
     evidence.push("Contributing guide present.");
+  }
+  if (dx.hasCodeOfConduct) {
+    score += 1;
+    evidence.push("Code of Conduct present.");
   }
   score = clamp(score, 0, 10);
   const status = statusForRatio(score / 10, score > 0);
