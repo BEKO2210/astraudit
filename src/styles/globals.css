@@ -774,11 +774,24 @@ html[data-theme="light"] .fab-mini-default:hover {
    (and 6 other components — CategoryPanel, SecurityPanel,
    ReviewDashboard, CompareDashboard, ScoreBreakdown,
    PrintGraphSummary) rendering as ghost text on the near-white
-   light-mode surface. Maintainer screenshot bug. */
-html[data-theme="light"] .text-white,
+   light-mode surface. Maintainer screenshot bug.
+
+   Phase 5.x bugfix: the broad `.text-white` rule was too
+   aggressive — it caught buttons that intentionally use white
+   text on a coloured gradient (the Audit submit button, the
+   BadgeDialog download CTA, the active style-picker tab, the
+   active SectionNav pill). The `:not(...)` chain skips elements
+   whose own className signals a coloured surface, so white text
+   stays white on accent backgrounds while the hero / story copy
+   still gets its dark-on-light readability fix. Brand-colour
+   prefixes (aurora-*, risk-*) plus `bg-gradient-to-*` cover
+   every accent button in the app. */
+html[data-theme="light"]
+  .text-white:not([class*="bg-gradient"]):not([class*="bg-aurora-"]):not([class*="bg-risk-"]):not(.fab-main-text),
 html[data-theme="light"] .text-slate-100,
 html[data-theme="light"] .text-slate-200,
-html[data-theme="light"] [class*="text-white/"],
+html[data-theme="light"]
+  [class*="text-white/"]:not([class*="bg-gradient"]):not([class*="bg-aurora-"]):not([class*="bg-risk-"]),
 html[data-theme="light"] [class*="text-slate-200/"] {
   color: #0f172a !important;
 }
