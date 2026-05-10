@@ -1,0 +1,81 @@
+name: Quality gates (Phase 4.2)
+
+# Two independent gates that run on every PR + main push:
+#   1. Lighthouse CI — performance / accessibility / best-practices /
+#      SEO scores must clear the floors in `lighthouserc.json`.
+#   2. axe-core via Playwright — no `serious` / `critical` WCAG
+#      violations on the home page or the legal pages.
+#
+# These gates are separate from the visual regression workflow
+# (`.github/workflows/visual.yml`) so a flaky snapshot can't mask a
+# real accessibility / performance regression.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Run Lighthouse CI
+        # `lhci autorun` reads `lighthouserc.json`, runs the collect +
+        # assert + upload steps, and exits non-zero if any assertion
+        # fails. The temporary-public-storage upload gives us a
+        # clickable link in the workflow log.
+        run: npx lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  a11y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browser
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Run axe-core accessibility tests
+        # Filter to the new a11y spec only — visual regression runs in
+        # its own workflow.
+        run: npx playwright test tests/visual/a11y.spec.ts
+        env:
+          CI: "1"
+      - name: Upload Playwright report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

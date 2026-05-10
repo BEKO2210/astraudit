@@ -21,3 +21,6 @@ playwright-report
 test-results
 .playwright
 
+# Phase 4.2 — Lighthouse CI dumps reports + manifest into this dir.
+.lighthouseci
+

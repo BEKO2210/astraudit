@@ -25,19 +25,31 @@ const FEATURES = [
 ];
 
 export function EmptyState() {
+  // The card titles are rendered as <h3> for visual sizing, but we
+  // emit a visually-hidden <h2> wrapper so the heading hierarchy
+  // stays sequential — that's the WCAG / Lighthouse `heading-order`
+  // contract. Phase 4.2.
   return (
-    <section className={`mt-10 grid gap-4 sm:grid-cols-2 ${VIEW_ENTER_CLASS}`}>
-      {FEATURES.map((f) => (
-        <div key={f.title} className="glass p-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03]">
-              <f.icon className="h-4 w-4 text-aurora-cyan" />
+    <section
+      className={`mt-10 ${VIEW_ENTER_CLASS}`}
+      aria-labelledby="empty-state-heading"
+    >
+      <h2 id="empty-state-heading" className="sr-only">
+        What an audit produces
+      </h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {FEATURES.map((f) => (
+          <div key={f.title} className="glass p-5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03]">
+                <f.icon className="h-4 w-4 text-aurora-cyan" />
+              </div>
+              <h3 className="text-sm font-semibold text-white">{f.title}</h3>
             </div>
-            <h3 className="text-sm font-semibold text-white">{f.title}</h3>
+            <p className="mt-3 text-sm text-slate-300/85">{f.body}</p>
           </div>
-          <p className="mt-3 text-sm text-slate-300/85">{f.body}</p>
-        </div>
-      ))}
+        ))}
+      </div>
     </section>
   );
 }

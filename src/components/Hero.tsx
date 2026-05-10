@@ -90,7 +90,16 @@ export function Hero({
               ? "border-aurora-mint/40 bg-aurora-mint/10 text-aurora-mint hover:bg-aurora-mint/20"
               : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"
           }`}
-          aria-label="Open settings"
+          // The visible text already names the action ("Settings · …"),
+          // so we let it serve as the accessible name. Setting
+          // aria-label here would mismatch the visible text and
+          // trigger Lighthouse's `label-content-name-mismatch` rule.
+          // Phase 4.2.
+          title={
+            hasToken
+              ? `Authenticated GitHub PAT active${prefix ? ` — prefix ${prefix}` : ""}`
+              : "Using public GitHub rate limit (60 requests per hour)"
+          }
         >
           {hasToken ? (
             <>
