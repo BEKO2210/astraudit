@@ -38,10 +38,10 @@ export function FileStructurePanel({ structure }: FileStructurePanelProps) {
               structure.importantFilesPresent.map((file) => (
                 <li
                   key={file}
-                  className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs"
+                  className="flex items-center gap-2 overflow-hidden rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs"
                 >
-                  <FileCheck2 className="h-3 w-3 text-aurora-mint" />
-                  <code className="truncate font-mono text-slate-200">{file}</code>
+                  <FileCheck2 className="h-3 w-3 shrink-0 text-aurora-mint" />
+                  <code className="min-w-0 flex-1 truncate font-mono text-slate-200">{file}</code>
                 </li>
               ))
             )}
@@ -53,10 +53,10 @@ export function FileStructurePanel({ structure }: FileStructurePanelProps) {
             {missingShown.map((file) => (
               <li
                 key={file}
-                className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs"
+                className="flex items-center gap-2 overflow-hidden rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs"
               >
-                <FileWarning className="h-3 w-3 text-risk-medium" />
-                <code className="truncate font-mono text-slate-300">{file}</code>
+                <FileWarning className="h-3 w-3 shrink-0 text-risk-medium" />
+                <code className="min-w-0 flex-1 truncate font-mono text-slate-300">{file}</code>
               </li>
             ))}
           </ul>
@@ -88,7 +88,7 @@ export function FileStructurePanel({ structure }: FileStructurePanelProps) {
             <ul className="mt-2 space-y-1.5">
               {structure.suspiciousFiles.slice(0, 10).map((file) => (
                 <li key={file} className="text-xs text-slate-300">
-                  <code className="font-mono">{file}</code>
+                  <code className="break-all font-mono">{file}</code>
                 </li>
               ))}
             </ul>

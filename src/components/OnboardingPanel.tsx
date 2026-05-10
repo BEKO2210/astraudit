@@ -23,7 +23,7 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
         {steps.map((step, idx) => (
           <li
             key={step.id}
-            className="rounded-xl border border-white/5 bg-white/[0.02] p-3 transition hover:border-white/10"
+            className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3 transition hover:border-white/10"
           >
             <div className="flex items-start gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-xs font-semibold text-white">
@@ -47,8 +47,8 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
                   {step.rationale}
                 </p>
                 {step.command ? (
-                  <pre className="mt-2 overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 text-[12px] text-slate-200">
-                    <code className="font-mono">{step.command}</code>
+                  <pre className="mt-2 max-w-full overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 text-[12px] text-slate-200 scrollbar-thin">
+                    <code className="font-mono whitespace-pre">{step.command}</code>
                   </pre>
                 ) : null}
               </div>

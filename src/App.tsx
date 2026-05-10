@@ -7,6 +7,7 @@ import { LoadingAudit } from "./components/LoadingAudit";
 import { ErrorState } from "./components/ErrorState";
 import { ReviewDashboard } from "./components/ReviewDashboard";
 import { Footer } from "./components/Footer";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import {
   GithubError,
@@ -32,6 +33,8 @@ export default function App() {
   const [input, setInput] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [state, setState] = useState<AppState>({ kind: "idle" });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [authTick, setAuthTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -170,8 +173,11 @@ export default function App() {
   const showLoading = state.kind === "fetching" || state.kind === "auditing";
 
   return (
-    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
-      <Hero />
+    <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col overflow-x-hidden px-4 sm:px-6 lg:px-8">
+      <Hero
+        onOpenSettings={() => setSettingsOpen(true)}
+        authTick={authTick}
+      />
 
       <RepoInput
         onSubmit={startAudit}
@@ -205,6 +211,14 @@ export default function App() {
       {state.kind === "ready" ? <ReviewDashboard result={state.result} /> : null}
 
       <Footer />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          setAuthTick((t) => t + 1);
+        }}
+      />
     </div>
   );
 }

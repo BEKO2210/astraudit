@@ -9,12 +9,52 @@
     height: 100%;
   }
 
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
   body {
     background-color: #05070d;
     color: rgb(226 232 240 / 0.92);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Mobile-safety: long unbreakable strings (URLs, file paths, commit
+     hashes) must never push a card wider than its container. Defaults
+     to "anywhere" which breaks at any character if no whitespace exists,
+     but keeps natural word wrapping otherwise. */
+  p,
+  li,
+  dd,
+  dt,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  span,
+  small,
+  strong,
+  em,
+  blockquote,
+  figcaption {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  pre,
+  code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
   }
 
   ::selection {

@@ -8,13 +8,13 @@ interface FindingCardProps {
 
 export function FindingCard({ finding }: FindingCardProps) {
   return (
-    <article className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <article className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4">
       <header className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03]">
             <ShieldAlert className="h-3.5 w-3.5 text-slate-300" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h4 className="text-sm font-semibold text-white">{finding.title}</h4>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
               <span
@@ -52,7 +52,7 @@ export function FindingCard({ finding }: FindingCardProps) {
           {finding.affectedFiles.slice(0, 6).map((file) => (
             <code
               key={file}
-              className="rounded-md border border-white/5 bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-slate-300"
+              className="max-w-full break-all rounded-md border border-white/5 bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-slate-300"
             >
               {file}
             </code>
