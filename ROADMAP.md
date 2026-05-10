@@ -2627,6 +2627,42 @@ downloads sort nicely on disk. The schema is documented in
 `docs/export-schema.md` and locked with a fixture-based test that
 fails on any unintentional shape change.
 
+### 5.11 · Sticky section-nav light-theme surface fix ✅ shipped
+**Why (maintainer screenshot bug):** in light mode the sticky tab
+strip rendered with `rgba(255, 255, 255, 0.85)` over the
+`#f8fafc` page background — pure white on near-white. The bar
+became visually almost invisible and felt like "die Tabsliste ist
+weg" (the tabs list is gone) when scrolling.
+
+Plus the strip's edge-fade gradients were hard-coded to the dark
+ink colour, so on light mode they showed as opaque dark ribbons
+on each end (visible in the maintainer's screenshot) instead of
+softly blending into the surrounding surface. And the right-edge
+fade was 48 px wide, wide enough to clip the active pill when it
+landed at the rightmost position.
+
+**Fix (shipped):**
+- `globals.css` — `.bg-ink-950/85` light-theme override goes
+  from `rgba(255, 255, 255, 0.85)` (white on near-white) to
+  `rgba(241, 245, 249, 0.92)` (a slate-50 tint that always reads
+  as a surface ABOVE the page) + a darker bottom border
+  (`rgba(15, 23, 42, 0.10)`) so the bar's lower edge is always
+  visible.
+- New `--section-nav-fade` CSS variable + `.section-nav-fade-*`
+  classes that flip per theme. Dark: `rgba(5, 7, 13, 0.92)`.
+  Light: `rgba(248, 250, 252, 0.95)`. Both fade to transparent
+  toward the centre, so the gradient now reads as a soft
+  same-colour fade in either theme — no more dark ribbons.
+- `SectionNav.tsx` shrinks both fade widths to `w-6` (was `w-12`
+  on the right). Active pills no longer live behind the fade.
+- Each fade is now **conditionally rendered** based on actual
+  scroll overflow on its edge — a `useEffect` reads
+  `scrollLeft / scrollWidth / clientWidth` on the nav strip and
+  toggles `overflow.left` / `overflow.right`. When the user has
+  scrolled fully right, the right fade vanishes (no more clipped
+  pill). A `ResizeObserver` watches viewport rotation so the
+  fade state stays accurate.
+
 ### 5.10 · Audit graph mobile rendering fix
 **Why:** Maintainer reported that on mobile, scrolling the audit
 dashboard down to the graph section causes the page to wobble and
