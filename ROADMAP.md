@@ -362,9 +362,51 @@ favorite flag on update, toggleFavorite is idempotent, listHistory
 floats favorites to the top, removeEntry / clearAll behaviour, and
 the stats counter. **Total suite: 131 tests across 16 files.**
 
-### 2.5 · Keyboard shortcuts + command palette
-`Cmd/Ctrl+K` opens a palette to jump to any section, switch repo, or
-toggle theme. Vim-style `g s`, `g f`, `g i` jumps for power users.
+### 2.5 · Keyboard shortcuts + command palette ✅ shipped
+**`Cmd/Ctrl+K`** opens a filterable command palette with five
+groups:
+
+- **Jump to section** — Overview, Score, Story, README, Insights,
+  Graph, Findings, Structure, Stack, Maintenance, Onboarding, Next
+  steps. Each entry shows its vim-style chord.
+- **Actions** — Compare, Open history, Open settings, Reset to
+  empty, Save as PDF.
+- **Theme** — Dark / Light / Follow system.
+- **From your history** — top 5 favorites + top 5 recent re-audits.
+- **Audit an example** — the four built-in examples.
+
+Vim-style chords (suppressed inside inputs / textareas):
+
+- `g o` Overview · `g s` Score · `g t` Story · `g r` README
+- `g i` Insights · `g g` Graph · `g f` Findings · `g c` Structure
+- `g k` Stack · `g m` Maintenance · `g b` Onboarding · `g n` Next
+- `?` shortcuts cheat sheet · `/` focuses the repo input · `Esc`
+  closes the active dialog.
+
+Implementation:
+
+- `src/lib/commands/types.ts` — `Command` type and a relevance
+  scorer that ranks exact > prefix > substring > subsequence
+  matches.
+- `src/lib/commands/buildCommands.ts` — composes the live command
+  list from current state plus the live history / favorites.
+- `src/lib/keyboard/useGlobalShortcuts.ts` — single `keydown`
+  listener that handles Cmd/Ctrl+K, the `g`-chord with a 1.2 s
+  timeout, `?`, and `/`. Suppressed when the focus is on an input,
+  textarea, select, or contenteditable element.
+- `src/components/CommandPalette.tsx` — glass dialog with
+  filterable list, keyboard navigation (`↑↓ Home End ↵`), grouped
+  rendering, scroll-into-view for the active row, mouse-hover
+  selection, and a footer hint.
+- `src/components/ShortcutsDialog.tsx` — the `?` cheat sheet.
+
+Tests: 9 new cases — the relevance scorer (exact / prefix /
+substring / subsequence ordering), `filterCommands` with empty and
+populated queries, prefix-wins-over-subsequence guard, the
+`G_PREFIX_MAP` covers every documented chord and points to a known
+section id, and `isEditableTarget` correctly treats input / textarea
+/ select / contenteditable nodes as editable. **Total suite: 139
+tests across 18 files.**
 
 ### 2.6 · Activity heatmap
 Visualize the recent commit dates as a small calendar heatmap. We
