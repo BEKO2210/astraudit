@@ -4,6 +4,7 @@ import type { ReadmeSignals } from "./documentationDetector";
 import type { CiSignals } from "./ciDetector";
 import type { StackSignals } from "../../types/audit";
 import type { MaintenanceSignals } from "./maintenanceDetector";
+import { computeReadability, type Readability } from "./readability";
 
 export type AgeBucket = "newborn" | "young" | "established" | "mature" | "veteran";
 export type StarsBucket = "tiny" | "small" | "medium" | "large" | "huge" | "mega";
@@ -26,6 +27,13 @@ export interface ReadmeMetrics {
   badges: number;
   tables: number;
   sections: string[];
+  /**
+   * Flesch-Kincaid Grade Level + Flesch Reading Ease, computed on the
+   * prose extracted from the README (code, tables, badges, links
+   * stripped). null when the README is too short / non-prose to
+   * produce a stable score (see readability.ts → MIN_WORDS_FOR_SCORE).
+   */
+  readability: Readability | null;
 }
 
 export interface CommitActivity {
@@ -346,6 +354,7 @@ function analyzeReadmeMetrics(signals: ReadmeSignals, content: string | null): R
       badges: 0,
       tables: 0,
       sections: [],
+      readability: null,
     };
   }
   const text = content ?? "";
@@ -380,6 +389,7 @@ function analyzeReadmeMetrics(signals: ReadmeSignals, content: string | null): R
     badges,
     tables,
     sections,
+    readability: computeReadability(text),
   };
 }
 

@@ -19,7 +19,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { DerivedInsights } from "../lib/audit/insightEngine";
+import type { DerivedInsights, ReadmeMetrics } from "../lib/audit/insightEngine";
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
@@ -239,7 +239,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
           }
           sub={
             insights.readme.exists
-              ? `${insights.readme.headings} headings · ${insights.readme.codeBlocks} code blocks · ${insights.readme.images} images · ${insights.readme.badges} badges`
+              ? buildReadmeSub(insights.readme)
               : "Visitors land without context."
           }
         />
@@ -301,6 +301,26 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       </div>
     </section>
   );
+}
+
+/**
+ * Format the README footprint subline. Includes the Flesch-Kincaid
+ * grade level + bucket label when we have enough prose to compute one;
+ * otherwise falls back to the structural counts so very short READMEs
+ * still get useful context. Phase 3.1.
+ */
+function buildReadmeSub(readme: ReadmeMetrics): string {
+  const structural = `${readme.headings} headings · ${readme.codeBlocks} code blocks · ${readme.images} images · ${readme.badges} badges`;
+  const r = readme.readability;
+  if (!r) return structural;
+  const bucketLabel: Record<typeof r.bucket, string> = {
+    elementary: "elementary reading level",
+    easy: "easy reading level",
+    standard: "standard reading level",
+    dense: "dense reading level",
+    academic: "academic reading level",
+  };
+  return `${structural} · grade ${r.fleschKincaidGrade.toFixed(1)} · ${bucketLabel[r.bucket]}`;
 }
 
 interface CardProps {

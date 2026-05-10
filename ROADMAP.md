@@ -1106,9 +1106,94 @@ dedicated tests; the suite grew from 27 / 208 (start of 2.8) to
 
 ## Phase 3 — Smarter detection (still no AI)
 
-### 3.1 · README readability score
-Compute Flesch-Kincaid Grade Level on README content. Lets us say
-*"reads at a 12th-grade level"* — a real signal, useful for adopters.
+### 3.1 · README readability score ✅ shipped
+**Why:** Astraudit already counts README headings, code blocks, badges
+and so on, but a structural footprint doesn't tell adopters whether
+the README is *readable*. A 12th-grade Flesch-Kincaid score is a
+concrete, well-known signal — not an AI judgement, just arithmetic
+over words and syllables — and exactly the kind of rule-based
+detector the project is built around.
+
+**Pre-build research (2026-05-10):**
+- Confirmed formulas (Wikipedia · Flesch-Kincaid + textstat library +
+  Penn State writing centre):
+   · `FKGL = 0.39 · (words/sentences) + 11.8 · (syllables/words) − 15.59`
+   · `FRE  = 206.835 − 1.015 · (words/sentences) − 84.6 · (syllables/words)`
+- Syllable counting uses the standard heuristic from the
+  `words/syllable` MIT package (~325 LOC, ESM, browser-compatible) and
+  Lingua::EN::Syllable (Perl): vowel-group counting with a small
+  exception list for the well-known mis-counts (`the`, `every`,
+  `business`, `vegetable`, `area`, …). Accuracy on common English
+  prose is ≈ 85–90 % — fine for an aggregate grade-level number;
+  individual words may be ±1 syllable off but they cancel over a
+  README-length corpus.
+  https://github.com/words/syllable
+- Grade-level interpretation (Penn State + readable.com):
+   · ≤ 6 elementary, 7–9 easy, 10–12 standard, 13–15 dense, ≥ 16 academic.
+   · Technical-doc sweet spot is 10–12 — below 8 reads as
+     over-simplified, above 14 reads as academic / dense.
+- Pre-processing for technical READMEs (textstat, write-good):
+   · Strip fenced + indented code, inline code spans, badge images,
+     image embeds, HTML tags, table rows, link URLs (keep visible
+     label), heading markers, blockquote markers, list markers,
+     emphasis markers, and reference-link definitions.
+   · KEEP heading text — it's still prose for the reader.
+- WCAG 3.1.5 *Reading Level* (AAA) doesn't require a specific number,
+  but it asks that supplementary content be available when the text
+  exceeds lower-secondary education level. Surfacing the grade is the
+  first step toward letting an adopter act on that.
+
+**Sources:**
+- https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
+- https://github.com/words/syllable
+- https://textstat.readthedocs.io/
+
+**Implementation:**
+- New `src/lib/audit/readability.ts` with five pure helpers and one
+  top-level scorer. No dependencies, no fetches, no AI.
+   · `countSyllables(word)` — vowel-group heuristic, exception table,
+     silent-e and `-le`-aware. Always returns ≥ 1 for non-empty input.
+   · `extractProse(markdown)` — 14-step strip pipeline: fenced code,
+     indented code, inline code, HTML, badges, image embeds, plain +
+     reference links, tables, headings, blockquotes, list markers,
+     horizontal rules, emphasis markers, reference-link definitions.
+   · `splitSentences(text)` — terminal-punctuation split with an
+     abbreviation mask (`e.g.`, `i.e.`, `etc.`, `vs.`, …) so dotted
+     abbreviations don't inflate the sentence count.
+   · `splitWords(text)` — letter+apostrophe runs.
+   · `bucketReadability(grade)` — coarse UI label.
+   · `computeReadability(markdown)` — strips prose, applies the FK
+     formulas, returns `{ fleschKincaidGrade, fleschReadingEase,
+     words, sentences, syllables, bucket }`. Returns `null` when the
+     prose is shorter than 30 words or fewer than 2 sentences (FK
+     numbers on tiny corpora are noise).
+- `ReadmeMetrics` in `insightEngine.ts` gains a `readability:
+  Readability | null` field, populated by calling `computeReadability`
+  on the raw README content.
+- `InsightsPanel` "README footprint" card now appends
+  `· grade {fkGrade.toFixed(1)} · {bucket} reading level` to its
+  subline when a score is available; falls back to the previous
+  structural-only line on short / non-prose READMEs.
+
+**Tests:** `tests/lib/audit/readability.test.ts` (46 cases) covers:
+- 14 syllable counts including the documented edge cases
+  (`the`, `wine`, `bottle`, `apple`, `table`, `banana`,
+  `readability`, `business`, `every`, `literature`, `area`, `idea`).
+- 9 prose-extraction cases (fenced + indented code, inline code,
+  badges, image embeds, link labels, HTML tags, tables + heading
+  markers, emphasis markers).
+- 3 sentence-splitter cases including the abbreviation mask.
+- 2 word-splitter cases.
+- 10 bucket-boundary cases.
+- 5 end-to-end formula cases (null on short input, deterministic
+  values for a known sample, academic > easy ordering, code-heavy
+  READMEs ignoring fenced code in the word count, one-decimal-place
+  rounding).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 32 files / 296 tests green (was 31 / 250).
+- `npm run build` — 577 KB JS, no warnings.
 
 ### 3.2 · Parse Dependabot config
 Today we just check if `.github/dependabot.yml` exists. Parse it to list
