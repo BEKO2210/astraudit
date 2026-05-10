@@ -1160,3 +1160,84 @@ html[data-theme="light"] .skeleton-shimmer {
     display: none !important;
   }
 }
+
+/* =========================================================================
+   LEGAL PAGES — Impressum & Datenschutzerklärung typography.
+
+   Stand-alone full-screen views with prose-heavy German legal text.
+   We deliberately keep the typography minimal — no aurora gradients,
+   no glass cards — so the page reads like a legal document, which is
+   what the BGH and Datenschutzbehörden expect (klar, unmissverständlich,
+   leicht zugänglich).
+   ========================================================================= */
+.legal-prose h2 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(255 255 255);
+  letter-spacing: 0.01em;
+}
+.legal-prose h2:first-child {
+  margin-top: 0;
+}
+.legal-prose p {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+}
+.legal-prose ul {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+  padding-left: 1.4em;
+  list-style: disc;
+}
+.legal-prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.legal-prose li::marker {
+  color: rgba(122, 92, 255, 0.6);
+}
+.legal-prose a {
+  color: #3ad6ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(58, 214, 255, 0.4);
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+.legal-prose a:hover {
+  color: #7a5cff;
+  text-decoration-color: rgba(122, 92, 255, 0.6);
+}
+.legal-prose code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.85em;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #c9d6ff;
+}
+.legal-prose strong {
+  color: rgb(255 255 255);
+  font-weight: 600;
+}
+
+/* Light theme — make the legal prose match the rest of the app's
+   light surface treatment so users who prefer light mode get a
+   consistent reading experience. */
+html[data-theme="light"] .legal-prose h2,
+html[data-theme="light"] .legal-prose strong {
+  color: #0f172a;
+}
+html[data-theme="light"] .legal-prose a {
+  color: #1d4ed8;
+}
+html[data-theme="light"] .legal-prose a:hover {
+  color: #6d28d9;
+}
+html[data-theme="light"] .legal-prose code {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}

@@ -1355,9 +1355,71 @@ only.
 - `npx vitest run` — 34 files / 340 tests green (was 33 / 319).
 - `npm run build` — 580 KB JS, no warnings.
 
-### 3.4 · Parse SECURITY.md for a contact channel
-Detect whether the policy gives a real reporting target (email,
-HackerOne, GitHub Security Advisories). Existence isn't enough.
+### 3.4 · Parse SECURITY.md for a contact channel ✅ shipped
+**Why:** Astraudit already detects whether SECURITY.md exists, but
+existence and *usefulness* are different signals. A one-line
+"security@example.com" placeholder file looks identical to a
+substantive 200-word policy with a HackerOne URL and a 30-day
+disclosure timeline. Adopters care which of those they're getting.
+
+**Pre-build research (2026-05-10):**
+- OpenSSF Scorecard · *Security-Policy* check awards points across
+  three signals:
+   · 6/10 — at least one valid contact channel (email OR http/https
+     URL),
+   · 3/10 — substantive free-form prose (not just bullet points of
+     links),
+   · 1/10 — security-specific terminology ("vulnerability",
+     "disclosure") AND a timeline reference ("30 days", "90 days",
+     "within … hours").
+  https://github.com/ossf/scorecard/blob/main/docs/checks.md
+- Common reporting channels seen in real-world policies: a private
+  email (`security@org`), GitHub Security Advisories
+  (`/security/advisories`), HackerOne (`hackerone.com`), Bugcrowd
+  (`bugcrowd.com`), Open Bug Bounty (`openbugbounty.org`), and
+  encrypted PGP keys (inline armored block or
+  `keys.openpgp.org` / `keybase.io` URL).
+
+**Implementation:**
+- New `src/lib/audit/securityPolicyParser.ts`. Pipeline:
+   1. `stripMarkdownLite` strips fenced code (preserving an inline
+      PGP key marker), HTML tags (preserving `<a href>` URLs),
+      markdown link syntax (keeping both URL + label), inline code,
+      emphasis markers, headings, list / blockquote markers.
+   2. `extractChannels` walks dedicated regex patterns for each
+      named service (GHSA URL + phrase, HackerOne, Bugcrowd, Open
+      Bug Bounty, PGP key URL + inline armored block) and emails.
+      Generic `https://*security*` URLs are a fallback only when no
+      named channel hit. Example placeholders
+      (`security@example.com`, `your-email@*`) are filtered out.
+   3. `parseSecurityPolicy` aggregates everything into a coarse
+      OpenSSF-style grade: `placeholder` (no channel), `basic`
+      (channel only), `good` (channel + ≥ 40 words + vuln terms),
+      `complete` (channel + ≥ 80 words + timeline reference).
+- `securityDetector.ts` parses the file when present, exposing
+  `securityPolicy: ParsedSecurityPolicy | null` on `SecuritySignals`.
+- `insightEngine.ts` surfaces `securityPolicy` on `DerivedInsights`.
+- `InsightsPanel.tsx` adds a ShieldCheck-icon "Security policy"
+  card. Value: quality grade + most-trusted channel
+  (`complete with timeline · GitHub Security Advisories`). Subline:
+  channel count + word count + cue list (timeline / supported
+  versions / vulnerability terms).
+
+**Tests:** `tests/lib/audit/securityPolicyParser.test.ts` (29 cases):
+- 8 channel-extraction cases (private email, GHSA URL, GHSA phrase,
+  HackerOne / Bugcrowd / Open Bug Bounty URLs, PGP block + URL,
+  example-placeholder filtering, value dedupe).
+- 4 quality-grading cases (placeholder, basic, good, complete).
+- 3 markdown-handling cases (link syntax, HTML anchors,
+  fenced code exclusion except for PGP).
+- 3 auxiliary-signal cases (Supported Versions heading, timeline
+  phrasings, null input).
+- 11 UI-helper cases (channel-kind labels, quality labels).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 35 files / 369 tests green (was 34 / 340).
+- `npm run build` — 581 KB JS, no warnings.
 
 ### 3.5 · Parse `package.json` engines / peerDependencies
 Surface declared Node versions; warn when missing. Detect framework
