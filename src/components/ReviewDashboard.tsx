@@ -2,10 +2,20 @@ import {
   ArrowLeftRight,
   Award,
   Printer as PrinterIcon,
+  RefreshCw,
   Share2 as ShareIcon,
 } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AuditGraphSkeleton } from "./AuditGraphSkeleton";
+import { formatRelativeTime } from "../lib/utils/formatDate";
+import {
+  applySimpleMode,
+  loadSimpleMode,
+  setSimpleMode,
+  subscribeSimpleMode,
+  type SimpleMode,
+} from "../lib/ui/simpleModeStore";
+import { SimpleAuditView } from "./SimpleAuditView";
 import { performShare } from "../lib/share/shareAction";
 import { pushToast } from "../lib/ui/toastStore";
 import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
@@ -44,6 +54,12 @@ import { StickyScoreBar } from "./StickyScoreBar";
 interface ReviewDashboardProps {
   result: AuditResult;
   onOpenCompare?: () => void;
+  /**
+   * Re-audit handler — drops the cached bundle for this repo and
+   * re-fetches everything. Wired in App.tsx via `forceFresh: true`.
+   * Optional so test renders + storybook still work without a host.
+   */
+  onReaudit?: () => void;
 }
 
 const SECTIONS: SectionItem[] = [
@@ -61,9 +77,41 @@ const SECTIONS: SectionItem[] = [
   { id: "next", label: "Next steps" },
 ];
 
-export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps) {
+export function ReviewDashboard({
+  result,
+  onOpenCompare,
+  onReaudit,
+}: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
   const [badgeOpen, setBadgeOpen] = useState(false);
+
+  // Simple-mode toggle. Read once on mount, then subscribe so a
+  // change pushed via setSimpleMode (e.g. from the toggle button or
+  // a CommandPalette entry) propagates without remounting the
+  // dashboard.
+  const [simpleMode, setSimpleModeState] = useState<SimpleMode>(() =>
+    loadSimpleMode(),
+  );
+  useEffect(() => {
+    applySimpleMode(simpleMode);
+  }, [simpleMode]);
+  useEffect(() => {
+    return subscribeSimpleMode((value) => setSimpleModeState(value));
+  }, []);
+  const flipSimpleMode = () => {
+    const next: SimpleMode = simpleMode === "on" ? "off" : "on";
+    setSimpleMode(next);
+  };
+
+  if (simpleMode === "on") {
+    return (
+      <SimpleAuditView
+        result={result}
+        onShowFullAudit={() => setSimpleMode("off")}
+        onReaudit={onReaudit}
+      />
+    );
+  }
 
   // Mobile speed-dial cluster (Phase 2.8.4). The desktop UI surfaces
   // these via the StickyScoreBar; on phones the action surface lives
@@ -158,6 +206,26 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
                     Compare with…
                   </button>
                 ) : null}
+                {onReaudit ? (
+                  <button
+                    type="button"
+                    onClick={onReaudit}
+                    title="Drop the cached bundle and re-fetch from GitHub. Useful after a deploy or when the dashboard shows a stale score."
+                    className="inline-flex items-center gap-1.5 rounded-full border border-aurora-violet/40 bg-aurora-violet/10 px-3 py-1 text-xs font-medium text-aurora-violet transition hover:bg-aurora-violet/20 print:hidden"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Re-audit
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={flipSimpleMode}
+                  aria-pressed={false}
+                  title="Show a stripped-down view: score, plain-language verdict, top three strengths and gaps."
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white print:hidden"
+                >
+                  Simple mode
+                </button>
                 <ShareButton
                   coords={{
                     owner: result.bundle.metadata.owner.login,
@@ -191,9 +259,29 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
               {result.verdict}
             </p>
             <p className="mt-3 text-xs text-slate-500">
-              Generated {new Date(result.generatedAt).toLocaleString()} ·{" "}
+              Generated{" "}
+              <time
+                dateTime={result.generatedAt}
+                title={new Date(result.generatedAt).toLocaleString()}
+              >
+                {formatRelativeTime(result.generatedAt)}
+              </time>{" "}
+              ·{" "}
               {result.findings.length} findings · {result.recommendations.length}{" "}
               recommended next steps
+              {onReaudit ? (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    onClick={onReaudit}
+                    className="inline-flex items-center gap-1 rounded text-aurora-violet underline-offset-2 transition hover:underline focus-visible:underline focus-visible:outline-none print:hidden"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Re-audit now
+                  </button>
+                </>
+              ) : null}
             </p>
           </div>
         </div>

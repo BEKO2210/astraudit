@@ -601,16 +601,95 @@ export function gradeFromScore(score: number): Grade {
   return "Critical";
 }
 
-export function buildVerdict(score: number, grade: Grade): string {
-  if (score >= 90)
+/**
+ * Phase 5.x bugfix — `buildVerdict` used to be a function of the
+ * total score alone, which produced contradictions like "Strong
+ * fundamentals … active maintenance" when Maintenance was actually
+ * the weakest category. The new version takes the category list
+ * and:
+ *   1. Picks the verdict template by score band (unchanged contract).
+ *   2. For the "Strong" / "Solid" bands, REPLACES the generic
+ *      "active maintenance" text with the categories that actually
+ *      ARE strong, and explicitly calls out weak categories instead
+ *      of pretending they're fine.
+ *
+ * The old contract — `buildVerdict(score, grade)` — is still
+ * supported for callers that don't have the categories handy; in
+ * that mode the function falls back to the legacy generic copy.
+ */
+export function buildVerdict(
+  score: number,
+  grade: Grade,
+  categories?: CategoryScore[],
+): string {
+  // Build a "what's actually strong" + "what's weak" pair from
+  // the category mix so we can substitute it into the verdict
+  // sentence. Strong = ≥ 80% of the category max; weak = < 60%.
+  // Empty arrays / missing argument fall through to the legacy copy.
+  const strongLabels = (categories ?? [])
+    .filter((c) => c.score / c.max >= 0.8)
+    .map((c) => labelForVerdict(c.label));
+  const weakLabels = (categories ?? [])
+    .filter((c) => c.score / c.max < 0.6)
+    .map((c) => labelForVerdict(c.label));
+
+  if (score >= 90) {
+    if (strongLabels.length >= 3) {
+      return `Mature, well-rounded engineering signals across ${oxfordList(strongLabels.slice(0, 3))}.`;
+    }
     return "This repository shows mature, well-rounded engineering signals across documentation, quality, and maintenance.";
-  if (score >= 80)
-    return "Strong fundamentals: clear structure, good tooling, and active maintenance with only minor gaps.";
-  if (score >= 70)
+  }
+
+  if (score >= 80) {
+    if (strongLabels.length > 0 && weakLabels.length > 0) {
+      return `Strong on ${oxfordList(strongLabels.slice(0, 3))}; thinner on ${oxfordList(weakLabels.slice(0, 2))}.`;
+    }
+    if (strongLabels.length > 0) {
+      return `Strong on ${oxfordList(strongLabels.slice(0, 3))} with only minor gaps elsewhere.`;
+    }
+    return "Strong fundamentals overall, with only minor gaps.";
+  }
+
+  if (score >= 70) {
+    if (weakLabels.length > 0) {
+      return `Recognizable structure and tooling, but ${oxfordList(weakLabels.slice(0, 2))} could use more attention.`;
+    }
     return "A solid project with recognizable structure and tooling, though several signals are incomplete.";
-  if (score >= 60)
+  }
+
+  if (score >= 60) {
+    if (weakLabels.length > 0) {
+      return `Workable, but ${oxfordList(weakLabels.slice(0, 3))} signals are missing.`;
+    }
     return "Workable, but several documentation, security, or quality signals are missing.";
-  if (score >= 45)
+  }
+
+  if (score >= 45) {
+    if (weakLabels.length > 0) {
+      return `Risky: ${oxfordList(weakLabels.slice(0, 3))} signals are missing or weak.`;
+    }
     return "Risky: critical signals such as license, tests, or maintenance activity are missing or weak.";
+  }
+
   return `${grade}: too many trust and quality signals are missing to recommend without further investigation.`;
+}
+
+/** Lower-case the category label and shorten the longer ones so
+ *  they fit naturally inside a sentence. */
+function labelForVerdict(label: string): string {
+  const lower = label.toLowerCase();
+  // "Code Quality Signals" → "code quality"; "Security & Trust" →
+  // "security"; "Ecosystem & Dependencies" → "ecosystem".
+  return lower
+    .replace(/ signals$/, "")
+    .replace(/ & .+$/, "")
+    .replace(/ and .+$/, "");
+}
+
+/** Compose 1-3 items into an Oxford-list sentence fragment. */
+function oxfordList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }

@@ -50,15 +50,26 @@ export function Hero({
             aria-label="Astraudit home"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10 transition hover:ring-aurora-violet/40"
           >
-            <img
-              src={`${import.meta.env.BASE_URL}Logo_bg_removed.png`}
-              alt=""
-              width={36}
-              height={36}
-              decoding="async"
-              loading="eager"
-              className="h-9 w-9 rounded-xl object-contain"
-            />
+            {/* WebP first, PNG fallback. Both files are 256×256 —
+                the original 3464×3464 / 5 MB asset went from
+                blocking-the-page to 10 KB. The PNG is the
+                fallback for browsers that lack WebP (none of the
+                evergreens we target, but defensive). */}
+            <picture>
+              <source
+                srcSet={`${import.meta.env.BASE_URL}Logo_bg_removed.webp`}
+                type="image/webp"
+              />
+              <img
+                src={`${import.meta.env.BASE_URL}Logo_bg_removed.png`}
+                alt=""
+                width={36}
+                height={36}
+                decoding="async"
+                loading="eager"
+                className="h-9 w-9 rounded-xl object-contain"
+              />
+            </picture>
           </a>
           <div className="min-w-0">
             <p className="text-sm font-semibold tracking-wider text-white/90">
@@ -132,17 +143,29 @@ export function Hero({
           <ShieldCheck className="h-3.5 w-3.5 text-aurora-mint" />
           Browser-only · No code execution
         </span>
+        {/* Phase 5.x — hero copy refocused on the user's decision
+            moment ("should I trust this repo?") rather than the
+            tool's mechanics. Lead with the OUTCOME (a 30-second
+            verdict), the qualifier (public GitHub), and the
+            decision context (fork / depend / contribute). The
+            body sentence cites the actual outputs — score, gaps,
+            fixes — so users know what to expect when they hit the
+            Audit button. */}
         <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
-          Map, score, and understand any{" "}
+          Should you trust this{" "}
           <span className="bg-gradient-to-br from-aurora-violet via-aurora-blue to-aurora-mint bg-clip-text text-transparent">
             public GitHub
           </span>{" "}
-          repository.
+          repo? Find out in 30 seconds.
         </h1>
         <p className="mt-5 max-w-2xl text-base text-slate-300/85 sm:text-lg">
-          Astraudit reads metadata, the file tree, and known config files from a
-          repository — then produces a structured risk, quality, and maintenance
-          review you can trust before you fork, depend on, or contribute.
+          Paste a URL.{" "}
+          <strong className="font-semibold text-white">
+            Get a 100-point readiness score
+          </strong>
+          , the eight signals that matter, and the fixes a maintainer would
+          prioritize first — before you fork, depend on, or contribute. No
+          login, no backend, no AI guesswork.
         </p>
       </div>
 
