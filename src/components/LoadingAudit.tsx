@@ -55,7 +55,7 @@ export function LoadingAudit({ step, repoLabel }: LoadingAuditProps) {
     >
       {/* Status pill — single source of textual progress info. */}
       <div className="mt-8 flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur sm:max-w-fit">
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-aurora-violet" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 shrink-0 text-aurora-violet motion-safe:animate-spin" aria-hidden />
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
           Auditing
         </span>

@@ -218,7 +218,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-300 hover:bg-white/[0.06] disabled:opacity-60"
             >
               {probing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3 w-3 motion-safe:animate-spin" />
               ) : (
                 <CheckCircle2 className="h-3 w-3" />
               )}

@@ -155,7 +155,7 @@ function ToastItem({ toast }: { toast: Toast }) {
     >
       <Icon
         className={`mt-0.5 h-4 w-4 shrink-0 ${
-          toast.tone === "loading" ? "animate-spin" : ""
+          toast.tone === "loading" ? "motion-safe:animate-spin" : ""
         }`}
       />
       <div className="min-w-0 flex-1">
