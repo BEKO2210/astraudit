@@ -29,6 +29,15 @@ interface PypiResponse {
     home_page?: string;
     project_url?: string;
     project_urls?: Record<string, string>;
+    /** Free-text license label (e.g. "MIT License" or
+     *  "Apache Software License"). Usually populated when the
+     *  package author set `license = "…"` in setup.cfg / pyproject. */
+    license?: string;
+    /** Trove classifiers — when the author skipped `license` they
+     *  often still have one or more `License :: …` classifiers. */
+    classifiers?: string[];
+    /** SPDX expression — newer PyPI metadata 2.4 (PEP 639) form. */
+    license_expression?: string;
   };
   releases?: Record<
     string,
@@ -92,6 +101,8 @@ export async function fetchPypiMetadata(
     body.info?.project_url ||
     null;
 
+  const license = pickPypiLicense(body);
+
   const metadata: RegistryMetadata = {
     ecosystem: "pypi",
     name: body.info?.name ?? name,
@@ -100,8 +111,34 @@ export async function fetchPypiMetadata(
     deprecated: false,
     homepage: typeof homepage === "string" ? homepage : null,
     recentDownloads: null,
+    license,
   };
   return { kind: "ok", metadata, cached: false };
+}
+
+function pickPypiLicense(body: PypiResponse): string | null {
+  // Order: PEP 639 SPDX expression (most precise) → free-text
+  // `license` field → trove classifiers (least precise).
+  const info = body.info;
+  if (!info) return null;
+  if (typeof info.license_expression === "string" && info.license_expression.trim()) {
+    return info.license_expression.trim();
+  }
+  if (typeof info.license === "string" && info.license.trim()) {
+    return info.license.trim();
+  }
+  if (Array.isArray(info.classifiers)) {
+    for (const c of info.classifiers) {
+      if (typeof c === "string" && c.startsWith("License :: ")) {
+        // The classifier looks like `License :: OSI Approved :: MIT License`
+        // — pull the last segment as the human-readable label.
+        const parts = c.split("::").map((p) => p.trim()).filter(Boolean);
+        const last = parts[parts.length - 1];
+        if (last && last !== "OSI Approved") return last;
+      }
+    }
+  }
+  return null;
 }
 
 async function fetchWithTimeout(

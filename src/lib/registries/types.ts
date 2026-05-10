@@ -29,6 +29,12 @@ export interface RegistryMetadata {
    *  npm aren't exposed via free unauth endpoints, so this is only
    *  populated for crates entries. */
   recentDownloads: number | null;
+  /** Raw declared license — usually a single SPDX id, sometimes an
+   *  expression like `"MIT OR Apache-2.0"`, sometimes
+   *  `"SEE LICENSE IN <file>"`, sometimes a free-text label from
+   *  PyPI's `info.license` field. Null when the registry didn't
+   *  expose anything we could read. Phase 3.9. */
+  license: string | null;
 }
 
 /** Outcome envelope per package — `kind` is the discriminant. */

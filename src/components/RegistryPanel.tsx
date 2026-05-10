@@ -15,10 +15,13 @@
  */
 
 import {
+  AlertTriangle,
   ExternalLink,
+  Info,
   Loader2,
   Network,
   PackageX,
+  Scale,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,11 +41,21 @@ import type {
   RegistryOutcome,
 } from "../lib/registries/types";
 import type { ParsedManifest } from "../lib/audit/packageManifest";
+import {
+  analyzeLicenseTone,
+  classifyLicense,
+  formatLicenseCategory,
+  type LicenseCategory,
+  type LicenseFindingTone,
+} from "../lib/audit/licenseClassifier";
 import type { ImportantFile } from "../types/github";
 
 interface Props {
   manifest: ParsedManifest | null;
   importantFiles: ImportantFile[];
+  /** Repo's own SPDX id (e.g. `"MIT"`), pulled from the GitHub
+   *  metadata. Drives the Phase 3.9 license-tone comparison. */
+  repoLicense: string | null;
 }
 
 const STALENESS_COLOR: Record<StalenessBucket, string> = {
@@ -127,7 +140,7 @@ function buildRequests(
 
 /* -------------------------------------------------------------------------- */
 
-export function RegistryPanel({ manifest, importantFiles }: Props) {
+export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) {
   const requests = useMemo(
     () => buildRequests(manifest, importantFiles),
     [manifest, importantFiles],
@@ -159,11 +172,27 @@ export function RegistryPanel({ manifest, importantFiles }: Props) {
     };
   }, [requests]);
 
-  if (requests.length === 0) return null;
-
+  // Phase 3.9 — once we have any classified licenses, compute the
+  // tone summary on the fly. We deliberately recompute on every
+  // outcomes change so findings stream in alongside the rows.
   const oks = outcomes.filter(
     (o): o is Extract<RegistryOutcome, { kind: "ok" }> => o.kind === "ok",
   );
+  const tone = useMemo(
+    () =>
+      analyzeLicenseTone(
+        repoLicense,
+        oks.map((o) => ({
+          name: o.metadata.name,
+          ecosystem: o.metadata.ecosystem,
+          license: o.metadata.license,
+        })),
+      ),
+    [oks, repoLicense],
+  );
+
+  if (requests.length === 0) return null;
+
   const notFound = outcomes.filter((o) => o.kind === "not-found").length;
   const errored = outcomes.filter((o) => o.kind === "error").length;
 
@@ -198,6 +227,10 @@ export function RegistryPanel({ manifest, importantFiles }: Props) {
         backend involved.
       </p>
 
+      {tone.findings.length > 0 || depCountsHaveSignal(tone.depCounts) ? (
+        <LicenseToneSection tone={tone} />
+      ) : null}
+
       <ul className="mt-4 grid gap-3 md:grid-cols-2">
         {requests.map((req) => {
           const outcome = outcomes.find(
@@ -221,6 +254,119 @@ export function RegistryPanel({ manifest, importantFiles }: Props) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/** Whether the dependency-license counts contain anything worth a
+ *  visible "License mix" line — i.e. anything other than 100% unknown. */
+function depCountsHaveSignal(counts: Record<LicenseCategory, number>): boolean {
+  for (const [k, v] of Object.entries(counts)) {
+    if (k === "unknown") continue;
+    if (v > 0) return true;
+  }
+  return false;
+}
+
+const TONE_COLOR: Record<LicenseFindingTone, string> = {
+  info: "border-aurora-cyan/40 bg-aurora-cyan/10 text-aurora-cyan",
+  warning: "border-aurora-amber/40 bg-aurora-amber/10 text-aurora-amber",
+  critical: "border-risk-critical/40 bg-risk-critical/10 text-risk-critical",
+};
+const TONE_ICON: Record<
+  LicenseFindingTone,
+  React.ComponentType<{ className?: string }>
+> = {
+  info: Info,
+  warning: AlertTriangle,
+  critical: AlertTriangle,
+};
+
+function LicenseToneSection({
+  tone,
+}: {
+  tone: ReturnType<typeof analyzeLicenseTone>;
+}) {
+  const totalKnown = Object.entries(tone.depCounts)
+    .filter(([k]) => k !== "unknown")
+    .reduce((sum, [, v]) => sum + v, 0);
+  const mix = (
+    [
+      ["permissive", tone.depCounts.permissive],
+      ["weak-copyleft", tone.depCounts["weak-copyleft"]],
+      ["strong-copyleft", tone.depCounts["strong-copyleft"]],
+      ["public-domain", tone.depCounts["public-domain"]],
+      ["proprietary", tone.depCounts.proprietary],
+      ["none", tone.depCounts.none],
+    ] as const
+  ).filter(([, count]) => count > 0);
+
+  return (
+    <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+        <Scale className="h-3.5 w-3.5 text-aurora-violet" />
+        License tone
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+        {tone.repo ? (
+          <span>
+            Repo: <strong className="text-white">{tone.repo.label}</strong> ·
+            <span className="ml-1 text-slate-400">
+              {formatLicenseCategory(tone.repo.category)}
+            </span>
+          </span>
+        ) : (
+          <span className="text-slate-400">
+            Repo license not declared on GitHub.
+          </span>
+        )}
+        {totalKnown > 0 ? (
+          <span className="text-slate-500">
+            · {totalKnown} dep{totalKnown === 1 ? "" : "s"} classified
+          </span>
+        ) : null}
+      </div>
+      {mix.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {mix.map(([category, count]) => (
+            <span
+              key={category}
+              className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-300"
+            >
+              {formatLicenseCategory(category as LicenseCategory)} · {count}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {tone.findings.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {tone.findings.map((f) => {
+            const Icon = TONE_ICON[f.tone];
+            return (
+              <li
+                key={f.id}
+                className={`rounded-lg border p-2.5 ${TONE_COLOR[f.tone]}`}
+              >
+                <div className="flex items-start gap-2">
+                  <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-semibold">{f.title}</p>
+                    <p className="mt-0.5 text-[11px] opacity-90">{f.detail}</p>
+                    {f.packages.length > 0 ? (
+                      <p className="mt-1 break-words font-mono text-[11px] opacity-80">
+                        {f.packages.slice(0, 8).join(", ")}
+                        {f.packages.length > 8
+                          ? ` + ${f.packages.length - 8} more`
+                          : ""}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 function RegistryRow({
   ecosystem,
@@ -317,6 +463,12 @@ function RegistryDetails({ metadata }: { metadata: RegistryMetadata }) {
     parts.push(
       `${metadata.recentDownloads.toLocaleString("en-US")} downloads / 90 d`,
     );
+  }
+  // Phase 3.9 — surface the classified license inline so the row is
+  // legible without scrolling up to the tone summary.
+  const license = classifyLicense(metadata.license);
+  if (license.category !== "none") {
+    parts.push(`${license.label} (${formatLicenseCategory(license.category)})`);
   }
   return (
     <div className="mt-1.5 break-words text-xs text-slate-400">

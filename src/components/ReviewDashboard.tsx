@@ -213,6 +213,7 @@ export function ReviewDashboard({ result, onOpenCompare }: ReviewDashboardProps)
         <RegistryPanel
           manifest={result.insights.manifest}
           importantFiles={result.bundle.importantFiles}
+          repoLicense={result.bundle.metadata.license?.spdxId ?? null}
         />
       </section>
 

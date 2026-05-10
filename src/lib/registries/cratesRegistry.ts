@@ -35,6 +35,10 @@ interface CratesResponse {
     homepage?: string | null;
     recent_downloads?: number | null;
   };
+  versions?: Array<{
+    num?: string;
+    license?: string | null;
+  }>;
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -82,6 +86,16 @@ export async function fetchCratesMetadata(
   const latestVersion = c.max_stable_version ?? c.max_version ?? null;
   const homepage = c.homepage || c.repository || null;
 
+  // The license lives on the matching version entry, not the crate
+  // root. Find the entry whose `num` equals the picked latestVersion.
+  let license: string | null = null;
+  if (latestVersion && Array.isArray(body.versions)) {
+    const match = body.versions.find((v) => v.num === latestVersion);
+    if (match && typeof match.license === "string" && match.license.trim()) {
+      license = match.license.trim();
+    }
+  }
+
   const metadata: RegistryMetadata = {
     ecosystem: "crates",
     name: c.name ?? name,
@@ -91,6 +105,7 @@ export async function fetchCratesMetadata(
     homepage,
     recentDownloads:
       typeof c.recent_downloads === "number" ? c.recent_downloads : null,
+    license,
   };
   return { kind: "ok", metadata, cached: false };
 }

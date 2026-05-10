@@ -33,7 +33,14 @@ interface NpmPackument {
   homepage?: string;
   repository?: { url?: string } | string;
   deprecated?: string;
-  versions?: Record<string, { deprecated?: string } | undefined>;
+  /** Modern packuments expose `license` at the top level as a string.
+   *  Older / hand-edited ones used an object — we tolerate both. */
+  license?: string | { type?: string };
+  versions?: Record<
+    string,
+    | { deprecated?: string; license?: string | { type?: string } }
+    | undefined
+  >;
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -116,6 +123,11 @@ export async function fetchNpmMetadata(
         : body.repository.url ?? null;
   }
 
+  // License — packument top-level wins; fall back to the latest
+  // version's manifest entry. Object form `{ type: "MIT" }` was
+  // deprecated in npm 7+ but still appears in the wild.
+  const license = pickLicense(body, latestVersion);
+
   const metadata: RegistryMetadata = {
     ecosystem: "npm",
     name: body.name ?? name,
@@ -124,8 +136,32 @@ export async function fetchNpmMetadata(
     deprecated,
     homepage,
     recentDownloads: null,
+    license,
   };
   return { kind: "ok", metadata, cached: false };
+}
+
+function pickLicense(
+  body: NpmPackument,
+  latestVersion: string | null,
+): string | null {
+  const flatten = (value: NpmPackument["license"]): string | null => {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (value && typeof value === "object" && typeof value.type === "string") {
+      return value.type.trim() || null;
+    }
+    return null;
+  };
+  const top = flatten(body.license);
+  if (top) return top;
+  if (latestVersion) {
+    const versionEntry = body.versions?.[latestVersion];
+    if (versionEntry) {
+      const v = flatten(versionEntry.license);
+      if (v) return v;
+    }
+  }
+  return null;
 }
 
 async function fetchWithTimeout(

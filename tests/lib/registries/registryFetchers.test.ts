@@ -128,6 +128,50 @@ describe("fetchNpmMetadata", () => {
     expect(out.kind).toBe("error");
     if (out.kind === "error") expect(out.reason).toContain("network down");
   });
+
+  it("extracts top-level `license` strings (Phase 3.9)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        name: "react",
+        "dist-tags": { latest: "18.3.1" },
+        time: { "18.3.1": "2024-04-22T12:00:00Z" },
+        license: "MIT",
+      }),
+    );
+    const out = await fetchNpmMetadata("react");
+    expect(out.kind).toBe("ok");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("MIT");
+  });
+
+  it("falls back to the latest version's license when the top-level field is missing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        name: "fancy",
+        "dist-tags": { latest: "1.0.0" },
+        time: { "1.0.0": "2024-01-01T00:00:00Z" },
+        versions: { "1.0.0": { license: "Apache-2.0" } },
+      }),
+    );
+    const out = await fetchNpmMetadata("fancy");
+    expect(out.kind).toBe("ok");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("Apache-2.0");
+  });
+
+  it("flattens the legacy object form `{ type: 'MIT' }`", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        name: "old",
+        "dist-tags": { latest: "1.0.0" },
+        time: { "1.0.0": "2018-01-01T00:00:00Z" },
+        license: { type: "MIT" },
+      }),
+    );
+    const out = await fetchNpmMetadata("old");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("MIT");
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -183,6 +227,42 @@ describe("fetchPypiMetadata", () => {
     if (out.kind === "ok") {
       expect(out.metadata.homepage).toBe("https://github.com/Textualize/rich");
     }
+  });
+
+  it("prefers PEP 639 license_expression > info.license > classifiers (Phase 3.9)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        info: {
+          name: "django",
+          version: "5.0.1",
+          license: "BSD",
+          license_expression: "BSD-3-Clause",
+          classifiers: [
+            "License :: OSI Approved :: BSD License",
+          ],
+        },
+        releases: { "5.0.1": [{ upload_time_iso_8601: "2024-01-02T00:00:00Z" }] },
+      }),
+    );
+    const out = await fetchPypiMetadata("django");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("BSD-3-Clause");
+  });
+
+  it("derives the license from a trove classifier when nothing else is set", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        info: {
+          name: "old-pkg",
+          version: "1.0.0",
+          classifiers: ["License :: OSI Approved :: MIT License"],
+        },
+        releases: { "1.0.0": [{ upload_time_iso_8601: "2020-01-01T00:00:00Z" }] },
+      }),
+    );
+    const out = await fetchPypiMetadata("old-pkg");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("MIT License");
   });
 });
 
@@ -247,5 +327,24 @@ describe("fetchCratesMetadata", () => {
     vi.stubGlobal("fetch", mockFetchStatus(404));
     const out = await fetchCratesMetadata("nope");
     expect(out.kind).toBe("not-found");
+  });
+
+  it("pulls the license from the matching version entry (Phase 3.9)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetchOk({
+        crate: {
+          name: "serde",
+          max_stable_version: "1.0.197",
+          updated_at: "2024-02-19T00:00:00Z",
+        },
+        versions: [
+          { num: "1.0.196", license: "Apache-2.0 OR MIT" }, // not the latest
+          { num: "1.0.197", license: "MIT OR Apache-2.0" },
+        ],
+      }),
+    );
+    const out = await fetchCratesMetadata("serde");
+    if (out.kind === "ok") expect(out.metadata.license).toBe("MIT OR Apache-2.0");
   });
 });

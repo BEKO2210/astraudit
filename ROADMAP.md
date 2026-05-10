@@ -1743,10 +1743,108 @@ introducing any backend.
 - `npx vitest run` — 43 files / 521 tests green (was 39 / 482).
 - `npm run build` — 615 KB JS, no warnings.
 
-### 3.9 · License-aware tone in dependency stories
-Categorize the licenses of detected top-level dependencies (best-effort
-from public registry data) and warn about copyleft-in-permissive
-mixes. No installer ever runs.
+### 3.9 · License-aware tone in dependency stories ✅ shipped
+**Why:** A permissive-licensed project (MIT / Apache-2.0 / BSD)
+that pulls in even one strong-copyleft (GPL / AGPL) dependency
+inherits the copyleft for the entire derivative work. The GNU
+Project's compatibility guidance is explicit: "the parts that came
+in under lax licenses still carry them, and the combined program as
+a whole carries the copyleft license." That's a real legal trap the
+audit can flag for free using data we already fetch in Phase 3.8.
+
+**Pre-build research (2026-05-10):**
+- SPDX License List 3.x — modern identifiers replaced bare GNU forms
+  (`GPL-3.0` → `GPL-3.0-only` / `GPL-3.0-or-later`); we accept both.
+- npm `package.json` `license` field accepts SPDX expressions
+  (`MIT OR Apache-2.0` is the most common dual-license form), the
+  legacy object shape `{ type: "MIT" }`, the custom-text form
+  `SEE LICENSE IN <file>`, and `UNLICENSED`.
+  https://docs.npmjs.com/cli/v10/configuring-npm/package-json#license
+- PyPI exposes licenses three ways with decreasing precision:
+  PEP 639 `info.license_expression` (SPDX), the free-text
+  `info.license` field, and trove `License :: …` classifiers. We
+  prefer the most precise form available.
+- crates.io ships the license string on each version entry (not the
+  crate root).
+- GNU Project · *License Compatibility*: strong copyleft pulls up
+  permissive — actionable. Weak copyleft (LGPL / MPL) is fine for
+  dynamic linking — surface as info, not a warning.
+  https://www.gnu.org/licenses/license-compatibility.html
+
+**Implementation:**
+- All three Phase 3.8 fetchers (`npmRegistry`, `pypiRegistry`,
+  `cratesRegistry`) now extract the license:
+   · npm: top-level `license` (string OR legacy `{ type }` object),
+     fallback to the latest version's manifest entry.
+   · PyPI: `license_expression` (PEP 639) → `info.license` →
+     classifiers (last `::` segment, skipping the
+     `OSI Approved` rung).
+   · crates: looks up the matching `versions[]` entry by `num`
+     equal to the picked latest version.
+- `RegistryMetadata` gains a `license: string | null` field —
+  cached entries persist it through the existing localStorage
+  TTL cache, no migration needed.
+- New `src/lib/audit/licenseClassifier.ts`:
+   · `classifyLicense(spec)` returns `{ raw, label, category }`.
+     Category is one of `permissive` / `weak-copyleft` /
+     `strong-copyleft` / `public-domain` / `proprietary` / `none` /
+     `unknown`. Handles SPDX expressions: `OR` collapses to the
+     most-permissive alternative, `AND` to the most-restrictive,
+     parens are stripped. Free-text PyPI labels go through a
+     synonym table.
+   · `analyzeLicenseTone(repoSpdx, deps)` produces a
+     `LicenseToneSummary` with per-category dep counts and a sorted
+     `LicenseFinding[]`. The four findings are:
+       1. *Strong copyleft (GPL family) under a permissive repo* —
+          `critical` when the repo is permissive / public-domain /
+          undeclared, `warning` when the repo is itself copyleft.
+       2. *Weak copyleft (LGPL / MPL family) dependencies* — info,
+          regardless of repo license.
+       3. *Source-available / proprietary dependencies* — warning
+          for BUSL / Elastic / SSPL etc.
+       4. *Unrecognised license strings* — info, only when the share
+          of unknowns is ≥ 25 % of classified deps.
+- `RegistryPanel` gains a "License tone" section at the top showing
+  the repo's classified license, the per-category dep mix as
+  pills, and any compatibility findings styled by tone (info / warn
+  / critical). Each row's subline now also surfaces the dep's
+  classified license inline (`MIT (Permissive)`).
+- `ReviewDashboard` passes the GitHub-derived
+  `meta.license?.spdxId` through as the `repoLicense` prop.
+
+**Tests:** 56 new cases across two files:
+- `tests/lib/audit/licenseClassifier.test.ts` (50 cases): single
+  SPDX ids per family (18), expressions with OR / AND / parens (4),
+  PyPI synonym round-trip (8), custom-text declarations (2),
+  `analyzeLicenseTone` covering critical-vs-warning gating, weak-
+  copyleft info, proprietary warning, unclassified-deps threshold,
+  no-finding all-permissive case, sort order, null-repo path,
+  per-category counts (10), UI label helpers (7).
+- `tests/lib/registries/registryFetchers.test.ts` extended with 6
+  new cases for license extraction across all three registries
+  (top-level + version-fallback + legacy `{ type }`, PEP 639
+  precedence, classifier fallback, crates per-version lookup).
+
+**Verification:**
+- `npm run typecheck` — clean.
+- `npx vitest run` — 44 files / 577 tests green (was 43 / 521).
+- `npm run build` — 624 KB JS, no warnings.
+
+---
+
+### Phase 3 wrap
+
+All nine Phase 3 detectors now ship: README readability (3.1),
+Dependabot config parsing (3.2), CODEOWNERS density (3.3),
+SECURITY.md contact-channel grading (3.4), `package.json` runtime
+contract (3.5), CHANGELOG release pace (3.6), topic-driven
+contextual rules (3.7), free public registry lookups across npm /
+PyPI / crates.io (3.8), and license-aware tone analysis (3.9).
+Plus a German-law-compliant Impressum + Datenschutzerklärung. The
+audit now combines file-derived signals with live registry data
+while staying entirely browser-based, free, and rule-based — every
+operating constraint preserved. Suite: 27/208 at the start of
+Phase 3 → 44/577 at the end.
 
 ---
 
