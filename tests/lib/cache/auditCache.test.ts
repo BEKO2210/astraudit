@@ -81,3 +81,79 @@ describe("auditCache", () => {
     expect(storage.store.size).toBe(0);
   });
 });
+
+// Phase 6.28 — cache invalidation deep-dive. Locks the edge-case
+// contracts the Re-audit flow + private-mode browsers rely on.
+describe("auditCache — Phase 6.28 edge cases", () => {
+  it("removeBundle drops the entry AND its index slot", async () => {
+    const cache = await import("../../../src/lib/cache/auditCache");
+    cache.writeBundle({ owner: "owner", repo: "demo" }, makeBundle());
+    expect(cache.getStats().count).toBe(1);
+    cache.removeBundle({ owner: "owner", repo: "demo" });
+    expect(cache.readBundle({ owner: "owner", repo: "demo" })).toBeNull();
+    expect(cache.getStats().count).toBe(0);
+  });
+
+  it("readBundle returns null for malformed JSON in localStorage", async () => {
+    const cache = await import("../../../src/lib/cache/auditCache");
+    cache.writeBundle({ owner: "owner", repo: "demo" }, makeBundle());
+    const key = Array.from(storage.store.keys()).find((k) =>
+      k.endsWith(":owner/demo"),
+    )!;
+    storage.setItem(key, "{ this is not valid JSON");
+    expect(cache.readBundle({ owner: "owner", repo: "demo" })).toBeNull();
+  });
+
+  it("writeBundle silently no-ops when localStorage throws (private mode / quota)", async () => {
+    const cache = await import("../../../src/lib/cache/auditCache");
+    // Simulate a private-mode browser by making setItem throw and
+    // verifying the call doesn't propagate the exception.
+    const originalSet = storage.setItem.bind(storage);
+    storage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    expect(() => {
+      cache.writeBundle({ owner: "owner", repo: "demo" }, makeBundle());
+    }).not.toThrow();
+    // Restore so other tests in this describe-block don't blow up.
+    storage.setItem = originalSet;
+    // Subsequent readBundle should return null because nothing actually
+    // wrote.
+    expect(cache.readBundle({ owner: "owner", repo: "demo" })).toBeNull();
+  });
+
+  it("readBundle returns null on a brand-new key (cold cache)", async () => {
+    const cache = await import("../../../src/lib/cache/auditCache");
+    expect(cache.readBundle({ owner: "fresh", repo: "miss" })).toBeNull();
+  });
+
+  it("overwriting the same key keeps exactly one entry", async () => {
+    const cache = await import("../../../src/lib/cache/auditCache");
+    cache.writeBundle({ owner: "owner", repo: "demo" }, makeBundle());
+    cache.writeBundle(
+      { owner: "owner", repo: "demo" },
+      makeBundle({ paths: ["README.md", "package.json"] }),
+    );
+    expect(cache.getStats().count).toBe(1);
+    const back = cache.readBundle({ owner: "owner", repo: "demo" });
+    expect(back).not.toBeNull();
+    // Most-recent write wins.
+    expect(back!.tree.entries.length).toBeGreaterThan(0);
+  });
+
+  it("tolerates a missing localStorage entirely (server-side path)", async () => {
+    // Drop the global stub for this case so isBrowser() returns false.
+    vi.unstubAllGlobals();
+    vi.resetModules();
+    const cache = await import("../../../src/lib/cache/auditCache");
+    expect(cache.readBundle({ owner: "x", repo: "y" })).toBeNull();
+    expect(() => {
+      cache.writeBundle({ owner: "x", repo: "y" }, makeBundle());
+    }).not.toThrow();
+    expect(cache.getStats().count).toBe(0);
+    // Restore stubs for subsequent tests in the file.
+    storage = new MockStorage();
+    vi.stubGlobal("window", { localStorage: storage });
+    vi.stubGlobal("localStorage", storage);
+  });
+});

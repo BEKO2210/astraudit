@@ -12,8 +12,11 @@
  * - 100% client-side: lives in localStorage only.
  * - Bounded: per-entry size cap and total entry cap so a single
  *   monorepo can't fill localStorage.
- * - TTL invalidation: 24 hours. We additionally invalidate when the
- *   metadata.pushedAt of a re-fetch differs from the cached value.
+ * - TTL invalidation: 24 hours from `cachedAt`. (`pushedAt`-based
+ *   invalidation was considered but lives at the App layer — Re-audit
+ *   from the UI calls `removeBundle(coords)` before the fresh fetch
+ *   so the next read is a cache miss. See `App.tsx#startAudit` with
+ *   `forceFresh`.)
  */
 
 import type { RepoBundle, RepoCoordinates } from "../../types/github";

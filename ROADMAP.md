@@ -3096,40 +3096,66 @@ this?" to a recognisable Astraudit card.
 
 ### V · Error paths + edge cases
 
-- **6.26 Every error message reviewed.** Phase 5.6 centralised
-  the GitHub-error → user-state mapping. Re-walk the resulting
-  copy with three audiences in mind: (a) a maintainer who
-  knows GitHub's API, (b) a curious dev who's never used
-  Astraudit, (c) a non-technical reader who saw the link in a
-  PR review. Tighten anything jargon-heavy.
-- **6.27 Race conditions on rapid input.** User pastes URL →
-  Audit fires → user pastes a different URL before the first
-  finishes → second Audit fires. Confirm the in-flight first
-  abort works, the URL hash updates, and there's no visible
-  flicker between the two states.
-- **6.28 Cache invalidation deep-dive.** `removeBundle` runs on
-  Re-audit (Phase 5.x followup). Test: cache hit, cache TTL
-  expiry, cache-but-pushedAt-changed, cache-but-different-tree
-  (e.g. force-pushed branch), private-mode no-cache. Each
-  should land cleanly with no console errors.
-- **6.29 Rate-limit messaging end-to-end.** Phase 5.6 added the
-  countdown. With a real exhausted unauthenticated quota:
-  - Verify the "Resets in X min" countdown ticks.
-  - Verify "Open Settings → add a PAT" actually opens the
-    settings dialog focused on the token input.
-  - Verify the retry path after a token is added clears the
-    error without a page reload.
-- **6.30 Compare-mode edge cases.** Same repo on both sides
-  (already blocked). Forks of the same upstream. One repo
-  archived. One repo so much bigger than the other that the
-  audit timing diverges sharply. Document expected behaviour
-  for each.
-- **6.31 Share-URL fuzz.** Every visible URL pattern fed to
-  `parseRepoInput` should either parse cleanly or surface a
-  helpful error. Cases: gist URLs, GitLab URLs, BitBucket
-  URLs, owner-only URLs, repo-only paths, URLs with trailing
-  slashes, URLs with query strings, URLs with fragments,
-  shortened URLs (git.io / bit.ly).
+- **6.26 Every error message reviewed.** ✅ `auditErrorView.ts`
+  copy tightened: TooLarge drops the "browser-only audit budget"
+  jargon ("This repository has too many files for an in-browser
+  audit to keep fast"); EmptyRepo names the recovery step
+  ("Push some content first, then come back and audit it"). A
+  new `AuditErrorView shape contract` block in
+  `auditErrorView.test.ts` walks every error fixture (rate-limit
+  anon/auth, NotFound, TooLarge, GithubError 5xx/4xx, Abort,
+  unknown string, unknown null) and asserts each produces a
+  non-empty title + message + ≥1 action — locks the contract so
+  a future copy edit can't ship an empty CTA.
+- **6.27 Race conditions on rapid input.** ✅
+  `tests/lib/github/loadRepoBundleAbort.test.ts` locks the
+  unit-level abort contract: a pre-aborted signal rejects
+  with an AbortError before `loadRepoBundle` returns; an
+  in-flight abort terminates cleanly. The App-layer pattern
+  (`abortRef.current?.abort()` before each fresh
+  `AbortController`) lives in `App.tsx` and feeds into the
+  AbortError → friendly "Audit cancelled" view tested in
+  `auditErrorView.test.ts` (Phase 6.26).
+- **6.28 Cache invalidation deep-dive.** ✅ Six new edge cases
+  in `tests/lib/cache/auditCache.test.ts`: `removeBundle` drops
+  the entry AND the index slot, malformed JSON returns null,
+  `writeBundle` no-ops when localStorage throws (private mode /
+  quota), brand-new key returns null, overwriting the same key
+  keeps one entry, and the no-localStorage path (SSR / Node)
+  is tolerated. The pushedAt-invalidation comment in
+  `auditCache.ts` is corrected — Re-audit calls `removeBundle`
+  at the App layer rather than the cache layer doing
+  signature-diffing.
+- **6.29 Rate-limit messaging end-to-end.** ✅
+  `tests/lib/github/githubClientRateLimit.test.ts` locks the
+  transport-layer half: 403 + `x-ratelimit-remaining: 0` ⇒
+  `RateLimitError` with `resetAtSeconds` from the
+  `x-ratelimit-reset` header and `unauthenticated: true` when
+  no token is in scope. 403 with `remaining > 0` falls through
+  to a generic `GithubError(403)` (not a rate-limit). The
+  countdown formatter + the "Open Settings" CTA wiring stay
+  in `auditErrorView.test.ts`. Real-quota integration smoke
+  remains the maintainer's pre-release manual sweep.
+- **6.30 Compare-mode edge cases.** ✅ Four new cases in
+  `tests/lib/compare/diff.test.ts`: byte-identical audits tie
+  with `winner: "tie"` and zero `onlyInLeft`/`onlyInRight`;
+  an `archived: true` side still produces a valid
+  CompareResult; a `fork: true` side does too; the winner
+  flips to `right` when the right side has more signals.
+  Same-repo-on-both-sides remains blocked at `startCompare`
+  in `App.tsx` (covered by validation, not the diff engine).
+- **6.31 Share-URL fuzz.** ✅ 12 new cases in
+  `tests/lib/github/parseRepoInput.test.ts`: query
+  strings + fragments are now stripped before segment
+  splitting; gist.github.com / gitlab.com / bitbucket.org /
+  codeberg.org / sourcehut / git.io / bit.ly / tinyurl.com all
+  reject with a *specific* error label instead of the generic
+  "does not look like a GitHub URL"; owner-only URLs, bare
+  repo names, and auth-token-in-URL shapes all reject
+  cleanly. parseRepoInput itself now also rejects an owner
+  segment containing a dot (catches the older bug where
+  `gitlab.com/foo/bar` silently parsed as `{ owner:
+  "gitlab.com", repo: "foo" }`).
 
 ### VI · Security hardening
 

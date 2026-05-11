@@ -64,7 +64,7 @@ describe("mapAuditError", () => {
   it("maps TooLarge to a sized-down explanation", () => {
     const view = mapAuditError(new TooLargeError());
     expect(view.kind).toBe("too-large");
-    expect(view.message).toMatch(/browser-only audit budget/);
+    expect(view.message).toMatch(/in-browser audit/i);
     expect(view.actions[0].kind).toBe("reset");
   });
 
@@ -108,13 +108,40 @@ describe("mapAuditError", () => {
 });
 
 describe("emptyRepoView", () => {
-  it("produces a coherent 'no analyzable files' view with a reset CTA", () => {
+  it("produces a coherent 'this repo is empty' view with a reset CTA", () => {
     const view = emptyRepoView();
     expect(view.kind).toBe("empty");
     expect(view.title).toBe("Empty repository");
     expect(view.actions[0].kind).toBe("reset");
-    expect(view.message).toMatch(/analyzable files/);
+    expect(view.message).toMatch(/empty/i);
   });
+});
+
+// Phase 6.26 — every mapped error view must have a non-empty title +
+// message + at least one action. Catches "oops, forgot to set the
+// CTA" or a copy edit that left an empty string.
+describe("AuditErrorView shape contract", () => {
+  const fixtures: Array<{ name: string; err: unknown }> = [
+    { name: "RateLimit anon", err: new RateLimitError({ unauthenticated: true }) },
+    { name: "RateLimit auth", err: new RateLimitError({ unauthenticated: false }) },
+    { name: "NotFound", err: new NotFoundError("nope") },
+    { name: "TooLarge", err: new TooLargeError("too big") },
+    { name: "GithubError 5xx", err: new GithubError("server", 500) },
+    { name: "GithubError 4xx", err: new GithubError("forbidden", 403) },
+    { name: "AbortError", err: Object.assign(new Error("abort"), { name: "AbortError" }) },
+    { name: "unknown string", err: "raw string thrown" },
+    { name: "unknown null", err: null },
+  ];
+
+  for (const { name, err } of fixtures) {
+    it(`${name}: non-empty title + message + ≥1 action`, () => {
+      const view = mapAuditError(err);
+      expect(view.title, `${name}: empty title`).not.toBe("");
+      expect(view.message, `${name}: empty message`).not.toBe("");
+      expect(view.actions.length, `${name}: no actions`).toBeGreaterThan(0);
+      expect(view.actions[0].label).not.toBe("");
+    });
+  }
 });
 
 describe("formatResetCountdown", () => {

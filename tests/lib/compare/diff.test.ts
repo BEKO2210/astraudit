@@ -190,3 +190,88 @@ describe("buildCompareResult (integration)", () => {
     expect(out.summary.catWins.left).toBeGreaterThan(out.summary.catWins.right);
   });
 });
+
+// Phase 6.30 — compare-mode edge cases.
+describe("buildCompareResult — Phase 6.30 edge cases", () => {
+  it("ties cleanly when both sides are byte-identical audits", () => {
+    const a = runAudit(
+      makeBundle({ paths: ["README.md", "LICENSE", "package.json"] }),
+    );
+    const b = runAudit(
+      makeBundle({ paths: ["README.md", "LICENSE", "package.json"] }),
+    );
+    const out = buildCompareResult(a, b);
+    expect(out.summary.totalDelta).toBe(0);
+    expect(out.summary.winner).toBe("tie");
+    // Every category is a tie, every finding is shared.
+    expect(out.summary.catWins.left).toBe(0);
+    expect(out.summary.catWins.right).toBe(0);
+    expect(out.findings.onlyInLeft.length).toBe(0);
+    expect(out.findings.onlyInRight.length).toBe(0);
+  });
+
+  it("handles an archived repo on one side without throwing", () => {
+    // The `archived` flag lives on RepoBundle.metadata. The diff
+    // engine doesn't special-case it, but it must still produce a
+    // valid CompareResult so the dashboard can render an archived
+    // banner alongside the side-by-side scores.
+    const live = runAudit(
+      makeBundle({
+        paths: ["README.md", "LICENSE", "package.json"],
+        metadata: { archived: false },
+      }),
+    );
+    const dormant = runAudit(
+      makeBundle({
+        paths: ["README.md", "package.json"],
+        metadata: { archived: true },
+      }),
+    );
+    const out = buildCompareResult(live, dormant);
+    expect(out.left.bundle.metadata.archived).toBe(false);
+    expect(out.right.bundle.metadata.archived).toBe(true);
+    // Diff still produced both summary + finding split.
+    expect(out.summary.winner).toMatch(/^(left|right|tie)$/);
+    expect(out.findings).toBeDefined();
+  });
+
+  it("handles a fork on one side — both sides still produce a verdict", () => {
+    const upstream = runAudit(
+      makeBundle({
+        paths: ["README.md", "LICENSE", "SECURITY.md", "package.json"],
+        metadata: { fork: false },
+      }),
+    );
+    const fork = runAudit(
+      makeBundle({
+        paths: ["README.md", "package.json"],
+        metadata: { fork: true },
+      }),
+    );
+    const out = buildCompareResult(upstream, fork);
+    expect(out.left.bundle.metadata.fork).toBe(false);
+    expect(out.right.bundle.metadata.fork).toBe(true);
+    expect(out.summary.totalDelta).toBeGreaterThanOrEqual(0);
+  });
+
+  it("flips winner when right side has the higher score", () => {
+    const weak = runAudit(
+      makeBundle({ paths: ["README.md"], readmeContent: "" }),
+    );
+    const strong = runAudit(
+      makeBundle({
+        paths: [
+          "README.md",
+          "LICENSE",
+          "SECURITY.md",
+          ".github/workflows/ci.yml",
+          "package.json",
+        ],
+        readmeContent: "# Demo\n## Installation\nnpm install demo",
+      }),
+    );
+    const out = buildCompareResult(weak, strong);
+    expect(out.summary.totalDelta).toBeLessThan(0);
+    expect(out.summary.winner).toBe("right");
+  });
+});
