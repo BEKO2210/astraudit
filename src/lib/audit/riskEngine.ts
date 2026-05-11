@@ -229,17 +229,29 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
-  if (!ctx.deps.hasLockfile && ctx.deps.hasPackageJson) {
+  // Phase 7.0.1 — stack-aware lockfile findings. One finding per
+  // (manifest present, lockfile absent) pair, with stack-specific
+  // copy. A Rust crate without `Cargo.lock` gets a finding that
+  // names `Cargo.lock` — never "your package manager's lockfile"
+  // generically (the Reddit critique called that out as noise on
+  // non-JS repos). Repos with no recognised manifest at all (e.g.
+  // header-only C libraries, raw docs repos) get no lockfile
+  // finding — there's nothing meaningful to commit.
+  for (const miss of ctx.deps.missingLockfiles) {
+    const canonical = miss.expectedLockfiles[0];
+    const alts = miss.expectedLockfiles.slice(1);
+    const lockList = alts.length
+      ? `${canonical} (or ${alts.join(" / ")})`
+      : canonical;
     findings.push({
-      id: id("lockfile"),
-      title: "No lockfile detected",
+      id: id(`lockfile-${miss.manifest.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`),
+      title: `${miss.manifest} present but no ${canonical} detected`,
       category: "ecosystem",
       severity: "medium",
-      description:
-        "A lockfile pins exact dependency versions for reproducible installs.",
-      evidence: "package.json present but no package-lock.json/pnpm-lock.yaml/yarn.lock.",
-      recommendation: "Commit your package manager's lockfile.",
-      affectedFiles: ["package.json"],
+      description: `A lockfile pins exact dependency versions for reproducible installs across teammates and CI. ${miss.ecosystem} uses ${lockList}.`,
+      evidence: `${miss.manifest} found at repo root; no ${miss.expectedLockfiles.join(" / ")} alongside it.`,
+      recommendation: `Run the ecosystem's install command to generate ${canonical} and commit it.`,
+      affectedFiles: [miss.manifest],
       confidence: "high",
     });
   }

@@ -76,6 +76,9 @@ function titleFromFinding(f: Finding): string {
     [/^No tests detected/i, "Introduce a test suite"],
     [/^No CI workflow detected/i, "Add a GitHub Actions CI workflow"],
     [/^No lockfile detected/i, "Commit the package manager lockfile"],
+    // Phase 7.0.1 — stack-aware lockfile finding titles
+    // ("Cargo.toml present but no Cargo.lock detected", etc.).
+    [/^([\w.]+) present but no ([\w.]+) detected/i, "Commit the lockfile for this ecosystem"],
     [/^Too many files in root directory/i, "Reorganize the repository root"],
     [/^Repository appears inactive/i, "Refresh maintenance signals or archive"],
     [/^No clear setup path detected/i, "Document a one-line local setup"],
