@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Fetch full history so the changelog generator can walk
           # back to the previous tag.
@@ -47,7 +47,7 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -88,29 +88,75 @@ jobs:
             echo "tag=${GITHUB_REF##refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Generate release notes from merged PR titles
+      - name: Compute dist.zip SHA256 for the release body
+        id: hash
+        run: |
+          SUM=$(sha256sum astraudit-dist.zip | awk '{print $1}')
+          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
+          echo "dist sha256: $SUM"
+
+      - name: Extract release-notes body from CHANGELOG.md (curated path)
         id: notes
         run: |
-          # Walk commits between the previous tag and this one. The
-          # subject line of each merge commit becomes a release-notes
-          # bullet. Fall back to a static blurb on the very first tag.
-          PREV=$(git describe --tags --abbrev=0 "${{ steps.tag.outputs.tag }}^" 2>/dev/null || echo "")
-          if [ -z "$PREV" ]; then
-            CHANGELOG="Initial release of Astraudit. See [CHANGELOG.md](./CHANGELOG.md) for the full pre-1.0 build log and [ROADMAP.md](./ROADMAP.md) for the constraint contract."
+          # Phase 6.50 — release-body strategy. The maintainer writes a
+          # curated `## [X.Y.Z]` section in CHANGELOG.md (handled by
+          # `npm run release:prep`); this step extracts everything
+          # between that heading and the next `## [` heading and uses
+          # it as the GitHub Release body. If no matching section is
+          # found, the workflow falls back to auto-generated bullets
+          # from the merged PR titles since the previous tag — that
+          # path still works for patch releases where the maintainer
+          # doesn't want to write prose.
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${TAG#v}"          # v1.0.0 → 1.0.0
+          NOTES_FILE="$(mktemp)"
+          # Use awk to extract the section. Greedy: read every line
+          # between "## [VERSION]" and the next "## [" (exclusive).
+          awk -v ver="$VERSION" '
+            BEGIN { capture = 0 }
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && $0 ~ "^## \\[" { capture = 0 }
+            capture { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [ -s "$NOTES_FILE" ]; then
+            echo "Found curated section for $VERSION in CHANGELOG.md."
+            cp "$NOTES_FILE" release-body.md
           else
-            CHANGELOG=$(git log --pretty=format:'- %s' "$PREV..${{ steps.tag.outputs.tag }}" | head -50)
+            echo "No curated section for $VERSION — falling back to PR-title bullets."
+            PREV=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+            {
+              echo "## Astraudit $TAG"
+              echo ""
+              if [ -z "$PREV" ]; then
+                echo "Initial release. See [CHANGELOG.md](./CHANGELOG.md) for the full build log."
+              else
+                echo "### Changes since $PREV"
+                echo ""
+                git log --pretty=format:'- %s' "$PREV..$TAG" | head -50
+                echo ""
+              fi
+            } > release-body.md
           fi
-          # Multi-line outputs need the heredoc syntax for GH Actions.
+
+          # Append the verification footer (dist hash + workflow link)
+          # to every release so the body is structurally consistent.
           {
-            echo "body<<EOF"
-            echo "## Astraudit ${{ steps.tag.outputs.tag }}"
-            echo ""
-            echo "$CHANGELOG"
             echo ""
             echo "---"
             echo ""
-            echo "Full release notes preview lives at the top of [CHANGELOG.md](./CHANGELOG.md)."
-            echo "EOF"
+            echo "### Verification"
+            echo ""
+            echo "- \`astraudit-dist.zip\` SHA-256: \`${{ steps.hash.outputs.sha256 }}\`"
+            echo "- Built by [\`release.yml\` @ run #${GITHUB_RUN_NUMBER}](https://github.com/${{ github.repository }}/actions/runs/${GITHUB_RUN_ID})"
+            echo "- Constraint contract: [ROADMAP.md → anti-roadmap](https://github.com/${{ github.repository }}/blob/$TAG/ROADMAP.md#anti-roadmap--things-astraudit-will-never-do)"
+          } >> release-body.md
+
+          # Multi-line passthrough for actions-output (heredoc form).
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            cat release-body.md
+            echo "RELEASE_BODY_EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release

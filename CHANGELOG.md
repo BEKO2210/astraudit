@@ -61,6 +61,79 @@ npx -y astraudit-mcp        # see docs/mcp.md for the per-client config
 
 ---
 
+## [1.0.0] — 2026-05-11
+
+<div align="center">
+  <img src="https://beko2210.github.io/astraudit/Logo_bg_removed.png" alt="Astraudit" width="120" />
+  <h3>The first stable release.</h3>
+  <p><strong>Map, score, and understand any public GitHub repository — entirely in your browser.</strong></p>
+</div>
+
+### What's in v1.0.0
+
+This is the first release where every box in the
+[Phase 6 release-readiness roadmap](./ROADMAP.md#phase-6--release-readiness-hardening)
+is either ticked or carries an explicit *won't-fix-here's-why* comment.
+53 / 53 items closed across nine tracks (visual polish, accessibility,
+performance, cross-browser, error paths, security, documentation,
+code quality, release engineering).
+
+- **Browser-only audit.** Paste any `github.com/owner/repo` URL → 100-point
+  score across 8 categories, prioritised findings, an onboarding path, an
+  interactive audit graph, and a printable PDF report. No backend, no
+  login, no PAT required (an optional one bumps the GitHub rate limit
+  from 60/h to 5,000/h and stays in localStorage).
+- **MCP server** (`astraudit-mcp`). Native Model Context Protocol tool
+  so Claude Desktop / Cursor / Zed / VS Code AI can call the audit
+  engine. One tool, `audit_repo(owner, repo, token?)`, returns the
+  curated, versioned JSON (`schema: "astraudit.audit"`,
+  `schemaVersion: "1"`). Runs entirely on the user's machine.
+- **Strict CSP** locked by hash, **self-hosted fonts** (no third-party
+  origins), **0 production-dep vulnerabilities** at high or critical,
+  **PAT scope guard** so the Authorization header rides only to
+  `api.github.com` / `raw.githubusercontent.com`.
+- **WCAG 2.1 AA** locked by CI: 6×3 popover edge-containment cases,
+  full Tab-trace name + visibility on every focus stop, 200% zoom
+  Reflow at 640×400, single `<main>` landmark, axe-core gate on
+  serious/critical, forced-colours snapshot, motion-safe gating on
+  every animation.
+- **Cross-browser smoke** on Firefox, WebKit, and mobile Chromium
+  via Playwright in CI (the snapshot baselines stay Chromium-only).
+- **Performance**: 484 KB main chunk (10% smaller than v0.4 / 1.4.0
+  thanks to lazy-loading the BadgeDialog, CompareDashboard,
+  CommandPalette and the three legal routes); bundle-size budget
+  hard-gated in CI; LCP / a11y / best-practices Lighthouse floors
+  enforced per build.
+- **Comprehensive test suite** — 835 vitest cases across 68 files,
+  73 Playwright cases (chromium full + cross-browser smoke).
+
+### Install
+
+```bash
+# Browser — nothing to install, just visit:
+open https://beko2210.github.io/astraudit/
+
+# AI client (MCP server) — Claude Desktop / Cursor / Zed / VS Code:
+npx -y astraudit-mcp     # see docs/mcp.md for the per-client config
+```
+
+### Verify
+
+Every release attaches `astraudit-dist.zip` (the built static site) and
+`og-card.png` (the social-preview image) to the GitHub Release page.
+The maintainer-facing rollback steps are in
+[`docs/RUNBOOK.md`](./docs/RUNBOOK.md); the constraint contract is in
+[`ROADMAP.md`'s anti-roadmap](./ROADMAP.md#anti-roadmap--things-astraudit-will-never-do).
+
+### Acknowledgements
+
+Astraudit is built and maintained by **Belkis Aslani**. v1.0.0 closes
+a multi-phase build documented in [`ROADMAP.md`](./ROADMAP.md). The
+per-PR build log lives below under `[Unreleased]` and prior milestone
+sections.
+
+---
+
 ## [Unreleased]
 
 ### Added
