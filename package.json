@@ -43,6 +43,7 @@
     "build:bin": "tsx scripts/build-bin.ts",
     "check:bundle-size": "tsx scripts/check-bundle-size.ts",
     "check:audit": "npm audit --omit=dev --audit-level=high",
+    "release:prep": "tsx scripts/prepare-release.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "tsc -b --noEmit",
