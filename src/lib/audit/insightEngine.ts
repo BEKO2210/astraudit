@@ -317,7 +317,10 @@ function analyzeReleases(releases: ReleaseInfo[]): ReleaseActivity {
     }
     avg = total / (published.length - 1);
   }
-  let rhythm: ReleaseRhythm = "occasional";
+  // Phase 7.x — dropped the dead "occasional" initializer that
+  // CodeQL flagged as a useless assignment; every branch below
+  // re-assigns `rhythm`, so the seed value was never observed.
+  let rhythm: ReleaseRhythm;
   if (avg === null) rhythm = releases.length > 0 ? "occasional" : "none";
   else if (avg <= 14) rhythm = "frequent";
   else if (avg <= 60) rhythm = "regular";

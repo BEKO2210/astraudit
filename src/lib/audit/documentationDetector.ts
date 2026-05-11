@@ -246,7 +246,9 @@ export function analyzeReadme(
     mentionsApi: API_PATTERNS.some((re) => re.test(content)),
     mentionsExamples: EXAMPLE_PATTERNS.some((re) => re.test(content)),
     mentionsScreenshot: SCREENSHOT_PATTERNS.some((re) => re.test(content)),
-    hasBadges: /\[!\[/.test(content) || /img.shields.io/.test(content),
+    // Phase 7.x — `\.` (escaped) so CodeQL doesn't flag the
+    // hostname regex as accidentally matching `imgXshieldsXio`.
+    hasBadges: /\[!\[/.test(content) || /img\.shields\.io/.test(content),
     hasHeadings: /^#{1,3} /m.test(content),
     hasExternalDocs: externalDocsHost !== null,
     externalDocsHost,
