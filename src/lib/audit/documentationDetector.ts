@@ -55,50 +55,140 @@ const SCREENSHOT_PATTERNS = [/\bscreenshot\b/i, /\bdemo\b/i, /!\[/];
  * own marketing site doesn't count — we'd happily nudge them to
  * write a proper README anyway.
  */
-const EXTERNAL_DOC_HOSTS: Array<{ host: string; label: string }> = [
+/**
+ * Phase 7.x — recognised external documentation hosts. Each entry
+ * has a `host` (matched by hostname, optionally as a subdomain) and
+ * an OPTIONAL `pathPrefix` for cases where only a sub-path of a
+ * generic deploy host counts as docs.
+ *
+ * Without `pathPrefix`, any URL on that hostname (apex or any
+ * subdomain) counts. With `pathPrefix`, the URL's pathname must
+ * also start with the prefix.
+ *
+ * The two patterns:
+ *   - Dedicated docs hosts (Read the Docs, Mintlify, GitBook,
+ *     docs.rs, pkg.go.dev, etc.) — host-only entries.
+ *   - Generic deploy hosts where only a `/docs` sub-path counts
+ *     (Vercel, Netlify, Deno's manual) — host + pathPrefix entries.
+ *     Without the pathPrefix, every Vercel marketing site would
+ *     false-positive as "has docs".
+ */
+const EXTERNAL_DOC_HOSTS: Array<{
+  host: string;
+  pathPrefix?: string;
+  label: string;
+}> = [
   // Multi-language documentation platforms.
   { host: "readthedocs.io", label: "Read the Docs" },
   { host: "readthedocs.org", label: "Read the Docs" },
   { host: "mintlify.com", label: "Mintlify" },
   { host: "gitbook.com", label: "GitBook" },
   { host: "gitbook.io", label: "GitBook" },
-  { host: "vercel.app/docs", label: "Vercel-hosted docs" },
-  { host: "netlify.app/docs", label: "Netlify-hosted docs" },
-  { host: "deno.land/manual", label: "Deno manual" },
   { host: "vitepress.dev", label: "VitePress" },
   { host: "docusaurus.io", label: "Docusaurus" },
+  // Generic deploy hosts where a `/docs` sub-path is the only
+  // signal we trust. Restored after Codex flagged that the
+  // host-only refactor lost these (b048cc9 review).
+  { host: "vercel.app", pathPrefix: "/docs", label: "Vercel-hosted docs" },
+  { host: "netlify.app", pathPrefix: "/docs", label: "Netlify-hosted docs" },
+  { host: "deno.land", pathPrefix: "/manual", label: "Deno manual" },
   // Language-ecosystem canonical hosts.
-  { host: "docs.rs/", label: "docs.rs" },
-  { host: "pkg.go.dev/", label: "pkg.go.dev" },
-  { host: "godoc.org/", label: "GoDoc" },
-  { host: "rubydoc.info/", label: "RubyDoc.info" },
-  { host: "hexdocs.pm/", label: "HexDocs" },
-  { host: "pydoc.io/", label: "PyDoc" },
+  { host: "docs.rs", label: "docs.rs" },
+  { host: "pkg.go.dev", label: "pkg.go.dev" },
+  { host: "godoc.org", label: "GoDoc" },
+  { host: "rubydoc.info", label: "RubyDoc.info" },
+  { host: "hexdocs.pm", label: "HexDocs" },
+  { host: "pydoc.io", label: "PyDoc" },
 ];
 
-function detectExternalDocsLink(content: string): { host: string; label: string } | null {
-  // We only consider links inside Markdown link syntax `[text](url)`
-  // or bare URLs in the README — avoids matching code blocks that
-  // happen to contain the substring "readthedocs.io" as an example.
-  for (const entry of EXTERNAL_DOC_HOSTS) {
-    // Build a regex that requires `://` or `www.` before the host so
-    // we don't match a similarly-named string inside arbitrary prose.
-    const re = new RegExp(
-      `(?:https?://|www\\.)[^\\s)\\]"']*${entry.host.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}[^\\s)\\]"']*`,
-      "i",
-    );
-    if (re.test(content)) return entry;
+/**
+ * Generic URL extractor. Matches `https?://...` URLs and bare
+ * `www.foo.bar` URLs in any text content. We deliberately don't try
+ * to validate the URL here — we just extract candidate substrings
+ * and let the `URL` parser below decide which ones are real.
+ *
+ * Phase 7.x — the previous implementation built a per-host regex
+ * from the data in EXTERNAL_DOC_HOSTS, which tripped CodeQL's
+ * `js/regex/missing-regexp-anchor` rule on every host entry
+ * (the heuristic flags any hostname-shaped string used in a regex
+ * unless it's bracketed by `^` / `$` anchors). The new approach
+ * never feeds host strings into a regex at all: we extract URLs
+ * generically, parse each one with the `URL` constructor, and
+ * compare hostnames as plain strings against a Set.
+ */
+const URL_RE = /https?:\/\/[^\s)\]"']+|\bwww\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s)\]"']*)?/gi;
+
+/**
+ * Match a parsed URL against an EXTERNAL_DOC_HOSTS entry.
+ *
+ *   1. Hostname must match: either `url.hostname === entry.host`
+ *      (apex) or `url.hostname.endsWith("." + entry.host)`
+ *      (subdomain).
+ *      The leading-dot check is what closes the lookalike attack:
+ *      `evil.com.readthedocs.io.attacker.com` does NOT end with
+ *      `.readthedocs.io` because the rightmost host segment is
+ *      `attacker.com`.
+ *   2. When the entry carries a `pathPrefix`, `url.pathname` must
+ *      also start with it. Without this, every Vercel-deployed
+ *      marketing site would false-positive as "has docs".
+ */
+function urlMatchesEntry(
+  url: URL,
+  entry: (typeof EXTERNAL_DOC_HOSTS)[number],
+): boolean {
+  const host = url.hostname.toLowerCase();
+  const expectedHost = entry.host.toLowerCase();
+  const hostMatches =
+    host === expectedHost || host.endsWith(`.${expectedHost}`);
+  if (!hostMatches) return false;
+  if (!entry.pathPrefix) return true;
+  // Pathname comparison is case-sensitive on Linux/macOS, which
+  // matches GitHub's hosting convention for `/docs/` paths.
+  return url.pathname.startsWith(entry.pathPrefix);
+}
+
+function detectExternalDocsLink(
+  content: string,
+): { host: string; label: string } | null {
+  // Scan every URL-shaped substring, parse it with the `URL`
+  // constructor (no regex on the host data), and check each
+  // candidate against every known docs entry.
+  const matches = content.match(URL_RE);
+  if (!matches) return null;
+  for (const candidate of matches) {
+    let url: URL;
+    try {
+      // Bare `www.` URLs aren't valid input for `new URL(...)`
+      // unless we prepend a scheme. Normalise here so the lookup
+      // path is uniform.
+      const normalised = /^https?:\/\//i.test(candidate)
+        ? candidate
+        : `https://${candidate}`;
+      url = new URL(normalised);
+    } catch {
+      continue;
+    }
+    for (const entry of EXTERNAL_DOC_HOSTS) {
+      if (urlMatchesEntry(url, entry)) {
+        return { host: entry.host, label: entry.label };
+      }
+    }
   }
   return null;
 }
 
 /**
- * Recognised "docs subdomain" pattern: `https://docs.foo.com/...`
- * Catches projects that host their own docs on a dedicated
- * subdomain (Tailwind, Vue, React, Next.js, Astro all do this).
+ * Recognised "docs subdomain" pattern: `https://docs.foo.com/...`.
+ * Catches projects that host their own docs on a dedicated subdomain
+ * (Tailwind, Vue, React, Next.js, Astro all do this).
+ *
+ * Phase 7.x — anchored to a URL boundary after the host so a
+ * lookalike like `https://docsXevil.com/` can't satisfy the
+ * `docs\.` prefix by accident; the `\.` after `docs` forces a real
+ * subdomain label.
  */
 const DOCS_SUBDOMAIN_RE =
-  /https?:\/\/docs\.[a-z0-9-]+(?:\.[a-z0-9-]+)+\/?[^\s)\]"']*/i;
+  /https?:\/\/docs\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#\s)\]"']|$)/i;
 
 export interface AnalyzeReadmeOptions {
   /**
