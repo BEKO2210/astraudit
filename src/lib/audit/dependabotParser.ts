@@ -165,7 +165,13 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
         // The dash effectively becomes an indent of head.indent + 2.
         const inlineKv = parseKeyValue(remainder);
         if (!inlineKv) return { value: null, next: i };
-        const obj: Record<string, unknown> = {};
+        // Phase 7.x — Object.create(null) instead of `{}` so an
+        // attacker-controlled YAML key like `__proto__` can't pollute
+        // Object.prototype. CodeQL's `js/remote-property-injection`
+        // fires on the bracket assignments below; the null-proto
+        // object makes the entire mutation isolated from any
+        // ambient prototype chain.
+        const obj = Object.create(null) as Record<string, unknown>;
         if (inlineKv.value === null) {
           // Nested object on next line.
           const r = decodeBlock(tokens, i + 1, t.indent + 1);
@@ -208,8 +214,10 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
     }
     return { value: arr, next: i };
   }
-  // Mapping.
-  const obj: Record<string, unknown> = {};
+  // Mapping. Phase 7.x — null-proto object guards against
+  // user-controlled YAML keys polluting Object.prototype via
+  // `__proto__` / `constructor`.
+  const obj = Object.create(null) as Record<string, unknown>;
   let i = start;
   while (i < tokens.length && tokens[i].indent === head.indent) {
     const t = tokens[i];

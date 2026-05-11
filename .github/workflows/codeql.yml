@@ -51,6 +51,10 @@ jobs:
           # quality issues; explicit so the choice is visible in
           # the diff if anyone bumps it later.
           queries: security-and-quality
+          # Phase 7.x — narrow the scan surface to user-facing
+          # production code. See .github/codeql/codeql-config.yml
+          # for the path-ignore list + rationale.
+          config-file: ./.github/codeql/codeql-config.yml
 
       # Astraudit's source is plain TypeScript; CodeQL's autobuild
       # discovers it without any project-specific configuration.

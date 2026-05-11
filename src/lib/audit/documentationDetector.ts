@@ -56,35 +56,44 @@ const SCREENSHOT_PATTERNS = [/\bscreenshot\b/i, /\bdemo\b/i, /!\[/];
  * write a proper README anyway.
  */
 const EXTERNAL_DOC_HOSTS: Array<{ host: string; label: string }> = [
-  // Multi-language documentation platforms.
+  // Multi-language documentation platforms (all host-only — no
+  // trailing slashes; the regex below already enforces a URL
+  // boundary after the host).
   { host: "readthedocs.io", label: "Read the Docs" },
   { host: "readthedocs.org", label: "Read the Docs" },
   { host: "mintlify.com", label: "Mintlify" },
   { host: "gitbook.com", label: "GitBook" },
   { host: "gitbook.io", label: "GitBook" },
-  { host: "vercel.app/docs", label: "Vercel-hosted docs" },
-  { host: "netlify.app/docs", label: "Netlify-hosted docs" },
-  { host: "deno.land/manual", label: "Deno manual" },
   { host: "vitepress.dev", label: "VitePress" },
   { host: "docusaurus.io", label: "Docusaurus" },
   // Language-ecosystem canonical hosts.
-  { host: "docs.rs/", label: "docs.rs" },
-  { host: "pkg.go.dev/", label: "pkg.go.dev" },
-  { host: "godoc.org/", label: "GoDoc" },
-  { host: "rubydoc.info/", label: "RubyDoc.info" },
-  { host: "hexdocs.pm/", label: "HexDocs" },
-  { host: "pydoc.io/", label: "PyDoc" },
+  { host: "docs.rs", label: "docs.rs" },
+  { host: "pkg.go.dev", label: "pkg.go.dev" },
+  { host: "godoc.org", label: "GoDoc" },
+  { host: "rubydoc.info", label: "RubyDoc.info" },
+  { host: "hexdocs.pm", label: "HexDocs" },
+  { host: "pydoc.io", label: "PyDoc" },
 ];
 
-function detectExternalDocsLink(content: string): { host: string; label: string } | null {
-  // We only consider links inside Markdown link syntax `[text](url)`
-  // or bare URLs in the README — avoids matching code blocks that
-  // happen to contain the substring "readthedocs.io" as an example.
+function detectExternalDocsLink(
+  content: string,
+): { host: string; label: string } | null {
+  // Phase 7.x — hostname regex hardened against CodeQL's
+  // "Incomplete regular expression for hostnames" rule. The old
+  // pattern allowed arbitrary characters between `://` and the host
+  // token, which meant a URL like `https://evil.com.readthedocs.io.attacker.com/`
+  // would falsely match `readthedocs.io`. The new pattern:
+  //   1. Requires `https://`, `http://`, or `www.` (bare) before the host.
+  //   2. Allows OPTIONAL DNS-safe subdomain labels before the host
+  //      (e.g. `myproject.readthedocs.io`), each label limited to
+  //      `[a-z0-9-]+` with a literal dot separator.
+  //   3. Requires the host to be followed by a URL terminator:
+  //      `/`, `?`, `#`, whitespace, `)`, `]`, `"`, `'`, or end-of-string.
+  //      A trailing dot or letter (the lookalike attack) doesn't match.
   for (const entry of EXTERNAL_DOC_HOSTS) {
-    // Build a regex that requires `://` or `www.` before the host so
-    // we don't match a similarly-named string inside arbitrary prose.
+    const escapedHost = entry.host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(
-      `(?:https?://|www\\.)[^\\s)\\]"']*${entry.host.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}[^\\s)\\]"']*`,
+      `(?:https?:\\/\\/(?:[a-z0-9-]+\\.)*|\\bwww\\.)${escapedHost}(?:[\\/?#\\s)\\]"']|$)`,
       "i",
     );
     if (re.test(content)) return entry;
@@ -93,12 +102,17 @@ function detectExternalDocsLink(content: string): { host: string; label: string 
 }
 
 /**
- * Recognised "docs subdomain" pattern: `https://docs.foo.com/...`
- * Catches projects that host their own docs on a dedicated
- * subdomain (Tailwind, Vue, React, Next.js, Astro all do this).
+ * Recognised "docs subdomain" pattern: `https://docs.foo.com/...`.
+ * Catches projects that host their own docs on a dedicated subdomain
+ * (Tailwind, Vue, React, Next.js, Astro all do this).
+ *
+ * Phase 7.x — anchored to a URL boundary after the host so a
+ * lookalike like `https://docsXevil.com/` can't satisfy the
+ * `docs\.` prefix by accident; the `\.` after `docs` forces a real
+ * subdomain label.
  */
 const DOCS_SUBDOMAIN_RE =
-  /https?:\/\/docs\.[a-z0-9-]+(?:\.[a-z0-9-]+)+\/?[^\s)\]"']*/i;
+  /https?:\/\/docs\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#\s)\]"']|$)/i;
 
 export interface AnalyzeReadmeOptions {
   /**
