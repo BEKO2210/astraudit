@@ -57,18 +57,24 @@ const SAMPLE_NODES: GraphNode[] = [
 ];
 
 describe("STATUS_ORDER + STATUS_LABEL", () => {
-  it("orders statuses missing → partial → strong → info → unknown", () => {
+  it("orders statuses missing → partial → strong → info → unknown → not-applicable", () => {
+    // Phase 7.0.5 — `not-applicable` joins `unknown` as the second
+    // honest "no penalty" verdict (the file/pattern doesn't belong
+    // on this stack). Both sit at the end of the filter-chip row
+    // since they're the no-opinion states.
     expect(STATUS_ORDER).toEqual([
       "missing",
       "partial",
       "strong",
       "info",
       "unknown",
+      "not-applicable",
     ]);
   });
 
-  it("provides a label for every status — including the prettier 'Not detected' for unknown", () => {
-    expect(STATUS_LABEL.unknown).toBe("Not detected");
+  it("provides a non-empty label for every status, including the new 7.0.5 states", () => {
+    expect(STATUS_LABEL.unknown).toBe("Unknown");
+    expect(STATUS_LABEL["not-applicable"]).toBe("Not applicable");
     for (const s of STATUS_ORDER) {
       expect(STATUS_LABEL[s].length).toBeGreaterThan(0);
     }
@@ -83,6 +89,7 @@ describe("countByStatus", () => {
       missing: 0,
       info: 0,
       unknown: 0,
+      "not-applicable": 0,
     });
   });
 
@@ -93,6 +100,7 @@ describe("countByStatus", () => {
       missing: 2,
       info: 1,
       unknown: 1,
+      "not-applicable": 0,
     });
   });
 });

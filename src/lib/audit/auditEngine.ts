@@ -8,7 +8,7 @@ import { analyzeSecurity } from "./securityDetector";
 import { analyzeMaintenance } from "./maintenanceDetector";
 import { analyzeCi } from "./ciDetector";
 import { analyzeDx } from "./dxDetector";
-import { buildCategoryScores, buildVerdict, gradeFromScore, totalScore } from "./scoreEngine";
+import { buildCategoryScores, buildVerdict, effectiveMaxScore, gradeFromScore, totalScore } from "./scoreEngine";
 import { buildRecommendations } from "./recommendationEngine";
 import { buildGraph } from "./graphEngine";
 import { buildFindings } from "./riskEngine";
@@ -138,7 +138,12 @@ export function runAudit(
   return {
     bundle,
     totalScore: score,
-    maxScore: categories.reduce((sum, c) => sum + c.max, 0),
+    // Phase 7.0.5 — denominator-aware total. Categories with status
+    // `not-applicable` or `unknown` drop out of the denominator
+    // entirely. For v1.0-era audits (no n/a + no unknown emitted yet)
+    // this equals the legacy fixed sum of 100; downstream items that
+    // emit the new states will see the percentage stay honest.
+    maxScore: effectiveMaxScore(categories),
     grade,
     verdict,
     headline,
