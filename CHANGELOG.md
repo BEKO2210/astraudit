@@ -138,6 +138,25 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.7 follow-up — clear the 2 lies the sweep just
+  surfaced.** The first run of the new honesty sweep (PR #84)
+  found 2 pre-existing lies on main. Both fixed here:
+  - **spring-projects/spring-boot — CONTRIBUTING.** The detector
+    only accepted `.md` / `.markdown` / `.rst` / `.txt` / no-
+    extension variants; Spring Boot ships `CONTRIBUTING.adoc`
+    (AsciiDoc is the canonical doc format for many Java / Spring
+    / Eclipse-family projects). `dxDetector` now also accepts
+    `.adoc` and `.asciidoc` at root, under `.github/`, and under
+    `docs/`. 4 new honesty-contract tests lock the variants.
+  - **prometheus/prometheus — Dependabot.** The honesty-check
+    truth signal was matching `.github/workflows/automerge-
+    dependabot.yml` (a workflow that auto-merges Dependabot PRs,
+    not a Dependabot v2 config). Dependabot only reads
+    `.github/dependabot.{yml,yaml}`; the truth check now anchors
+    to those exact paths so the truth signal matches the
+    detector's contract instead of false-positiving on workflows.
+  Next sweep delta should drop to 0 across all 56 repos.
+  909/909 vitest cases green.
 - **Phase 7 / 7.0.7 — Multi-stack honesty sweep + CI gate.**
   `scripts/honesty-check.ts` curated target list expanded from
   31 → 56 repos covering every supported ecosystem: 15 JS/TS,
