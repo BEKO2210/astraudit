@@ -20,6 +20,7 @@
  */
 import {
   GithubError,
+  InvalidTokenError,
   NotFoundError,
   RateLimitError,
   TooLargeError,
@@ -30,6 +31,7 @@ export type AuditErrorKind =
   | "rate-limit-anon"
   | "not-found"
   | "too-large"
+  | "invalid-token"
   | "github"
   | "network"
   | "empty"
@@ -118,6 +120,41 @@ export function mapAuditError(err: unknown): AuditErrorView {
       message:
         "This repository has too many files for an in-browser audit to keep fast. Try a smaller repo, or audit a fork that only contains the subfolder you care about.",
       actions: [{ kind: "reset", label: "Try a different repository" }],
+    };
+  }
+
+  // Phase 7.x — 401 means the credential is bad, not the repo.
+  // Route the user to Settings (clear / replace the token) instead
+  // of the misleading "Try a different repository" copy that the
+  // generic GithubError path used to emit on this status.
+  if (err instanceof InvalidTokenError) {
+    if (err.unauthenticated) {
+      // Unusual: 401 fired without any token in scope. Could be a
+      // misconfigured corporate proxy, a network-layer auth header
+      // being stripped, or a GitHub-side glitch. The user-facing
+      // remediation isn't "open Settings" because there's no token
+      // to clear — surface the raw situation so they have something
+      // to investigate.
+      return {
+        kind: "invalid-token",
+        title: "GitHub rejected an unauthenticated request",
+        message:
+          "GitHub responded 401 even though no PAT was sent. This usually means a corporate proxy is intercepting the request, or GitHub's API is having a transient hiccup. Retry in a moment, or try from a network without a proxy.",
+        actions: [
+          { kind: "retry", label: "Retry" },
+          { kind: "reset", label: "Try a different repository" },
+        ],
+      };
+    }
+    return {
+      kind: "invalid-token",
+      title: "Your GitHub PAT is invalid or expired",
+      message:
+        "GitHub rejected the stored Personal Access Token (HTTP 401). It's likely revoked, expired, or never had the `public_repo` read scope. Open Settings to clear or replace the token — the audit will retry automatically against the public 60/h rate limit.",
+      actions: [
+        { kind: "open-settings", label: "Open Settings" },
+        { kind: "retry", label: "Retry without the token" },
+      ],
     };
   }
 

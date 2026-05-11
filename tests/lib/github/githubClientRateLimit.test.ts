@@ -20,6 +20,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   GithubError,
+  InvalidTokenError,
   NotFoundError,
   RateLimitError,
   githubFetch,
@@ -110,5 +111,27 @@ describe("githubFetch — rate-limit detection", () => {
       caught = err;
     }
     expect(caught).toBeInstanceOf(NotFoundError);
+  });
+
+  // Phase 7.x — the live-site bug that prompted this transport-layer
+  // mapping: a 401 from GitHub (revoked / expired / wrong-scope PAT)
+  // used to be a generic GithubError with the misleading "try a
+  // different repository" downstream copy. Now it's a dedicated
+  // InvalidTokenError so the dashboard can route the user to Settings.
+  it("maps 401 to InvalidTokenError so the UI can route to Settings", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse(401, { message: "Bad credentials" }),
+    );
+    let caught: unknown = null;
+    try {
+      await githubFetch<unknown>("/anything");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(InvalidTokenError);
+    // No token is in scope in the unit-test env, so `unauthenticated`
+    // is true.
+    expect((caught as InvalidTokenError).unauthenticated).toBe(true);
+    expect((caught as InvalidTokenError).status).toBe(401);
   });
 });
