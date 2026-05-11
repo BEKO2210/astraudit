@@ -138,6 +138,31 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.6 — Per-stack rule packs (Go / Rust / Ruby /
+  pytest layout).** The structure category used to scold every
+  project that didn't ship `src/` / `app/` / `lib/` — JS-centric
+  noise on Go, Rust, and Ruby repos that follow their own
+  ecosystem layout. New `recognisedSourceLayout()` helper in
+  `scoreEngine` returns the matched-convention pair when the
+  repo's top-level folders match the detected runtime:
+  - **Go** — `cmd/`, `internal/`, `pkg/`, or `src/` (the
+    canonical golang-standards/project-layout shape).
+  - **Rust** — `src/` or `crates/` (single crate or workspace).
+  - **Ruby** — `lib/`, `app/`, or `src/` (Rails repos credit
+    `app/` explicitly).
+  - **Default** — `src/`, `app/`, `lib/` (legacy v1.x behaviour
+    preserved for every other stack).
+  The miss-copy now names the stack-specific expected folders
+  ("No standard source directory (cmd/, internal/, pkg/, or
+  src/) detected.") instead of always recommending the JS list.
+  `IMPORTANT_FOLDERS` extended to include `cmd` / `internal` /
+  `pkg` / `crates` so `classifyFiles` actually surfaces them.
+  `TEST_FILE_HINTS` extended with `/test_` so pytest's canonical
+  `test_*.py` pattern (under a package subdirectory) registers
+  as "has tests" without forcing the project to also ship a
+  `tests/` folder. 5 new vitest cases in `auditEngine.test.ts`
+  lock the per-stack acceptance + the new pytest hint against
+  regression. 903/903 vitest cases green.
 - **Phase 7 / 7.0.3 — Branch-protection probe with `Unknown`
   graceful degrade.** New `src/lib/github/fetchBranchProtection.ts`
   probes `/repos/{owner}/{repo}/branches/{default}/protection` and

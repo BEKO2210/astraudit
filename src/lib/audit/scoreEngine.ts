@@ -27,6 +27,80 @@ function statusForRatio(ratio: number, hasAnything: boolean): CategoryStatus {
   return "missing";
 }
 
+/**
+ * Phase 7.0.6 — per-stack source-directory acceptance.
+ *
+ * Different ecosystems lay out source code differently. Without a
+ * stack-aware accept list, the audit's structure category reads
+ * JS-centric: it expects `src/` / `app/` / `lib/` and scolds any
+ * project that uses an ecosystem-idiomatic layout instead. This
+ * helper returns the (stack, label) pair when the repo's top-level
+ * folders match the conventions of the detected runtime. The
+ * returned label is what surfaces in the evidence line so the
+ * dashboard can credit the right convention.
+ *
+ *   - **Go**: `cmd/`, `internal/`, `pkg/` (canonical project layout
+ *     per github.com/golang-standards/project-layout).
+ *   - **Rust**: `src/` (already accepted), additionally `crates/`
+ *     for Cargo workspaces.
+ *   - **Python**: `src/` (PEP 518 src layout) OR a top-level package
+ *     directory matching the repo name. We don't have the manifest
+ *     name handy here so we keep the cross-stack default. Pure
+ *     Python projects without `src/` are flagged less harshly via
+ *     the test-folder check below.
+ *   - **Ruby**: `lib/` (already accepted), additionally `app/` (for
+ *     Rails apps).
+ *   - **Default**: `src/`, `app/`, `lib/` (the legacy v1.x behaviour).
+ */
+function recognisedSourceLayout(
+  folders: readonly string[],
+  runtime: string | null,
+): { matched: string[]; convention: string } | null {
+  // Default + Rust/Ruby still get the legacy accept list since
+  // `src/` and `lib/` are already idiomatic for them.
+  const legacy = folders.filter((f) => ["src", "app", "lib"].includes(f));
+  if (runtime === "Go") {
+    const matched = folders.filter((f) =>
+      ["cmd", "internal", "pkg", "src"].includes(f),
+    );
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("cmd") || matched.includes("internal")
+          ? "Go (cmd/internal/pkg)"
+          : "Go",
+      };
+    }
+    return null;
+  }
+  if (runtime === "Rust") {
+    const matched = folders.filter((f) =>
+      ["src", "crates"].includes(f),
+    );
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("crates") ? "Rust workspace" : "Rust",
+      };
+    }
+    return null;
+  }
+  if (runtime === "Ruby") {
+    const matched = folders.filter((f) => ["lib", "app", "src"].includes(f));
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("app") ? "Ruby on Rails" : "Ruby",
+      };
+    }
+    return null;
+  }
+  if (legacy.length > 0) {
+    return { matched: legacy, convention: "src/app/lib" };
+  }
+  return null;
+}
+
 function scoreDocumentation(ctx: ScoreContext): CategoryScore {
   const { readme, classified } = ctx;
   const evidence: string[] = [];
@@ -109,11 +183,34 @@ function scoreStructure(ctx: ScoreContext): CategoryScore {
   const evidence: string[] = [];
   let score = 0;
   const folders = classified.importantFolders;
-  if (folders.includes("src") || folders.includes("app") || folders.includes("lib")) {
+  // Phase 7.0.6 — per-stack source-layout acceptance. The runtime
+  // signal from stackDetector tells us whether the repo follows the
+  // ecosystem's idiomatic layout (Go's cmd/internal/pkg; Rust's
+  // src/crates; Ruby's lib/app), so a Go project doesn't get
+  // scolded for "missing src/" when it ships a perfectly fine
+  // `cmd/myapp/main.go` layout.
+  const sourceLayout = recognisedSourceLayout(folders, stack.runtime);
+  if (sourceLayout) {
     score += 3;
-    evidence.push("Recognizable source directory present.");
+    const dirs = sourceLayout.matched
+      .map((f) => `\`${f}/\``)
+      .join(", ");
+    evidence.push(
+      `Recognised source layout (${sourceLayout.convention}): ${dirs}.`,
+    );
   } else {
-    evidence.push("No standard source directory (src/app/lib) detected.");
+    // Stack-aware miss-copy: name the convention the audit expected
+    // for this stack so the maintainer knows what would clear the
+    // finding without having to guess.
+    const expected =
+      stack.runtime === "Go"
+        ? "cmd/, internal/, pkg/, or src/"
+        : stack.runtime === "Rust"
+          ? "src/ or crates/"
+          : stack.runtime === "Ruby"
+            ? "lib/ or app/"
+            : "src/, app/, or lib/";
+    evidence.push(`No standard source directory (${expected}) detected.`);
   }
   if (
     folders.includes("test") ||
