@@ -31,6 +31,16 @@ export function Footer() {
           Rule book
         </a>
         <span className="text-slate-700">·</span>
+        {/* Phase 7.0.8 — public scope page. Answers
+            "what does Astraudit actually check?" with an honest
+            in-scope / out-of-scope breakdown. */}
+        <a
+          href={`${base}#/scope`}
+          className="text-slate-500 transition hover:text-aurora-cyan hover:underline"
+        >
+          What we check
+        </a>
+        <span className="text-slate-700">·</span>
         <a
           href="https://github.com/BEKO2210/astraudit/blob/main/docs/mcp.md"
           target="_blank"
