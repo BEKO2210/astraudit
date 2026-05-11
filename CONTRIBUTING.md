@@ -74,7 +74,7 @@ Useful scripts:
 |-----------------------------|---------------------------------------|
 | `npm run dev`               | Vite dev server with HMR              |
 | `npm run typecheck`         | TypeScript strict project build (no emit) |
-| `npm test`                  | Vitest unit suite (~600 tests)        |
+| `npm test`                  | Vitest unit suite (~850 tests)        |
 | `npm run test:watch`        | Vitest in watch mode                  |
 | `npm run test:visual`       | Playwright visual regression          |
 | `npm run test:visual:update`| Regenerate Playwright baselines       |
@@ -330,7 +330,7 @@ them in this order:
 # Strict TypeScript build (matches CI)
 npm run typecheck
 
-# Vitest unit suite (800+ tests, < 8 s)
+# Vitest unit suite (855 tests, < 8 s)
 npm test
 
 # Production build (must be clean — no warnings)

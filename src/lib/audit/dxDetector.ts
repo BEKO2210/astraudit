@@ -28,18 +28,46 @@ export function analyzeDx(
 ): DxSignals {
   const has = classified.hasFile;
 
+  // Phase 7.x — honesty fix. GitHub recognises community-health files
+  // with any of: no extension, .md, .markdown, .rst (Python),
+  // .txt (legacy), AND in any of: root, /docs, /.github. We expand the
+  // list here so the detector matches what `github.com/{repo}` itself
+  // matches — otherwise we tell users "missing CONTRIBUTING" when
+  // GitHub clearly shows a tab for it. Filename matching is
+  // case-insensitive (see ClassifiedFiles.hasFile).
   const contributingHit = has(
     "CONTRIBUTING.md",
+    "CONTRIBUTING.markdown",
+    "CONTRIBUTING.rst",
+    "CONTRIBUTING.txt",
+    "CONTRIBUTING",
     ".github/CONTRIBUTING.md",
+    ".github/CONTRIBUTING.markdown",
+    ".github/CONTRIBUTING.rst",
+    ".github/CONTRIBUTING.txt",
+    ".github/CONTRIBUTING",
     "docs/CONTRIBUTING.md",
-    "Contributing.md",
-    "contributing.md",
+    "docs/CONTRIBUTING.markdown",
+    "docs/CONTRIBUTING.rst",
+    "docs/CONTRIBUTING.txt",
+    "docs/contributing.md",
   );
   const codeOfConductHit = has(
     "CODE_OF_CONDUCT.md",
+    "CODE_OF_CONDUCT.markdown",
+    "CODE_OF_CONDUCT.rst",
+    "CODE_OF_CONDUCT.txt",
+    "CODE_OF_CONDUCT",
+    "Code-of-conduct.md",
+    "Code-of-Conduct.md",
+    "code-of-conduct.md",
     ".github/CODE_OF_CONDUCT.md",
+    ".github/CODE_OF_CONDUCT.markdown",
+    ".github/CODE_OF_CONDUCT.rst",
+    ".github/CODE_OF_CONDUCT",
     "docs/CODE_OF_CONDUCT.md",
-    "code_of_conduct.md",
+    "docs/code_of_conduct.md",
+    "docs/code-of-conduct.md",
   );
 
   const contributingFallback = !contributingHit && !!orgHealth?.contributingContent;

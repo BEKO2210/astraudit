@@ -91,13 +91,23 @@ export function analyzeSecurity(
   let securityPolicySource: "repo" | "org-fallback" | null = null;
 
   const securityHit = has(
+    // Phase 7.x — honesty fix. Match what GitHub itself matches:
+    // any extension (.md, .markdown, .rst, .txt, no-extension) in any
+    // of (root, .github, docs, doc, documentation).
     "SECURITY.md",
     "SECURITY.markdown",
+    "SECURITY.rst",
+    "SECURITY.txt",
     "SECURITY",
+    "Security.md",
+    "security.md",
     ".github/SECURITY.md",
     ".github/SECURITY.markdown",
+    ".github/SECURITY.rst",
+    ".github/SECURITY.txt",
     ".github/SECURITY",
     "docs/SECURITY.md",
+    "docs/SECURITY.rst",
     "docs/security.md",
     "doc/SECURITY.md",
     "documentation/SECURITY.md",
