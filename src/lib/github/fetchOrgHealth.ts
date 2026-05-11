@@ -35,6 +35,9 @@ export interface OrgHealthFiles {
   contributingContent: string | null;
 }
 
+// Phase 7.x — honesty fix. The probe list mirrors what GitHub itself
+// recognises for community-health files: any of (no-extension, .md,
+// .markdown, .rst, .txt) in any of (root, .github, docs).
 const HEALTH_PROBES: Array<{
   key: "securityPolicy" | "codeOfConduct" | "contributing";
   paths: string[];
@@ -44,9 +47,13 @@ const HEALTH_PROBES: Array<{
     paths: [
       "SECURITY.md",
       "SECURITY.markdown",
+      "SECURITY.rst",
+      "SECURITY.txt",
       "SECURITY",
       ".github/SECURITY.md",
+      ".github/SECURITY.rst",
       "docs/SECURITY.md",
+      "docs/SECURITY.rst",
       "Security.md",
       "security.md",
     ],
@@ -56,10 +63,16 @@ const HEALTH_PROBES: Array<{
     paths: [
       "CODE_OF_CONDUCT.md",
       "CODE_OF_CONDUCT.markdown",
+      "CODE_OF_CONDUCT.rst",
+      "CODE_OF_CONDUCT.txt",
       "CODE_OF_CONDUCT",
       ".github/CODE_OF_CONDUCT.md",
+      ".github/CODE_OF_CONDUCT.rst",
       "docs/CODE_OF_CONDUCT.md",
+      "docs/CODE_OF_CONDUCT.rst",
       "code_of_conduct.md",
+      "code-of-conduct.md",
+      "Code-of-conduct.md",
     ],
   },
   {
@@ -67,9 +80,13 @@ const HEALTH_PROBES: Array<{
     paths: [
       "CONTRIBUTING.md",
       "CONTRIBUTING.markdown",
+      "CONTRIBUTING.rst",
+      "CONTRIBUTING.txt",
       "CONTRIBUTING",
       ".github/CONTRIBUTING.md",
+      ".github/CONTRIBUTING.rst",
       "docs/CONTRIBUTING.md",
+      "docs/CONTRIBUTING.rst",
       "Contributing.md",
       "contributing.md",
     ],

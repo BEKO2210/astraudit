@@ -161,21 +161,20 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
-  if (
-    !ctx.classified.hasFile(
-      "CONTRIBUTING.md",
-      ".github/CONTRIBUTING.md",
-      "docs/CONTRIBUTING.md",
-      "Contributing.md",
-    )
-  ) {
+  // Phase 7.x — honesty fix. Was checking `classified.hasFile()`
+  // directly, which missed the very common case where a repo inherits
+  // CONTRIBUTING.md from `{owner}/.github` (expressjs/express,
+  // facebook/react, nodejs/node all do this). Now we trust
+  // `ctx.dx.hasContributingGuide` which already accounts for the
+  // org-fallback path resolved during `analyzeDx`.
+  if (!ctx.dx.hasContributingGuide) {
     findings.push({
       id: id("contributing"),
       title: "No contributing guide detected",
       category: "documentation",
       severity: "low",
       description: "A CONTRIBUTING.md helps onboard external contributors.",
-      evidence: "No CONTRIBUTING.md detected.",
+      evidence: "No CONTRIBUTING.md in the repo or at {owner}/.github fallback.",
       recommendation: "Add a CONTRIBUTING.md describing the contribution flow.",
       affectedFiles: [],
       confidence: "high",

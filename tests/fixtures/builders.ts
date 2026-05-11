@@ -120,6 +120,11 @@ export interface BundleOptions {
   issues?: RepoIssuesSnapshot;
   readmeContent?: string | null;
   treeTruncated?: boolean;
+  // Phase 7.x — let tests assert the org-fallback path that
+  // analyzeDx / analyzeSecurity rely on (expressjs/.github,
+  // facebook/.github etc.). Without this override the default
+  // empty snapshot makes tests look like the org repo doesn't exist.
+  orgHealth?: import("../../src/types/github").OrgHealthSnapshot;
 }
 
 export function makeBundle(opts: BundleOptions = {}): RepoBundle {
@@ -141,9 +146,11 @@ export function makeBundle(opts: BundleOptions = {}): RepoBundle {
     releases: opts.releases ?? [],
     issues: opts.issues ?? { openIssueCount: 1, openPRCount: 0 },
     // Phase 5.5.x — empty org-health snapshot by default; tests that
-    // care about the org-fallback path override it via the type cast
-    // below in a follow-up commit.
-    orgHealth: {
+    // care about the org-fallback path pass `orgHealth: {...}` via
+    // BundleOptions (Phase 7.x). The default below mirrors what
+    // fetchOrgHealth returns when the `{owner}/.github` repo doesn't
+    // exist.
+    orgHealth: opts.orgHealth ?? {
       owner: metadata.owner.login,
       hasOrgRepo: false,
       securityPolicyPath: null,

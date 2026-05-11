@@ -104,7 +104,7 @@ code quality, release engineering).
   CommandPalette and the three legal routes); bundle-size budget
   hard-gated in CI; LCP / a11y / best-practices Lighthouse floors
   enforced per build.
-- **Comprehensive test suite** — 835 vitest cases across 68 files,
+- **Comprehensive test suite** — 855 vitest cases across 69 files (including a 31-repo honesty contract that compares every meta-file detector flag against the real GitHub file tree + org-fallback for each of expressjs/express, facebook/react, django/django, rust-lang/rust, kubernetes/kubernetes, …),
   73 Playwright cases (chromium full + cross-browser smoke).
 
 ### Install
