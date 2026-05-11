@@ -18,7 +18,27 @@ export type CategoryStatus =
   | "weak"
   | "missing"
   | "not-detected"
-  | "info";
+  | "info"
+  /**
+   * Phase 7.0.5 — the public surface doesn't carry the data
+   * Astraudit would need to score this category honestly. Examples:
+   * branch protection (gated to repo admins), transitive CVE counts
+   * (out of scope, see SCOPE.md). An `unknown` category contributes
+   * `0` to the numerator AND `0` to the denominator (helper:
+   * `effectiveMaxScore()`) — no penalty, no credit. The dashboard
+   * renders it with a question-mark badge.
+   */
+  | "unknown"
+  /**
+   * Phase 7.0.5 — the file / pattern doesn't belong on this stack.
+   * Example: `Dockerfile` on a Rust library crate, `requirements.txt`
+   * on a Cargo crate, `.env.example` on a static-site repo.
+   * `not-applicable` categories contribute `0` to the numerator and
+   * are removed from the denominator entirely (helper:
+   * `effectiveMaxScore()`), so the displayed percentage stays
+   * honest. The dashboard renders it with an `n/a` badge.
+   */
+  | "not-applicable";
 
 export interface CategoryScore {
   key: FindingCategory;

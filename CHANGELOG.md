@@ -138,6 +138,27 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.5 — `unknown` + `not-applicable` verdict states.**
+  Two new `CategoryStatus` values (and matching `GraphNodeStatus`
+  entries) so the audit can report honestly when the public surface
+  lacks the data (`unknown`, e.g. branch protection — gated to repo
+  admins) or the file/pattern doesn't belong on this stack
+  (`not-applicable`, e.g. `Dockerfile` on a pure Rust library).
+  New `effectiveMaxScore()` helper in `scoreEngine` makes both
+  states drop out of the denominator entirely — no penalty, no
+  credit. `auditEngine` now uses `effectiveMaxScore()` for
+  `result.maxScore`, so the score-ring, sticky bar, exporters, and
+  MCP JSON all read the honest denominator automatically.
+  `ScoreBreakdown` cards render a `?` / `n/a` badge in place of
+  the `score/max` digits when those states fire, and suppress the
+  progress bar so a glance reader can't mistake them for `missing`.
+  `auditGraphHelpers` extends `STATUS_ORDER` / `STATUS_LABEL` /
+  `countByStatus` to cover both new states. 5 new vitest cases
+  in `scoreEngine.test.ts` lock the denominator math against
+  regression; the existing `auditGraphHelpers` suite re-baselined
+  for the new statuses. Detectors don't emit the new states yet —
+  this PR lands the infrastructure; 7.0.3 (branch-protection
+  probe) and 7.0.6 (per-stack rule packs) are the first consumers.
 - **MCP server** (`bin/mcp-server.ts`, `dist-bin/mcp-server.js`).
   Astraudit now ships a Model Context Protocol server so any
   MCP-compatible AI client (Claude Desktop, Cursor, Zed, VS Code

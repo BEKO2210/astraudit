@@ -94,6 +94,18 @@ const STATUS_COLORS: Record<
     dot: "bg-slate-500",
     edgeStroke: "rgba(148,163,184,0.3)",
   },
+  // Phase 7.0.5 — `not-applicable` matches `unknown` visually
+  // (both are deliberately neutral, no-opinion states) but they
+  // mean different things and carry different copy on the
+  // detail panel. Keeping them visually distinguishable from
+  // `missing` is the whole point of 7.0.5.
+  "not-applicable": {
+    ring: "ring-white/10",
+    bg: "bg-white/[0.04]",
+    text: "text-slate-400",
+    dot: "bg-slate-500",
+    edgeStroke: "rgba(148,163,184,0.25)",
+  },
 };
 
 /**

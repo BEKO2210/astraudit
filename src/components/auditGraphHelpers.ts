@@ -14,6 +14,7 @@ export const STATUS_ORDER: GraphNodeData["status"][] = [
   "strong",
   "info",
   "unknown",
+  "not-applicable",
 ];
 
 export const STATUS_LABEL: Record<GraphNodeData["status"], string> = {
@@ -21,7 +22,12 @@ export const STATUS_LABEL: Record<GraphNodeData["status"], string> = {
   partial: "Partial",
   missing: "Missing",
   info: "Info",
-  unknown: "Not detected",
+  // Phase 7.0.5 — `unknown` now reads as "unknown" (public surface
+  // lacks the data) so the filter chip copy lines up with the
+  // dashboard's `?` badge. The legacy "Not detected" copy moves
+  // onto the new `not-applicable` state which is the closer match.
+  unknown: "Unknown",
+  "not-applicable": "Not applicable",
 };
 
 /** Tally nodes by status — drives the filter chip badges + the
@@ -35,6 +41,7 @@ export function countByStatus(
     missing: 0,
     info: 0,
     unknown: 0,
+    "not-applicable": 0,
   };
   for (const n of nodes) out[n.data.status] += 1;
   return out;
