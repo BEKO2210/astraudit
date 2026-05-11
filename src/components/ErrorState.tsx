@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Clock,
   Cog,
+  KeyRound,
   RefreshCw,
   Search,
   WifiOff,
@@ -41,6 +42,9 @@ const ICONS: Record<AuditErrorView["kind"], LucideIcon> = {
   "rate-limit-anon": Clock,
   "not-found": Search,
   "too-large": AlertTriangle,
+  // Phase 7.x — 401-specific. The Key icon makes the credential
+  // angle obvious without reading the title.
+  "invalid-token": KeyRound,
   github: AlertTriangle,
   network: WifiOff,
   empty: Search,

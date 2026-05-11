@@ -22,6 +22,7 @@ import {
 } from "../../../src/lib/github/auditErrorView";
 import {
   GithubError,
+  InvalidTokenError,
   NotFoundError,
   RateLimitError,
   TooLargeError,
@@ -105,6 +106,27 @@ describe("mapAuditError", () => {
     expect(() => mapAuditError(null)).not.toThrow();
     expect(mapAuditError(undefined).kind).toBe("network");
   });
+
+  // Phase 7.x — the bug that prompted this work: a 401 from GitHub
+  // (revoked / expired / wrong-scope PAT) used to fall through the
+  // generic GithubError path and emit "GitHub responded with 401 -
+  // try a different repository". That's both unhelpful and
+  // misleading; the issue is the credential, not the repo.
+  it("InvalidTokenError (with token in scope) routes to 'Open Settings' as the primary CTA", () => {
+    const view = mapAuditError(new InvalidTokenError({ unauthenticated: false }));
+    expect(view.kind).toBe("invalid-token");
+    expect(view.title).toMatch(/PAT/i);
+    expect(view.actions[0].kind).toBe("open-settings");
+    expect(view.message).toMatch(/invalid|expired|revoked/i);
+    expect(view.message).toMatch(/Settings/);
+  });
+
+  it("InvalidTokenError (no token in scope) does NOT route to Settings (nothing to clear)", () => {
+    const view = mapAuditError(new InvalidTokenError({ unauthenticated: true }));
+    expect(view.kind).toBe("invalid-token");
+    expect(view.actions[0].kind).not.toBe("open-settings");
+    expect(view.message).toMatch(/proxy|transient|hiccup/i);
+  });
 });
 
 describe("emptyRepoView", () => {
@@ -128,6 +150,8 @@ describe("AuditErrorView shape contract", () => {
     { name: "TooLarge", err: new TooLargeError("too big") },
     { name: "GithubError 5xx", err: new GithubError("server", 500) },
     { name: "GithubError 4xx", err: new GithubError("forbidden", 403) },
+    { name: "InvalidToken auth", err: new InvalidTokenError({ unauthenticated: false }) },
+    { name: "InvalidToken anon", err: new InvalidTokenError({ unauthenticated: true }) },
     { name: "AbortError", err: Object.assign(new Error("abort"), { name: "AbortError" }) },
     { name: "unknown string", err: "raw string thrown" },
     { name: "unknown null", err: null },
