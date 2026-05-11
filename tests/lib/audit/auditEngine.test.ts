@@ -190,6 +190,33 @@ describe("runAudit", () => {
       expect(evidence).toMatch(/cmd\/, internal\/, pkg\/, or src\//);
     });
 
+    it("Go projects without tests get the `go test ./...` recommendation, not Vitest", () => {
+      // Phase 7.0.9 — finding-copy honesty. A Go repo with no
+      // tests should be told to run `go test`, never "Vitest /
+      // Jest / similar" (the v1.x copy that read as JS-centric
+      // noise on every non-Node stack).
+      const bundle = makeBundle({
+        languages: { Go: 100_000 },
+        paths: ["README.md", "go.mod", "main.go"],
+      });
+      const result = runAudit(bundle);
+      const noTests = result.findings.find((f) => f.title === "No tests detected");
+      expect(noTests, "tests finding should fire").toBeTruthy();
+      expect(noTests!.recommendation).toMatch(/go test/);
+      expect(noTests!.recommendation).not.toMatch(/Vitest|Jest/);
+    });
+
+    it("Rust projects without tests get the `cargo test` recommendation", () => {
+      const bundle = makeBundle({
+        languages: { Rust: 100_000 },
+        paths: ["README.md", "Cargo.toml", "Cargo.lock", "src/main.rs"],
+      });
+      const result = runAudit(bundle);
+      const noTests = result.findings.find((f) => f.title === "No tests detected");
+      expect(noTests, "tests finding should fire").toBeTruthy();
+      expect(noTests!.recommendation).toMatch(/cargo test/);
+    });
+
     it("detects pytest's `test_*.py` files nested under a package", () => {
       // The `/test_` hint catches pytest's canonical pattern when
       // tests live inside a package subdirectory. The legacy
