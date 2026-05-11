@@ -1,9 +1,11 @@
 # Releasing Astraudit
 
 One-page maintainer walkthrough. Cutting a release is three commands
-plus a CHANGELOG polish; the workflow does the rest.
+plus a CHANGELOG polish; the workflow does the rest. Don't have a PC
+handy? Jump to ["Cutting a release from your phone"](#cutting-a-release-from-your-phone)
+— same outcome via the GitHub mobile app or any browser.
 
-## TL;DR (cutting v1.0.0)
+## TL;DR (cutting v1.0.0 from a terminal)
 
 ```sh
 # 1. Make sure main is green and you're on it.
@@ -18,6 +20,35 @@ grep '"version"' package.json     # → "version": "1.0.0",
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+## Cutting a release from your phone
+
+You don't need a terminal — the GitHub web UI / mobile app can do
+everything. The trick: GitHub's "Draft a new release" page creates
+the tag for you, which fires the same `release.yml` workflow as a
+`git push origin v1.0.0`.
+
+1. Open
+   **[github.com/BEKO2210/astraudit/releases/new](https://github.com/BEKO2210/astraudit/releases/new)**
+   in your phone's browser, or in the GitHub mobile app tap your
+   repo → **Releases** → **Draft a new release**.
+2. In the **"Choose a tag"** dropdown, type `v1.0.0`. GitHub will
+   offer **"Create new tag: v1.0.0 on publish"** — tap it.
+3. Leave the **Title** field blank (it'll default to `v1.0.0`), and
+   the **Description** field empty too — `release.yml` will fill the
+   body in automatically with the curated CHANGELOG section once it
+   runs. (You can type a one-word placeholder like `building…` so the
+   page isn't blank during the ~5 min build window.)
+4. Tap **Publish release** at the bottom.
+
+That's it. GitHub creates the tag, the `release.yml` workflow fires,
+and ~5 minutes later the release page shows the curated body
+(logo + highlights + install + verification footer) with
+`astraudit-dist.zip` and `og-card.png` attached.
+
+> If you want to confirm the workflow is running, open the **Actions**
+> tab on the repo. You should see a `Release (Phase 6.50)` run in
+> progress against the new tag.
 
 The tag push fires `.github/workflows/release.yml`:
 
