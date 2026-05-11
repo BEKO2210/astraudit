@@ -59,4 +59,34 @@ describe("analyzeSecurity", () => {
     expect(sec.hasCommittedEnv).toBe(false);
     expect(sec.committedEnvFiles).toEqual([]);
   });
+
+  // Phase 7.0.3 — branch protection threads through the security
+  // signals so downstream scoring + UI can pattern-match without
+  // poking at the bundle directly. Default fallback when the caller
+  // didn't pass a probe is the honest `unknown` shape (no penalty,
+  // no credit — see scoreEngine + the new verdict states from 7.0.5).
+  describe("branchProtection passthrough", () => {
+    it("defaults to `unknown` when the caller didn't probe", () => {
+      const sec = analyzeSecurity(classify([]));
+      expect(sec.branchProtection.status).toBe("unknown");
+    });
+
+    it("threads through an `observed` probe without altering shape", () => {
+      const sec = analyzeSecurity(classify([]), undefined, {
+        status: "observed",
+        branch: "main",
+        requiredReviews: 2,
+        requiredStatusChecks: true,
+        enforceAdmins: true,
+        requireLinearHistory: false,
+        allowForcePushes: false,
+        allowDeletions: false,
+      });
+      if (sec.branchProtection.status !== "observed")
+        throw new Error("expected observed");
+      expect(sec.branchProtection.branch).toBe("main");
+      expect(sec.branchProtection.requiredReviews).toBe(2);
+      expect(sec.branchProtection.requiredStatusChecks).toBe(true);
+    });
+  });
 });

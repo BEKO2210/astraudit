@@ -125,6 +125,12 @@ export interface BundleOptions {
   // facebook/.github etc.). Without this override the default
   // empty snapshot makes tests look like the org repo doesn't exist.
   orgHealth?: import("../../src/types/github").OrgHealthSnapshot;
+  // Phase 7.0.3 — branch protection probe override. The default
+  // below is the honest `unknown` shape every unauthenticated
+  // (or non-admin-token) audit gets back from the GitHub API. Tests
+  // that exercise the "protection observed" path pass an explicit
+  // `branchProtection: { status: "observed", ... }` override.
+  branchProtection?: import("../../src/types/github").BranchProtectionSignals;
 }
 
 export function makeBundle(opts: BundleOptions = {}): RepoBundle {
@@ -159,6 +165,11 @@ export function makeBundle(opts: BundleOptions = {}): RepoBundle {
       codeOfConductContent: null,
       contributingPath: null,
       contributingContent: null,
+    },
+    branchProtection: opts.branchProtection ?? {
+      status: "unknown",
+      branch: metadata.defaultBranch,
+      reason: "not-set",
     },
   };
 }

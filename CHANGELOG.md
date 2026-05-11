@@ -138,6 +138,26 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.3 — Branch-protection probe with `Unknown`
+  graceful degrade.** New `src/lib/github/fetchBranchProtection.ts`
+  probes `/repos/{owner}/{repo}/branches/{default}/protection` and
+  threads the result through `RepoBundle.branchProtection`. The
+  endpoint is gated to admin tokens, so for a typical
+  unauthenticated browser-only audit the probe returns 404 →
+  `{ status: "unknown", reason: "not-set" }`. When the probe
+  succeeds (admin-token audit), the security panel surfaces the
+  real numbers — required-review count, status-checks presence,
+  enforce-admins, linear-history, force-push + deletion flags.
+  A tiny credit (+1 for status checks, +1 for ≥1 required review)
+  lands inside the existing Security category cap. The
+  score-engine's branch-protection evidence line now reads
+  honestly ("Branch protection is private to repo admins —
+  Unknown (see /scope for why)") instead of the old absence-of-
+  evidence placeholder. Never emits a *"no required reviews"*
+  finding from the Unknown probe — that's the contract from the
+  roadmap. SecurityPanel disclaimer updated to point at the new
+  scope page. 6 new fetcher tests + 2 new security-passthrough
+  tests; full suite at 898/898.
 - **Phase 7 / 7.0.5 — `unknown` + `not-applicable` verdict states.**
   Two new `CategoryStatus` values (and matching `GraphNodeStatus`
   entries) so the audit can report honestly when the public surface

@@ -309,13 +309,54 @@ function scoreSecurity(ctx: ScoreContext): CategoryScore {
       `${security.suspiciousFiles.length} potentially sensitive filename(s) detected.`,
     );
   }
-  if (
+  // Phase 7.0.3 — branch protection probe evidence. The probe lives
+  // on the bundle (`fetchBranchProtection`); the detector hands it
+  // here as-is. When the probe succeeded, surface the real numbers.
+  // When it returned `unknown` (the public surface couldn't carry
+  // the data — gated to repo admins), surface the honest *Unknown*
+  // verdict instead of pretending the absence of evidence is
+  // evidence of absence. **Never** emit a `no required reviews`
+  // finding from an unknown probe.
+  const protection = security.branchProtection;
+  if (protection.status === "observed") {
+    const reviewCount = protection.requiredReviews;
+    const reviewsCopy =
+      reviewCount === null
+        ? "configured"
+        : reviewCount === 0
+          ? "0 required"
+          : `${reviewCount} required`;
+    const checksCopy = protection.requiredStatusChecks
+      ? "status checks enabled"
+      : "no status checks";
+    evidence.push(
+      `Branch protection observed on \`${protection.branch}\`: ${reviewsCopy} review${reviewCount === 1 ? "" : "s"}, ${checksCopy}.`,
+    );
+    // Tiny positive bump when the public surface actively confirms
+    // protection. We deliberately cap this so the audit can't be
+    // gamed by a project that ticks branch-protection but ships no
+    // license / no SECURITY.md. The status-checks bonus is the
+    // higher-trust signal because it implies a real CI gate.
+    if (protection.requiredStatusChecks) score += 1;
+    if (reviewCount && reviewCount >= 1) score += 1;
+  } else if (
     !security.hasLicense &&
     !security.hasSecurityPolicy &&
     !security.hasCodeowners &&
     !security.hasDependabot
   ) {
-    evidence.push("Branch protection cannot be inspected from a public static audit.");
+    // Pre-7.0.3 copy, narrowed: only fire when the rest of the
+    // security surface is also empty. A repo that ships a LICENSE
+    // + SECURITY.md but hides branch protection behind admin auth
+    // doesn't deserve to read "couldn't inspect protection" — the
+    // honest line below covers it.
+    evidence.push(
+      "Branch protection is private to repo admins — Unknown verdict.",
+    );
+  } else {
+    evidence.push(
+      "Branch protection is private to repo admins — Unknown (see /scope for why).",
+    );
   }
   score = clamp(score, 0, 15);
   const has = security.hasLicense || security.hasSecurityPolicy;

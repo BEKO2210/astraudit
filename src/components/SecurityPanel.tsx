@@ -13,8 +13,8 @@ export function SecurityPanel({ category }: SecurityPanelProps) {
         <h3 className="text-sm font-semibold text-white">Security & trust</h3>
       </div>
       <p className="mt-1 text-xs text-slate-500">
-        Static signals only. Branch protection cannot be inspected from a
-        browser-only audit.
+        Static signals only. Branch protection is probed from the public API;
+        without an admin token it returns Unknown (see <a className="underline decoration-dotted underline-offset-2 hover:text-aurora-cyan" href="#/scope">scope</a>).
       </p>
 
       {/* Phase 7.0.4 — transitive-dependency honesty disclaimer. The
