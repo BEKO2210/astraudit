@@ -638,6 +638,11 @@ export default function App() {
         historyTick={historyTick}
       />
 
+      {/* Phase 6.9 — single <main> landmark so SR users can jump to
+          the audit surface with their landmark-nav shortcut. Hero
+          renders the page banner (<header>) above; Footer renders
+          the contentinfo landmark below. */}
+      <main id="main" className="flex flex-col">
       <RepoInput
         onSubmit={startAudit}
         loading={showLoading}
@@ -714,6 +719,7 @@ export default function App() {
           />
         </Suspense>
       ) : null}
+      </main>
 
       <Footer />
 
