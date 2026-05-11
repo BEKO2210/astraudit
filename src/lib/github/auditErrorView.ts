@@ -116,7 +116,7 @@ export function mapAuditError(err: unknown): AuditErrorView {
       kind: "too-large",
       title: "Repository too large",
       message:
-        "The repository's file tree exceeds the browser-only audit budget. Try a smaller repo, or run a partial audit on a sub-folder via fork.",
+        "This repository has too many files for an in-browser audit to keep fast. Try a smaller repo, or audit a fork that only contains the subfolder you care about.",
       actions: [{ kind: "reset", label: "Try a different repository" }],
     };
   }
@@ -161,7 +161,7 @@ export function emptyRepoView(): AuditErrorView {
     kind: "empty",
     title: "Empty repository",
     message:
-      "Astraudit couldn't find any analyzable files in this repository.",
+      "This repository looks empty — there's no code or README on the default branch yet. Push some content first, then come back and audit it.",
     actions: [{ kind: "reset", label: "Try a different repository" }],
   };
 }
