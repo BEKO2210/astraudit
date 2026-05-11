@@ -3383,29 +3383,157 @@ this?" to a recognisable Astraudit card.
 
 ## Phase 7 — Reach, Adoption & Sustainability (post-v1.0.0)
 
-> Phase 6 closed the engineering chapter. Phase 7 is the four-week
-> sprint after launch: get the product in front of every maintainer
-> who'd benefit, ship the features that turn a one-shot visit into
-> a recurring habit, and build sustainable paths to keep the
-> project running without compromising the constraint contract.
+> **Reprioritization, 2026-05-11.** First-day post-v1.0.0 feedback
+> (Reddit, plus the maintainer's own re-audit of `expressjs/express`)
+> surfaced honest gaps: Astraudit was missing repos that inherit
+> meta-files from `{owner}/.github`, ignoring `has_wiki` and external
+> docs sites entirely, calling Go / Rust / Python projects out for
+> JS-specific files, and saying nothing about branch-protection
+> rules. Some critics called the output noise. They were right.
+>
+> Phase 7's launch tracks (A → D below) are **paused** until the
+> new **Track 0 — Credibility & Stack-Awareness** closes. Shipping
+> louder advertising while the product still produces sloppy output
+> would multiply the criticism, not the adoption. The launch tracks
+> stay in this document so the post-credibility plan is visible,
+> but they are explicitly *not the next work*.
 >
 > Same format as Phase 6 (tracks → numbered items, ticked when
 > shipped). Every item respects the
 > [anti-roadmap](#anti-roadmap--things-astraudit-will-never-do):
 > no backend, free forever, public repos only, rule-based. The
-> monetization track (D) keeps the public product free —
-> revenue comes from clearly-separated, maintainer-led channels
+> monetization track (D) keeps the public product free — revenue
+> comes from clearly-separated, maintainer-led channels
 > (sponsorship, consultancy, published reports), not from gating
 > the audit itself.
 >
-> Target outcome: at the end of week 4 Astraudit has a
-> recognised brand among OSS maintainers, a recurring audience
-> via newsletter + leaderboard, a browser extension that surfaces
-> scores natively on github.com, and at least one sustainable
-> funding stream that covers maintainer time without touching
-> any constraint.
+> Target outcome (revised): at the end of Track 0 every supported
+> language ecosystem (JS/TS, Python, Rust, Go, Ruby, polyglot)
+> produces audit copy a maintainer of *that* ecosystem reads as
+> "this tool understands me". After that, the launch tracks fire
+> from a credible base. Marketing-louder-than-the-product is the
+> one trap a free public good can't recover from.
+
+### 0 · Credibility & Stack-Awareness (must clear BEFORE launch)
+
+> Anchored on real Reddit feedback, the maintainer's own re-audit
+> of `expressjs/express`, and the multi-repo honesty sweep
+> (`scripts/honesty-check.ts`). Each item below either fixes a
+> lie the audit is currently telling, or replaces a noisy "missing"
+> verdict with a precise "not applicable" / "unknown" verdict.
+
+- **7.0.1 Stack-aware finding gates.** Every "missing X" finding
+  asks two questions before it fires: *(a) is X relevant for this
+  stack?* and *(b) is X observable from public surface?* If
+  either answer is no, the finding doesn't render. Concrete
+  examples to unblock today:
+  - "No lockfile" only fires when a recognised package manifest
+    is present (already gated for `package.json` — extend to
+    `Cargo.toml` / `go.mod` / `pyproject.toml` / `Gemfile`).
+  - "Too many files in root" doesn't fire on Go projects where
+    flat-root is the convention.
+  - "No yarn.lock / npm-lock" is not a finding on Rust / Go /
+    Python — the existing JS lockfile gate covers it but the
+    *copy* should mention the actual lockfile the stack uses
+    (`Cargo.lock`, `go.sum`, `poetry.lock`, `Gemfile.lock`).
+- **7.0.2 Wiki + external-docs awareness.** `repo.has_wiki`
+  arrives in `metadata` already but no detector consumes it.
+  Add a probe: if the repo has the wiki enabled AND the README
+  is short, soften the "documentation thin" finding to "Most
+  documentation may live in the GitHub Wiki at
+  github.com/owner/repo/wiki — Astraudit doesn't fetch wiki
+  content." Same softening if the README links to a recognised
+  external docs host (readthedocs.io, mintlify.com, gitbook.com,
+  docs.rs, pkg.go.dev, godoc.org, vercel-style `docs.*`
+  subdomains).
+- **7.0.3 Branch-protection probe with graceful degrade.** Probe
+  the GitHub API for `/repos/{owner}/{repo}/branches/{default}/protection`.
+  When the call succeeds, surface "Required reviews: N · Status
+  checks: enabled / disabled" in the security panel. When the
+  call returns 403 / 404 (no auth, or branch protection is off
+  but the API is gated), surface "Unknown — branch protection
+  is private to repo admins" instead of guessing. **Never** emit
+  a "no required reviews" finding from absence of evidence.
+- **7.0.4 Transitive-dependency honesty disclaimer.** A single
+  always-visible line on the dashboard's Security panel: "Astraudit
+  reads declared dependencies + lockfile presence. It does **not**
+  scan transitive CVEs — run `npm audit` / `pip-audit` /
+  `cargo audit` / `bundler audit` for that." Same line copied
+  into the Markdown / JSON / AsciiDoc export so a downstream
+  reader can't mistake the audit for CVE coverage.
+- **7.0.5 "Not applicable" + "Unknown" verdict paths.** Today
+  every signal is `met` / `partial` / `missing`. Add two more
+  states:
+  - **`not-applicable`** — the file / pattern doesn't belong on
+    this stack (e.g. `Dockerfile` on a public-domain library
+    repo, `.env.example` on a Rust crate).
+  - **`unknown`** — the public surface doesn't carry the data
+    (branch protection, transitive CVE counts).
+  Replace every "missing" verdict that should be one of these
+  with the correct state. Score model: `n/a` removes the
+  category weight from the denominator; `unknown` is shown
+  with a question-mark badge and contributes 0 to the
+  numerator, 0 to the denominator (no penalty, no credit).
+- **7.0.6 Per-stack rule packs land in the default audit.**
+  Stack detection already classifies projects as JS / TS /
+  Python / Rust / Go / Ruby / polyglot. Each stack gets its
+  own "documentation expectations" + "developer experience
+  expectations" set:
+  - **Go** — accept `cmd/`, `internal/`, `pkg/` as good
+    structure (don't flag flat-root), expect `go.mod` + `go.sum`,
+    accept package docs on `pkg.go.dev` as docs presence.
+  - **Rust** — accept `src/` + `tests/` + `benches/`, expect
+    `Cargo.lock`, accept `docs.rs` link as docs presence.
+  - **Python** — accept `pyproject.toml` / `setup.py` /
+    `setup.cfg`, expect `requirements*.txt` OR a lockfile
+    (`poetry.lock` / `Pipfile.lock` / `pdm.lock` / `uv.lock`),
+    accept `readthedocs.io` link as docs presence.
+  - **Ruby** — accept `Gemfile` + `Gemfile.lock`, accept Yard
+    docs.
+  - **Polyglot / monorepo** — relax single-language rules,
+    detect per-package signals.
+- **7.0.7 Multi-stack honesty sweep + CI gate.** Extend
+  `scripts/honesty-check.ts` (already in the repo) to 50+
+  curated repos spanning every supported ecosystem. Add a
+  GitHub Actions matrix that runs the sweep on every PR and
+  posts the lie-count delta as a PR comment. A PR that
+  introduces a new lie blocks merge.
+- **7.0.8 "What Astraudit does NOT check" page.** A new
+  `/docs/scope/` route documents the limits in plain English:
+  - No transitive CVE scanning (run `*-audit` tools).
+  - No authenticated-logic review (auth model, scopes, role
+    checks — Astraudit only reads public files).
+  - No private-repo support (anti-roadmap).
+  - No runtime / dynamic analysis (rule-based, static only).
+  - Branch protection / required reviews / merge queue —
+    "Unknown" surface (per 7.0.3); recommend the user check
+    the repo's Settings → Branches page.
+  Link from the homepage hero, from every error state, from
+  every "missing" verdict on a category where the limit
+  applies.
+- **7.0.9 Honest finding copy review.** Every "Add X" /
+  "missing X" / "no X" copy line gets re-read in the
+  framing of *"would the maintainer of this kind of project
+  recognise this as a useful nudge?"*. Anything that survives
+  the question as noise gets either deleted, demoted to info,
+  or rewritten with context (the stack, the alternative
+  conventions, the link to the official docs of the
+  ecosystem).
+- **7.0.10 Public Roadmap acknowledgement.** A short, dated
+  block at the top of the README + a pinned issue: *"v1.0.0
+  shipped; we heard the feedback on stack-agnosticity and
+  missing wiki / branch-protection detection. Track 0 of
+  Phase 7 is the credibility pass; the launch tracks are
+  paused until it lands."* This is the same honesty contract
+  we apply to the audit copy — applied to the project itself.
 
 ### A · Launch sequence (Week 1)
+
+> **Paused** until Track 0 closes. Shipping the launch sequence
+> while the audit copy still produces stack-agnostic noise would
+> compound the existing Reddit critique. Once 7.0 lands, this
+> track fires from a credible base.
+
 
 - **7.1 Product Hunt launch.** Schedule the launch for a Tuesday
   00:01 PT — historically the highest-visibility window.
