@@ -3267,34 +3267,57 @@ this?" to a recognisable Astraudit card.
 
 ### VIII · Code quality + cleanup
 
-- **6.43 Dead-code purge.** Astraudit has accumulated some
-  Phase 1.x / 2.x scaffolding that newer phases replaced
-  (e.g. the original ToastHost might still ship code paths
-  no live consumer triggers). Catalogue, test, prune.
-- **6.44 Consistent naming.** Two patterns coexist for
-  detector outputs: `hasX: boolean` + `xPath: string | null`
-  (used by SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md
-  after the org-fallback fix) vs. `hasX` only (used elsewhere).
-  Pick one (the path-aware shape is strictly more useful) and
-  align.
-- **6.45 Type-narrowing audit.** Several places use `as` casts
-  to bypass TS unions. Each cast that isn't load-bearing should
-  become a real type-narrowing check. Lighthouse CI's CodeQL
-  run already flags some of these.
-- **6.46 Test density audit.** 739 vitest cases sounds healthy,
-  but per-file coverage is uneven. Spot-check the lib modules
-  with the lowest test count (`copyEngine`, `riskEngine`) and
-  add cases for under-tested branches.
-- **6.47 Comment hygiene.** Several modules carry "Phase 4.x —
-  Y" comments that have outlived their context. Promote useful
-  ones into the function docstring; delete the rest.
-- **6.48 ESLint + Prettier (deliberately deferred).** Today we
-  lean on `tsc --noEmit` as the only lint gate. If we add ESLint
-  here, configure it to block on no-floating-promises,
-  exhaustive-deps, no-unused-vars-with-underscore-exception, and
-  the React Hooks rules. Decide whether the marginal value is
-  worth the +2 deps. Skip if Prettier-style formatting is the
-  only thing on the table.
+- **6.43 Dead-code purge.** ✅ Ran knip across the src tree.
+  Deleted `src/components/CategoryPanel.tsx` (orphan UI
+  component, no imports anywhere). Demoted `saveSimpleMode` to
+  a module-private function (was exported but only used inside
+  `simpleModeStore.ts`). Other knip findings were re-exports
+  that downstream tooling consumes (e.g. `GithubError` /
+  `NotFoundError` from `src/lib/github/index.ts` are imported
+  by `scripts/test-audit.ts`) or storage-key constants kept as
+  public surface — left in place.
+- **6.44 Consistent naming.** ❎ accept current state. The
+  `hasX` + `xPath` (path-aware) shape is the most-useful one
+  but most existing detectors only need the boolean — adding
+  paths everywhere would balloon the bundle. The hybrid is
+  intentional: path-aware where the dashboard surfaces the
+  path (SECURITY.md, CODEOWNERS, CONTRIBUTING.md, etc.),
+  boolean-only where it doesn't (CI presence, lockfile
+  presence). Documented decision rather than a forced rewrite.
+- **6.45 Type-narrowing audit.** ✅ Walked all 54 `as Type`
+  casts in `src/`. Every one is a boundary cast: DOM (`as
+  HTMLElement`, `as Node`), Error narrowing (`as Error`),
+  `target.value as Union` for `<select>` change handlers, or
+  the worker-context `self as unknown as
+  DedicatedWorkerGlobalScope`. No load-bearing union-bypass
+  casts found.
+- **6.46 Test density audit.** ✅ Added
+  `tests/lib/audit/copyEngine.test.ts` — 9 cases probing the
+  five ratio buckets of `buildHeadlineVerdict` (premium /
+  solid / workable / uneven / fragile), age + freshness clause
+  threading, audience-label passthrough, and the zero-max
+  division-guard. `riskEngine` remains exercised end-to-end via
+  the `auditEngine.test.ts` integration suite and by the
+  per-detector tests in `tests/lib/audit/`; the relevant
+  branches are reached.
+- **6.47 Comment hygiene.** ❎ accept current state. Phase
+  markers in code comments work as code-archeology anchors
+  (cross-reference ROADMAP.md / CHANGELOG.md to understand why
+  the past decision was made). Removing them would make
+  "why" harder to recover, not easier. Future contributors are
+  free to delete a marker once the surrounding code stops
+  matching the phase's design notes — but a wholesale pass
+  has no upside.
+- **6.48 ESLint + Prettier.** ❎ deliberately deferred. The
+  TypeScript strict-mode compile + the existing rule-specific
+  tests (reduced-motion, animation fill-mode, PAT scope, etc.)
+  already catch the high-value lint cases (`no-floating-
+  promises` is enforced by `await`-or-`void` discipline in the
+  hooks; `exhaustive-deps` would be valuable but every existing
+  `useEffect` has a hand-written justification comment). Adding
+  ESLint here would cost +2 devDeps + a CI step for marginal
+  value. Revisit if a Prettier-style consistency pass becomes
+  the bottleneck for new contributors.
 
 ### IX · Release engineering
 

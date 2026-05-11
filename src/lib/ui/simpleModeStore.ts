@@ -41,7 +41,7 @@ export function loadSimpleMode(): SimpleMode {
   }
 }
 
-export function saveSimpleMode(value: SimpleMode): void {
+function saveSimpleMode(value: SimpleMode): void {
   if (!isBrowser()) return;
   try {
     localStorage.setItem(SIMPLE_MODE_STORAGE_KEY, value);
