@@ -1,0 +1,117 @@
+name: Rule proposal
+description: Propose a new audit detector for Astraudit (Phase 7.6).
+title: "[rule] "
+labels: ["rule-proposal", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Astraudit's audit is rule-based — every finding maps to a
+        documented detector in the [rule book](https://beko2210.github.io/astraudit/#/rules).
+        New detectors land here: structured up front so triage
+        doesn't need a back-and-forth.
+
+        **Before filing**, scan the four hard constraints. Items that
+        need a backend, OAuth, private-repo support, or LLM inference
+        will be politely declined.
+
+        🌐 browser-only · 🆓 free forever · 📂 public repos only · 📐 rule-based
+  - type: input
+    id: detector-name
+    attributes:
+      label: Detector name
+      description: Short, lowercase-hyphenated identifier — e.g. `ci-status-checks-required`.
+      placeholder: ci-status-checks-required
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Audit category
+      description: Which of Astraudit's eight categories does this belong in?
+      options:
+        - Documentation
+        - Structure
+        - Code Quality Signals
+        - Security & Trust
+        - Maintenance
+        - Developer Experience
+        - Ecosystem & Dependencies
+        - CI/CD & Automation
+    validations:
+      required: true
+  - type: dropdown
+    id: stack
+    attributes:
+      label: Applicable stack
+      description: Cross-stack rules apply everywhere; stack-specific rules only fire when the runtime matches (per Phase 7.0.6).
+      options:
+        - Cross-stack (every audit)
+        - JS / TS / Node / Deno / Bun
+        - Python (pyproject / setup / requirements)
+        - Rust (Cargo)
+        - Go (go.mod)
+        - Ruby (Gemfile)
+        - PHP (Composer)
+        - Java / JVM
+        - Swift / SwiftPM
+        - Other / multi-stack subset
+    validations:
+      required: true
+  - type: textarea
+    id: signal
+    attributes:
+      label: What signal does the detector look for?
+      description: |
+        Concrete files, paths, manifest fields, or metadata properties.
+        Example: "Presence of `.github/workflows/*.yml` containing `required_status_checks: true`".
+        The audit fetches public files + GitHub's REST metadata only — anything else is out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: verdict
+    attributes:
+      label: What verdict does the rule emit?
+      description: |
+        Three states:
+        - `met` — the signal is present.
+        - `missing` — the signal is absent AND the detector can prove it (not just absence-of-evidence).
+        - `unknown` — the public surface can't carry the answer (e.g. branch protection per 7.0.3).
+        Per 7.0.5 we never emit `missing` from absence-of-evidence; the right state for that case is `unknown`.
+      placeholder: |
+        met:     workflow file lists required_status_checks: true
+        missing: workflow file exists but no required_status_checks key
+        unknown: no workflow file at all (we can't read protection settings)
+    validations:
+      required: true
+  - type: textarea
+    id: copy
+    attributes:
+      label: Suggested user-facing copy
+      description: |
+        - Title (action-oriented): "Add required status checks to the CI workflow"
+        - Recommendation (one sentence): "GitHub Actions can gate merges on a workflow's success — add `required_status_checks: true` under the workflow's branch protection."
+        Per 7.0.9 the copy is reviewed for stack-aware honesty before it ships.
+    validations:
+      required: true
+  - type: textarea
+    id: false-positive-risk
+    attributes:
+      label: False-positive risk
+      description: |
+        What's the risk that this rule fires noisily on a project that's actually fine?
+        E.g. "A monorepo with multiple workflows where only one needs status checks would get the finding even on the protected workflow."
+    validations:
+      required: false
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraint check
+      description: Required.
+      options:
+        - label: The detector reads only public files + GitHub REST metadata (no admin-token endpoints unless the rule degrades to `unknown` per 7.0.3).
+          required: true
+        - label: The verdict is reproducible — same input, same output, no LLM inference.
+          required: true
+        - label: The rule won't fire as a false positive on common ecosystem layouts (per the per-stack rule packs in 7.0.6).
+          required: true
