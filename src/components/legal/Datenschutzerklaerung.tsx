@@ -6,10 +6,18 @@
  * die Datenschutzerklärung deckt entsprechend ausschließlich:
  *   1. GitHub Pages-Hosting (IP in Server-Logs durch GitHub),
  *   2. Direkte Aufrufe der öffentlichen GitHub-API aus dem Browser,
- *   3. Lokale Speicherung im localStorage (Theme, Dichte, History,
- *      Audit-Cache, optionaler GitHub-PAT),
+ *   2a. Aufrufe der öffentlichen Paket-Registries (npm, PyPI, crates.io),
+ *   2b. Optionale lokale MCP-/CLI-Komponente (`astraudit-mcp`),
+ *   3. Lokale Speicherung im localStorage (Theme, Dichte, Modus,
+ *      History, Audit-Cache, Registry-Cache, optionaler GitHub-PAT),
  *   4. Bestehen *keiner* Cookies, Tracking-Pixel, Werbenetzwerke
  *      oder Webanalyse-Tools.
+ *
+ * Phase 6.36 — Pflege-Hinweis für Beitragende: Wenn neue Daten
+ * lokal gespeichert oder neue Drittanbieter-Endpunkte angerufen
+ * werden, muss diese Datei mit der Implementierung im selben
+ * Pull-Request mitgepflegt werden. Wir spiegeln keine
+ * personenbezogene Datenverarbeitung, die nicht hier steht.
  */
 
 import { LegalPage } from "./LegalPage";
@@ -136,6 +144,21 @@ export function Datenschutzerklaerung() {
         Antworten an einem eigenen Server.
       </p>
 
+      <h2>4b. MCP-Server / CLI-Komponente (lokal auf Ihrem Rechner)</h2>
+      <p>
+        Astraudit wird zusätzlich als optionales npm-Paket{" "}
+        <code>astraudit-mcp</code> bereitgestellt, das den Audit über das
+        Model Context Protocol (MCP) für AI-Clients wie Claude Desktop,
+        Cursor, Zed oder VS Code zugänglich macht. Der MCP-Server läuft
+        ausschließlich auf Ihrem lokalen Rechner und ruft denselben
+        öffentlichen GitHub-API-Endpunkt direkt aus Ihrer Umgebung auf —
+        die Verarbeitung erfolgt vollständig auf Ihrem Gerät; eine
+        Übermittlung an Astraudit oder einen sonstigen Drittserver findet
+        nicht statt. Falls Sie einen GitHub-PAT konfigurieren, wird
+        dieser über eine Umgebungsvariable (<code>GITHUB_TOKEN</code> /{" "}
+        <code>GH_TOKEN</code>) gelesen und nicht im Browser gespeichert.
+      </p>
+
       <h2>5. Lokale Speicherung im Browser (localStorage)</h2>
       <p>
         Astraudit speichert ausschließlich auf Ihrem Endgerät, im
@@ -144,12 +167,17 @@ export function Datenschutzerklaerung() {
       <ul>
         <li>Theme-Auswahl (dunkel / hell / System)</li>
         <li>UI-Dichte (komfortabel / kompakt)</li>
+        <li>Darstellungs-Modus (vereinfachte oder vollständige Ansicht)</li>
         <li>
           Audit-Verlauf inkl. Favoriten (Repository-Bezeichner, Score,
           Zeitstempel)
         </li>
         <li>
           Cache der zuletzt durchgeführten Audits (Lebensdauer 24 Stunden)
+        </li>
+        <li>
+          Cache der Paket-Registry-Lookups gemäß Abschnitt 4a
+          (Lebensdauer 24 Stunden)
         </li>
         <li>
           Optional, nur falls aktiv durch Sie hinterlegt: Ihr persönlicher

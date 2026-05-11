@@ -36,6 +36,14 @@ jobs:
         # chunks. Catches a stray eager import before it lands; the
         # ceiling is documented per-budget in the script itself.
         run: npm run check:bundle-size
+      - name: Dependency audit (Phase 6.37)
+        # Production-deps only at `high` or above. We deliberately don't
+        # gate on devDependency vulns because the Lighthouse CI tooling
+        # itself ships some high-severity transitive issues that aren't
+        # in our user-facing runtime path (puppeteer / tar-fs / ws).
+        # If a *production* dep ever ships a high or critical CVE,
+        # this gate stops the merge.
+        run: npm run check:audit
       - name: Run Lighthouse CI
         # `lhci autorun` reads `lighthouserc.json`, runs the collect +
         # assert + upload steps, and exits non-zero if any assertion

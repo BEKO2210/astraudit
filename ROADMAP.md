@@ -3181,22 +3181,36 @@ this?" to a recognisable Astraudit card.
   `tests/lib/security/dangerouslySetInnerHTML.test.ts` injects
   `<script>alert(1)</script>` into every site and asserts the
   parsed DOM contains zero script elements.
-- **6.35 GitHub PAT handling end-to-end.** The token lives in
-  localStorage and is sent ONLY to `api.github.com` /
-  `raw.githubusercontent.com`. Verify with a fetch-monitor in
-  the dev tools that no other origin sees the Authorization
-  header. Add a unit test for `withAuthHeader()` that asserts
-  the same: `loadToken()` value is only attached to GitHub
-  origins.
-- **6.36 Privacy review for the Datenschutzerklärung.** Walk
-  the existing legal text against the actual implementation.
-  Anything mentioned that we don't actually do (Google
-  Analytics, cookies for analytics, etc.) gets removed or
-  reworded; anything we do that isn't disclosed gets added.
-- **6.37 Dependency review.** Run `npm audit`. Document each
-  finding (severity + decision: fix / suppress with
-  justification). Add a CI gate that fails on `high` or
-  `critical` vulnerabilities.
+- **6.35 GitHub PAT handling end-to-end.** ✅
+  `tests/lib/github/patScope.test.ts` drives the public
+  `githubFetch` + `fetchRawFile` surface through three URL
+  shapes and inspects the captured request headers:
+  Authorization rides on `api.github.com` and
+  `raw.githubusercontent.com`, and is **never** attached to a
+  non-GitHub origin (including malicious lookalikes that
+  contain "api.github.com" as a substring of their path).
+  `isGithubUrl`'s host-check semantics stay locked by
+  `tokenStore.test.ts`.
+- **6.36 Privacy review for the Datenschutzerklärung.** ✅
+  Walked the legal text against the actual implementation:
+  added section **4b** for the optional `astraudit-mcp`
+  CLI/MCP component (local-only, reads PAT from
+  `GITHUB_TOKEN` / `GH_TOKEN`), and added the previously
+  un-listed localStorage keys (simple-mode toggle,
+  registry-lookup cache) to section 5. Confirmed: nothing the
+  Datenschutzerklärung claims is missing from the code, and
+  nothing the code does is missing from the Datenschutzerklärung.
+  A maintenance comment was added to the file header so
+  future contributors know to update the legal text in the
+  same PR as any new data flow.
+- **6.37 Dependency audit + CI gate.** ✅ `npm run check:audit`
+  runs `npm audit --omit=dev --audit-level=high`, wired into
+  the `quality.yml` workflow as a gate after `Build`. Current
+  state: **0 vulnerabilities in production dependencies**. The
+  5 high-severity findings in the dev tree (all in the
+  Lighthouse CI / Puppeteer / `ws` / `tar-fs` chain) are
+  documented in SECURITY.md with rationale (CI-only, never
+  ships to users); they're tracked, not gated.
 
 ### VII · Documentation + community
 

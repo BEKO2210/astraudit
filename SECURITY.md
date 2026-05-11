@@ -61,6 +61,36 @@ If we cannot fix the issue, we will say so plainly and document
 the constraint in the [anti-roadmap](./ROADMAP.md). We will credit
 you in the advisory unless you ask us not to.
 
+## Dependency audit policy (Phase 6.37)
+
+`npm run check:audit` runs `npm audit --omit=dev --audit-level=high`
+in CI on every PR. It fails the merge when *any* production
+dependency ships a `high` or `critical` CVE.
+
+devDependency vulnerabilities are tracked but not gated. The
+Lighthouse CI toolchain (`@lhci/cli` → `puppeteer-core` → `ws`,
+`tar-fs`, `@puppeteer/browsers`) carries a handful of known
+high-severity transitive findings; they never touch the
+end-user runtime (Astraudit's user-facing surface is a static
+SPA + a small Node CLI, neither of which loads Puppeteer or
+the Lighthouse driver). When an upstream fix lands we adopt it;
+until then, the findings live here:
+
+| Package | Severity | Rationale |
+| --- | --- | --- |
+| `@puppeteer/browsers` → `tar-fs` | high | CI-only (LHCI driver). |
+| `puppeteer-core` → `ws` | high | CI-only (LHCI driver). |
+| `lighthouse` → `@sentry/node`, `puppeteer-core` | high | CI-only. |
+| `@lhci/cli`, `@lhci/utils` | low | CI-only. |
+
+This snapshot is regenerated on every release. To re-run the
+audit locally:
+
+```sh
+npm audit             # full snapshot incl. devDependencies
+npm audit --omit=dev  # what the CI gate enforces
+```
+
 ## Out of scope
 
 The following are explicitly **not** vulnerabilities for the
