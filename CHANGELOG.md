@@ -138,6 +138,31 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.9 — Honest finding-copy review.** Every
+  "Add X" / "missing X" / "no X" recommendation line was
+  re-read with the framing *"would the maintainer of this
+  kind of project recognise this as a useful nudge?"* The two
+  highest-impact noise sources moved to stack-aware copy:
+  - **"No tests detected"** finding recommendation now names
+    the canonical runner per stack: `go test ./...` (Go),
+    `cargo test` (Rust), `pytest` (Python), RSpec / Minitest
+    (Ruby), Vitest / Jest / `node --test` (Node-ish). The old
+    "Vitest, Jest, or similar" suggestion read as JS-centric
+    noise on every non-Node repo.
+  - **Category fallback recommendations** (`dx`, `structure`,
+    `quality`) now adapt their copy to the detected runtime
+    instead of always saying *"package.json scripts"* or
+    *"src/, scripts/, and config/"*. Go projects see Makefile
+    targets, Python projects see `pyproject.toml`, Rust
+    projects see the workspace conventions, etc. The
+    `FALLBACK_BY_CATEGORY` static table became a
+    `fallbackForCategory(category, stack)` function.
+  - `RiskContext` and `RecoContext` now thread the existing
+    `stack` signal through so the engines don't have to re-
+    derive it. 2 new vitest cases lock the per-stack
+    "No tests" copy against regression (Go → `go test`,
+    Rust → `cargo test`, never Vitest).
+  905/905 vitest cases green.
 - **Phase 7 / 7.0.6 — Per-stack rule packs (Go / Rust / Ruby /
   pytest layout).** The structure category used to scold every
   project that didn't ship `src/` / `app/` / `lib/` — JS-centric
