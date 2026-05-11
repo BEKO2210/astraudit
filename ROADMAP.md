@@ -3381,6 +3381,276 @@ this?" to a recognisable Astraudit card.
 
 ---
 
+## Phase 7 — Reach, Adoption & Sustainability (post-v1.0.0)
+
+> Phase 6 closed the engineering chapter. Phase 7 is the four-week
+> sprint after launch: get the product in front of every maintainer
+> who'd benefit, ship the features that turn a one-shot visit into
+> a recurring habit, and build sustainable paths to keep the
+> project running without compromising the constraint contract.
+>
+> Same format as Phase 6 (tracks → numbered items, ticked when
+> shipped). Every item respects the
+> [anti-roadmap](#anti-roadmap--things-astraudit-will-never-do):
+> no backend, free forever, public repos only, rule-based. The
+> monetization track (D) keeps the public product free —
+> revenue comes from clearly-separated, maintainer-led channels
+> (sponsorship, consultancy, published reports), not from gating
+> the audit itself.
+>
+> Target outcome: at the end of week 4 Astraudit has a
+> recognised brand among OSS maintainers, a recurring audience
+> via newsletter + leaderboard, a browser extension that surfaces
+> scores natively on github.com, and at least one sustainable
+> funding stream that covers maintainer time without touching
+> any constraint.
+
+### A · Launch sequence (Week 1)
+
+- **7.1 Product Hunt launch.** Schedule the launch for a Tuesday
+  00:01 PT — historically the highest-visibility window.
+  Pre-prepare: hunter outreach (if applicable), maker comment,
+  first-five-supporters DM kit, FAQ replies for the top 10
+  anticipated questions ("why no AI?", "private repos?",
+  "vs. Snyk / SonarCloud / DeepSource", "data we collect").
+- **7.2 Show HN post.** Title rule of thumb: "Show HN: I built a
+  100% browser-only auditor for public GitHub repos (no backend,
+  no signup)". Post 09:00 PT Tuesday for a clean dual-pop with
+  Product Hunt. Stand by for 2 h of replies; the maintainer
+  responds to every top-level comment within that window.
+- **7.3 Launch article on DEV.to + Hashnode + Medium.** 1800
+  words, technical-deep-dive register. Cover: the constraint
+  contract, why "rule-based, no AI" is a feature not a
+  limitation, the MCP integration, three real-repo audits with
+  screenshots. Cross-post the same article to dev.to /
+  hashnode / medium with canonical link to the dev.to original
+  for SEO hygiene.
+- **7.4 Social-graph thread.** A 12-tweet thread on X +
+  cross-post to Bluesky + Mastodon. Each tweet = one screenshot
+  + one sentence. Pin the thread on the maintainer's profile
+  for the launch week.
+- **7.5 npm publish `astraudit-mcp` 1.0.0.** Run `npm run
+  build:bin && npm publish --access public` from a trusted
+  maintainer machine (deliberately not automated per Phase 6.50).
+  Tag the npm release `latest`. Update `docs/mcp.md` with the
+  npm-install-confirmed snippet.
+- **7.6 GitHub repo polish.** Run the `gh repo edit` snippet
+  from Phase 6.42 (description + 7 topics + homepage URL +
+  social preview). Pin a "Welcome — feedback wanted" issue
+  thread. Configure Issue Forms + a Discussions category for
+  rule proposals.
+- **7.7 Press kit.** `public/press/` ships: logo SVG + PNG
+  (light + dark surfaces), 1280×720 screenshots of the seven
+  main panels, a 200-word one-pager PDF, a 60-second
+  screencast `.mp4` + transcript, the OG card, and a
+  pre-rendered Markdown press release.
+- **7.8 Tech-newsletter outreach.** Hand-pick 20 newsletters
+  (TLDR, JS Weekly, Node Weekly, Bytes, React Status, Pointer,
+  Console, Chartr-style "Tech Things"…). Personalised one-line
+  pitch + the press-kit link. Track replies in a private
+  spreadsheet; never list addresses in the repo.
+- **7.9 Awesome-list submissions.** Open PRs against
+  `awesome-github`, `awesome-static-analysis`,
+  `awesome-developer-tools`, `awesome-mcp`,
+  `awesome-open-source`, `awesome-react`, `awesome-typescript`.
+  Each PR follows the target list's contribution conventions
+  to the letter.
+- **7.10 Cold-reach kit.** A short DM script + cold-email
+  template the maintainer uses to introduce Astraudit to OSS
+  project maintainers whose repos genuinely benefit from a
+  free audit (10 hand-picked targets, rate-respected so it
+  reads as outreach not spam).
+
+### B · Product breadth (Week 2)
+
+- **7.11 Browser extension (Chrome MV3 / Firefox / Safari).**
+  Overlays the Astraudit score on `github.com/owner/repo`
+  pages, the search-results list, the user-profile pinned-repo
+  grid, and trending pages. Runs the audit in the extension's
+  background page (same engine, no backend, MV3-compliant
+  service worker). One-click "Open full audit on Astraudit"
+  CTA. Ships in three stores under the same brand.
+- **7.12 Bookmarklet generator.** A page on the site that
+  builds a one-click "audit this page" bookmarklet. Works in
+  every browser without an extension install.
+- **7.13 Compare-with-similar-repos mode.** From a single
+  audited repo, surface 5 stack-mates (same primary language +
+  similar dep set + similar star tier) auto-discovered from
+  the GitHub search API, side-by-side compare-ready.
+- **7.14 Embeddable score badge.** A one-line HTML snippet
+  (or Markdown `[![]()](...)`) that consumers paste into their
+  own README. Renders an SVG with the current score, fetched
+  client-side from the live site. No backend involved — the
+  badge is just a stable hash of the deterministic audit
+  output.
+- **7.15 i18n framework + first three locales.** German
+  (already in-progress for legal pages), English (default),
+  Japanese. Translation system uses static
+  load-on-route bundles, so unused locales never enter the
+  main chunk.
+- **7.16 Optional rule packs.** Four new detector families,
+  each opt-in via URL flag so they don't bloat the default
+  audit:
+  - `?rules=a11y` — accessibility maturity (alt-text in
+    README screenshots, axe-checkable examples, ARIA hints).
+  - `?rules=i18n` — i18n maturity (locale files present?
+    English-only README?).
+  - `?rules=ts` — TypeScript strictness (`strict: true` in
+    tsconfig, `noImplicitAny`, etc.).
+  - `?rules=monorepo` — monorepo health (workspace declared,
+    consistent dep versions across packages).
+- **7.17 Deep-link URL state.** Hashes can target a specific
+  finding ID, category, or recommendation step, e.g.
+  `#/audit/facebook/react?focus=sec-no-license`. Lets
+  reviewers share an exact problem-and-fix link.
+- **7.18 Verify v1.0.0 PDF cover page.** Phase 5.7 covered the
+  golden path; print one audit per browser engine and confirm
+  the cover renders identically.
+- **7.19 "Watch this repo".** Local-only audit-history that
+  diffs N-day deltas — "your repo gained +12 points since last
+  audit, 3 new findings, 7 resolved". Pure localStorage
+  timeline, no backend.
+- **7.20 Power-user keyboard map expansion.** The command
+  palette grows mid-audit ops: jump to category, open badge
+  dialog, copy verdict, toggle simple-mode. Keep the
+  full-keyboard contract.
+
+### C · Community & Showcase (Week 3)
+
+- **7.21 Top-100 leaderboard.** A scheduled GitHub Action
+  audits a curated public-repo list (handpicked, ~300 candidates
+  across categories) weekly. Pushes a static `/top-100/` route
+  on Pages with rankings + week-over-week deltas + the
+  audit-engine version. No backend — the action commits a JSON
+  snapshot, the page renders it.
+- **7.22 Astraudit Weekly newsletter.** Free, opt-in,
+  Buttondown or equivalent. One audit deep-dive + one
+  rule-of-the-week + one community feature per issue. Single
+  sponsor slot per issue (Track D).
+- **7.23 OSS-partner spotlight.** Hand-pick 5 OSS projects
+  with great scores; offer free "Audited by Astraudit ★ N/100"
+  README badges + a dedicated showcase page. Mutual reach;
+  partner projects link back from their READMEs.
+- **7.24 Tutorial video.** 5-minute screencast: paste a URL,
+  walk through every panel, print the PDF. Uploaded to YouTube
+  + embedded on the homepage. Optional captions in English +
+  German.
+- **7.25 Discussions + community channel.** GitHub Discussions
+  is the default surface for rule proposals + bug reports.
+  A Discord or a lightweight Matrix room sits beside it for
+  real-time questions; the README links both clearly with
+  expected-response-time wording so nobody waits in the void.
+- **7.26 "Audit any URL" widget for tech writers.** A small
+  iframe + URL-state contract so a blog post saying
+  "this repo audits well" can embed the live score inline.
+  Same security boundary as the main app (CSP-safe).
+- **7.27 RSS + Atom feed of newsletter + leaderboard.**
+  Standards-compliant, validated. Power-users get updates
+  without giving us an email.
+- **7.28 Conference CFP submissions.** React Summit, JSConf,
+  Node Congress, GitHub Universe, OSCON, FOSDEM, OSS Summit,
+  CityJS, Web Directions. The maintainer proposes one of two
+  talks: *"Browser-only static analysis: lessons from shipping
+  Astraudit"* or *"Rule-based auditing in the age of AI: when
+  determinism beats inference"*.
+- **7.29 Podcast pitch round.** Changelog, JS Party, Software
+  Engineering Daily, Syntax, The Bike Shed, Frontend Happy
+  Hour, ShopTalk Show. Pitch deck = the press kit's one-pager.
+- **7.30 Interactive "How we audit your repo".** A site page
+  that walks visitors through a sample audit, explaining each
+  rule trigger with hover-cards. Acts as both onboarding and
+  documentation; reduces "how does this actually work?"
+  questions on Discussions.
+
+### D · Sustainability & Recognition (Week 4)
+
+> Every item below keeps the public product free. Revenue and
+> recognition flow through channels that don't gate audit
+> functionality.
+
+- **7.31 GitHub Sponsors.** Tier ladder: Supporter ($3/mo,
+  README mention) → Sustainer ($15/mo, sponsor logo on
+  homepage footer) → Patron ($50/mo, name on the about page +
+  early access to new rule packs) → Org Sponsor ($250/mo,
+  newsletter sponsor slot). All tiers buy *recognition only*,
+  not access — the product stays free for everyone.
+- **7.32 Open Collective + Ko-fi.** Non-GitHub-account
+  supporters route through Open Collective (transparent
+  ledger) or Ko-fi (one-time tips). Both link from the
+  homepage footer + the GitHub Sponsors page.
+- **7.33 *State of Open Source 2026* annual report.** Aggregate
+  anonymised audit findings across the top 1,000 public-repo
+  audits run during the year — what the median OSS project
+  scores, where the global ecosystem is improving / regressing,
+  what 3-5 rule changes the data suggests. Published as a free
+  PDF + a paid printable hardcopy via Lulu / Blurb. Optional
+  speaking-engagement asset for the maintainer.
+- **7.34 Astraudit Consulting.** A separate professional
+  services page (own subdomain, not part of the audit site)
+  for org-wide audit engagements — paid maintainer time, not
+  platform-mediated. Targets internal engineering audits where
+  a human reviewer adds value the static rules can't.
+- **7.35 Newsletter sponsorship.** 4 sponsor slots / year, one
+  per quarter, ~$X per slot. Sponsor pays for the spot; the
+  newsletter and the website stay free + ad-free. Sponsorship
+  inventory caps deliberately low so the newsletter never
+  feels for-sale.
+- **7.36 Press page + "In the press" wall.** Lists every
+  newsletter mention, conference talk, podcast appearance, and
+  press article. Doubles as social proof for future outreach.
+- **7.37 OSS funding applications.** Submit to Sovereign Tech
+  Fund, NLnet (NGI Zero Entrust / Commons Fund), Mozilla MOSS,
+  Open Technology Fund, GitHub Accelerator. Each application
+  costs ~4 hours of writing; the funds are non-dilutive and
+  align well with Astraudit's anti-roadmap.
+- **7.38 v1.1 plan + tag.** Track B's features (browser
+  extension, similar-repo compare, rule packs, deep-links,
+  watch-this-repo, i18n) land as a coherent 1.1 release.
+  Re-run the same release-prep flow (Phase 6.50) — tagged
+  release, curated CHANGELOG section, attached
+  `astraudit-dist.zip`.
+- **7.39 Quarterly transparency report.** Public Markdown
+  document published every three months: audit volume
+  (anonymous count from a privacy-respecting opt-in counter
+  *only if* item 6.53's beacon ships), revenue split per
+  channel, infra cost (≈ $0), maintainer hours, the three
+  rule changes the data suggested + which ones we'll act on.
+- **7.40 Phase 8 charter.** End-of-month retro: what worked,
+  what didn't, which adoption-funnel step has the weakest
+  conversion. Phase 8's theme writes itself from the answer
+  — likely *Depth* (deeper per-language rule packs, deeper
+  per-ecosystem signal, deeper compare mode) or *Ecosystem*
+  (CI plugins that work without a backend, IDE extensions,
+  AI-client integrations beyond MCP).
+
+### Cross-cutting policy guards
+
+These ride alongside every Phase 7 item:
+
+1. **The anti-roadmap is law.** Every feature, every revenue
+   stream, every campaign respects the four constraints. If a
+   growth experiment requires a backend, an AI inference call,
+   private-repo support, or per-visitor telemetry → it's a
+   no, regardless of how attractive the payoff looks.
+2. **Free for users, optional for sponsors.** No feature is
+   sponsor-gated. Sponsorship buys recognition, never
+   functionality. A sponsor pulling out doesn't break anyone's
+   audit.
+3. **Outreach respects rate limits.** Hand-picked, personalised
+   contact — never bulk lists, never scrapers. Newsletter
+   delivery is double-opt-in; unsubscribe is one click.
+4. **Brand voice stays honest.** Astraudit doesn't grade itself
+   or its sponsors. Findings are deterministic and the
+   maintainer never adjusts a rule to flatter a high-profile
+   adopter.
+5. **Every monetisation channel is separable from the platform.**
+   Sponsorship → GitHub Sponsors (lives outside the codebase).
+   Consultancy → separate site. Reports → standalone PDF.
+   Newsletter sponsorship → ESP. None of them require a
+   feature flag inside `astraudit.com`.
+
+---
+
 ## Anti-roadmap — things Astraudit will never do
 
 These would compromise the constraints. They are out, permanently.
