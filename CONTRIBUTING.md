@@ -330,13 +330,19 @@ them in this order:
 # Strict TypeScript build (matches CI)
 npm run typecheck
 
-# Vitest unit suite (~600 tests, < 5 s)
+# Vitest unit suite (800+ tests, < 8 s)
 npm test
 
 # Production build (must be clean — no warnings)
 npm run build
 
-# Visual regression (Playwright Chromium)
+# Bundle-size budget (Phase 6.15 — hard CI gate)
+npm run check:bundle-size
+
+# Production-dependency audit (Phase 6.37 — fails on high/critical)
+npm run check:audit
+
+# Visual regression + accessibility (Playwright Chromium)
 npx playwright test
 
 # Lighthouse score gate (needs Chrome installed)
@@ -347,13 +353,18 @@ Notes:
 
 - The Playwright + Lighthouse jobs need
   `npx playwright install chromium` (and on root environments,
-  `npx playwright install-deps chromium`) the first time.
+  `npx playwright install-deps chromium`) the first time. For
+  cross-browser smoke (Firefox + WebKit), also run
+  `npx playwright install firefox webkit`.
 - If the visual suite fails after a deliberate UI change, run
   `npm run test:visual:update` to regenerate baselines and commit
   the new PNGs alongside the code change.
 - The Lighthouse floors are tuned to the current bundle. If your
   change adds JS, run Lighthouse locally before opening the PR —
   CI won't be sympathetic.
+- `check:bundle-size` keeps the main chunk under 520 KB. If a
+  feature legitimately needs more headroom, raise the budget in
+  `scripts/check-bundle-size.ts` with a comment explaining why.
 
 ---
 

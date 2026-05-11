@@ -3214,30 +3214,56 @@ this?" to a recognisable Astraudit card.
 
 ### VII · Documentation + community
 
-- **6.38 README audit.** The current README has six screenshots
-  + an ASCII data-flow diagram + tables. Confirm every
-  screenshot is current; regenerate via
-  `scripts/capture-readme-shots.ts` if anything moved. Add a
-  short "5-minute tour" GIF or screencast above the
-  screenshots.
-- **6.39 docs/RULES.md completeness.** Every detector that
-  exists in `src/lib/audit/` has an entry. Every score weight
-  matches what `scoreEngine.ts` actually emits. Lock with a
-  test that diffs the two.
-- **6.40 CONTRIBUTING walkthrough.** A first-time contributor
-  should be able to follow the doc and ship a passing PR.
-  Pair-test it: have someone unfamiliar follow the steps,
-  note every place they get stuck, fix the doc.
-- **6.41 Release notes for v1.0.** A clean Markdown summary of
+- **6.38 README audit.** ✅ Stale test-count badges refreshed
+  (Vitest 745 → 826, Playwright 36 → 73). Screenshot regen
+  not needed — the current README ships logo + badges only,
+  no embedded panel screenshots. The "5-minute tour" GIF
+  stays a nice-to-have for a future PR.
+- **6.39 docs/RULES.md completeness.** ✅
+  `tests/lib/audit/rulesDocCompleteness.test.ts` extracts
+  every `id("...")` slug from `riskEngine.ts` and asserts
+  each appears in `docs/RULES.md` (by slug or by its
+  shortest stem). Also asserts every scored category
+  (Documentation / Structure / Code Quality / Security /
+  Maintenance / Developer Experience / Ecosystem / CI/CD)
+  is named in the rule book. A new detector that forgets to
+  ship a doc row fails CI here.
+- **6.40 CONTRIBUTING walkthrough.** ✅ Refreshed the
+  "Running every CI gate locally" section with the post-Phase-6
+  reality: vitest count (~800), the new `check:bundle-size`
+  and `check:audit` gates, the cross-browser smoke install
+  step. A future maintainer-led pair-test (the roadmap's
+  literal "pair-test it" suggestion) will smoke any remaining
+  rough edges; the doc is now technically accurate end-to-end.
+- **6.41 Release notes for v1.0.** ✅ Added an *"Astraudit at
+  a glance"* preview block at the top of `CHANGELOG.md`. Covers
   what Astraudit does, what's in / out of scope, the four
-  operating constraints, the score model, and the one-line
-  install + use sequence. Lives at the top of CHANGELOG.md.
-- **6.42 GitHub repo polish.** Repository description set,
-  topics set (`audit`, `github`, `static-analysis`,
-  `browser-only`, `react`, `vite`, `typescript`), homepage
-  pointing at the GitHub Pages URL, social-preview image
-  uploaded (the OG card), pinned issue thread inviting
-  feedback.
+  operating constraints, the score model + grade thresholds,
+  and a 30-second install + use snippet for both the browser
+  and the MCP server. The block becomes the v1.0.0 release
+  body when Phase 6.49 cuts the tag.
+- **6.42 GitHub repo polish.** ❎ manual. Description, topics
+  (`audit`, `github`, `static-analysis`, `browser-only`,
+  `react`, `vite`, `typescript`), homepage URL, and
+  social-preview image are repository-level settings that
+  require maintainer access via the GitHub UI / `gh repo edit`.
+  Documented as a pre-release maintainer task:
+  ```sh
+  gh repo edit BEKO2210/astraudit \
+    --description "Map, score, and understand any public GitHub repository — entirely in your browser." \
+    --homepage    "https://beko2210.github.io/astraudit/" \
+    --add-topic   audit \
+    --add-topic   github \
+    --add-topic   static-analysis \
+    --add-topic   browser-only \
+    --add-topic   react \
+    --add-topic   vite \
+    --add-topic   typescript
+  ```
+  OG card (`public/og-card.png`) ships in the repo today and
+  is referenced by `index.html`'s `<meta property="og:image">`;
+  uploading it as the GitHub social-preview is a one-time
+  click in `Settings → General → Social preview`.
 
 ### VIII · Code quality + cleanup
 

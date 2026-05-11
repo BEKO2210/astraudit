@@ -10,8 +10,8 @@
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/playwright.yml"><img alt="Visual regression" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/playwright.yml?branch=main&label=visual&style=flat-square&color=42e8c8"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/quality.yml"><img alt="Lighthouse + axe" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/quality.yml?branch=main&label=quality&style=flat-square&color=3ad6ff"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/codeql.yml?branch=main&label=codeql&style=flat-square&color=7a5cff"></a>
-    <img alt="Vitest" src="https://img.shields.io/badge/vitest-745%20passing-42e8c8?style=flat-square">
-    <img alt="Playwright" src="https://img.shields.io/badge/playwright-36%20passing-42e8c8?style=flat-square">
+    <img alt="Vitest" src="https://img.shields.io/badge/vitest-826%20passing-42e8c8?style=flat-square">
+    <img alt="Playwright" src="https://img.shields.io/badge/playwright-73%20passing-42e8c8?style=flat-square">
     <img alt="MCP" src="https://img.shields.io/badge/MCP-server%20included-7a5cff?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-94a3b8?style=flat-square">
     <img alt="Backend" src="https://img.shields.io/badge/backend-none-94a3b8?style=flat-square">

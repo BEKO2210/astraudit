@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The full per-phase build log lives in [`ROADMAP.md`](./ROADMAP.md).
 
+---
+
+## Astraudit at a glance (v1.0 release notes preview · Phase 6.41)
+
+**What it is.** A 100% browser-only auditor for public GitHub repositories.
+You paste a URL, Astraudit fetches the public metadata + file tree, runs
+~70 deterministic rule-based checks, and renders a 100-point readiness
+score across eight categories along with prioritised findings, an
+onboarding path, and a printable report.
+
+**What's in scope.** Public repositories. Static analysis of the file
+tree, metadata, README/CHANGELOG/LICENSE/CODE-OF-CONDUCT/SECURITY/CI
+configs, lockfiles, and optional public-registry lookups (npm / PyPI /
+crates.io). Markdown + curated-HTML README preview. Cross-repo
+comparison. Local audit history with favourites. JSON / Markdown /
+AsciiDoc / PDF export. MCP server for AI clients.
+
+**What's out of scope.** Private repositories. OAuth or any flow that
+needs a backend round-trip. Hosted analytics or telemetry. LLM-based
+inference — every score is rule-based and reproducible. See the
+[anti-roadmap](./ROADMAP.md#anti-roadmap--things-astraudit-will-never-do)
+for the full list.
+
+**Four operating constraints (the unchangeable ones).**
+
+1. **Browser-only.** No server-side component. The audit runs entirely
+   on the user's machine, hitting the GitHub public API directly.
+2. **Free forever.** Hosted via GitHub Pages, distributed via npm; no
+   metered services anywhere on the runtime path.
+3. **Public repos only.** No PAT scopes beyond `public_repo`. Private
+   repositories are deliberately not supported.
+4. **Rule-based.** Every finding maps to a documented detector in
+   [`docs/RULES.md`](./docs/RULES.md). No AI inference, no surprises.
+
+**Score model (short version).** Eight scored categories (Documentation,
+Structure, Code Quality, Security, Maintenance, Developer Experience,
+Ecosystem, CI/CD), each with its own `max` weight summing to 100.
+Letter grades: **A** 90–100 (adopt with confidence), **B** 75–89,
+**C** 60–74, **D** 45–59, **F** below 45. Findings carry an explicit
+severity (`critical` / `high` / `medium` / `low` / `info`) and a
+category. Same input, same output — every run.
+
+**Use it in 30 seconds.**
+
+```bash
+# Browser
+open https://beko2210.github.io/astraudit/
+
+# AI client (MCP) — adds astraudit-mcp to Claude Desktop / Cursor / Zed
+npx -y astraudit-mcp        # see docs/mcp.md for the per-client config
+```
+
+---
+
 ## [Unreleased]
 
 ### Added
