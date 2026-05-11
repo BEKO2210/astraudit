@@ -139,7 +139,17 @@ async function audit(target: string): Promise<Verdict> {
     /^security/i,
     /\/security/i,
   ]) || !!oh?.securityPolicyPath;
-  const truthDependabot = dotGithub.some((f) => /dependabot\.(yml|yaml)$/i.test(f));
+  // Phase 7.0.7 follow-up — the previous heuristic matched any path
+  // under `.github/` whose filename ENDS in `dependabot.yml`, which
+  // false-positives on workflow files like
+  // `.github/workflows/automerge-dependabot.yml` (a workflow that
+  // merges Dependabot's PRs, not a Dependabot v2 config). Dependabot
+  // only reads `.github/dependabot.yml` or `.github/dependabot.yaml`
+  // — anchor the check to those exact paths so the truth signal
+  // matches the actual ground truth (and the detector's contract).
+  const truthDependabot = dotGithub.some(
+    (f) => f === ".github/dependabot.yml" || f === ".github/dependabot.yaml",
+  );
   const truthChangelog = existsByPattern(rootFiles, [
     /^changelog(\.|$)/i,
     /^history(\.|$)/i,
