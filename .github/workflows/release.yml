@@ -1,0 +1,128 @@
+name: Release (Phase 6.50)
+
+# Tag-triggered release pipeline. When the maintainer pushes a tag
+# like `v1.0.0`, this workflow:
+#   1. Re-runs the full quality matrix (typecheck, vitest, bundle
+#      budget, audit gate) — so a buggy commit between a green
+#      `main` and the tag push can't ship.
+#   2. Builds the production dist/ bundle.
+#   3. Creates a GitHub Release, attaches `dist.zip` + `public/og-card.png`
+#      so consumers can grab the static site without cloning, and
+#      auto-generates the release notes body from the merged PR titles
+#      since the previous tag.
+#
+# The deploy workflow (`deploy.yml`) handles GitHub Pages publishing
+# on every push to `main`. This workflow is *additive* — it makes the
+# tag a stable, attestable artefact, not a deploy mechanism.
+#
+# The npm-publish step for `astraudit-mcp` (the MCP server) stays a
+# manual maintainer step until Phase 6.49 cuts v1.0.0 and the
+# package name is reserved on the registry.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to (re-)release. Must already exist on origin."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so the changelog generator can walk
+          # back to the previous tag.
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Vitest suite
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Bundle-size budget (Phase 6.15)
+        run: npm run check:bundle-size
+
+      - name: Dependency audit (Phase 6.37 — production deps only)
+        run: npm run check:audit
+
+      - name: Pack release archive
+        run: |
+          # Zip the built static site so the release page hosts a
+          # stable, no-clone-required copy of the deploy.
+          cd dist
+          zip -r ../astraudit-dist.zip .
+          cd ..
+          ls -la astraudit-dist.zip
+
+      - name: Compute release tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF##refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate release notes from merged PR titles
+        id: notes
+        run: |
+          # Walk commits between the previous tag and this one. The
+          # subject line of each merge commit becomes a release-notes
+          # bullet. Fall back to a static blurb on the very first tag.
+          PREV=$(git describe --tags --abbrev=0 "${{ steps.tag.outputs.tag }}^" 2>/dev/null || echo "")
+          if [ -z "$PREV" ]; then
+            CHANGELOG="Initial release of Astraudit. See [CHANGELOG.md](./CHANGELOG.md) for the full pre-1.0 build log and [ROADMAP.md](./ROADMAP.md) for the constraint contract."
+          else
+            CHANGELOG=$(git log --pretty=format:'- %s' "$PREV..${{ steps.tag.outputs.tag }}" | head -50)
+          fi
+          # Multi-line outputs need the heredoc syntax for GH Actions.
+          {
+            echo "body<<EOF"
+            echo "## Astraudit ${{ steps.tag.outputs.tag }}"
+            echo ""
+            echo "$CHANGELOG"
+            echo ""
+            echo "---"
+            echo ""
+            echo "Full release notes preview lives at the top of [CHANGELOG.md](./CHANGELOG.md)."
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body: ${{ steps.notes.outputs.body }}
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
+          files: |
+            astraudit-dist.zip
+            public/og-card.png
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

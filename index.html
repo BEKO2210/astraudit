@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#05070d" />
 
+    <!-- Phase 6.51 — GitHub Pages CDN cache hint for index.html.
+         Vite emits hashed asset filenames (`index-CEYKZC8q.js`, etc.)
+         so the JS / CSS chunks are already content-addressable and
+         can cache forever. index.html is the only URL whose content
+         changes without a path change; without this, a 10-minute CDN
+         hold would leave users on stale chunk references after a
+         deploy. `must-revalidate` forces a 304 round-trip; the page
+         still loads in ~50 ms thanks to the conditional GET. -->
+    <meta http-equiv="Cache-Control" content="no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <!-- Phase 6.32 — Content-Security-Policy. Strict by default. The two
          inline <script> blocks below (JSON-LD structured data + the
          pre-paint theme loader) are allow-listed by SHA-256 hash so any
