@@ -63,7 +63,14 @@ export function runAudit(
   const deps = analyzeDependencies(classified);
 
   emit("documentation");
-  const readme = analyzeReadme(bundle.readme);
+  // Phase 7.0.2 — pass `hasWiki` through so the docs-presence
+  // signal accounts for repos that document via the GitHub Wiki
+  // (Astraudit can't fetch wiki content — it lives in a separate
+  // git repo at github.com/owner/repo.wiki.git that the tree API
+  // doesn't cover — but presence-of-wiki is itself an honest signal).
+  const readme = analyzeReadme(bundle.readme, {
+    hasWiki: bundle.metadata.hasWiki,
+  });
 
   emit("quality");
   const security = analyzeSecurity(classified, bundle.orgHealth);

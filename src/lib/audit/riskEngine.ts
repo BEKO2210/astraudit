@@ -102,6 +102,17 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
+  // Phase 7.0.2 — when documentation lives elsewhere (GitHub Wiki,
+  // Read the Docs, a docs.* subdomain, etc.), the README itself
+  // can be intentionally thin. The thin-README findings below
+  // soften their severity + copy when this is the case, so we
+  // don't tell e.g. a Tailwind-style project with a dedicated docs
+  // site that they have "no docs".
+  const externalDocs = ctx.readme.exists ? ctx.readme.externalDocsHost : null;
+  const externalDocsClause = externalDocs
+    ? ` Astraudit detected external documentation at ${externalDocs}; consider mirroring a short overview in the README too so first-time visitors see it without clicking through.`
+    : "";
+
   if (!ctx.readme.exists) {
     findings.push({
       id: id("readme"),
@@ -119,19 +130,24 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   } else if (ctx.readme.length < 600) {
     findings.push({
       id: id("readme-short"),
-      title: "README is too short",
+      title: externalDocs
+        ? "README is short — most docs may live elsewhere"
+        : "README is too short",
       category: "documentation",
-      severity: "medium",
-      description:
-        "Very short READMEs typically miss installation, usage, and contribution context.",
-      evidence: `README content length: ~${ctx.readme.length} chars.`,
-      recommendation: "Expand the README with sections for setup, usage, and examples.",
+      severity: externalDocs ? "low" : "medium",
+      description: externalDocs
+        ? `The README is short (~${ctx.readme.length} chars). That's expected when documentation lives on a separate surface.${externalDocsClause}`
+        : "Very short READMEs typically miss installation, usage, and contribution context.",
+      evidence: `README content length: ~${ctx.readme.length} chars. external-docs=${externalDocs ?? "none detected"}.`,
+      recommendation: externalDocs
+        ? "Add a short README intro that points first-time visitors at the full docs."
+        : "Expand the README with sections for setup, usage, and examples.",
       affectedFiles: ["README.md"],
-      confidence: "medium",
+      confidence: externalDocs ? "low" : "medium",
     });
   }
 
-  if (!ctx.readme.mentionsInstall) {
+  if (!ctx.readme.mentionsInstall && !externalDocs) {
     findings.push({
       id: id("readme-install"),
       title: "No setup instructions detected",
@@ -146,7 +162,7 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
-  if (!ctx.readme.mentionsExamples) {
+  if (!ctx.readme.mentionsExamples && !externalDocs) {
     findings.push({
       id: id("readme-examples"),
       title: "No usage examples detected",
