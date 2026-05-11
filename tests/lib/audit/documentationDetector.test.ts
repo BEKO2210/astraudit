@@ -36,3 +36,70 @@ describe("analyzeReadme", () => {
     expect(r.hasBadges).toBe(false);
   });
 });
+
+// Phase 7.0.2 — Wiki + external-docs awareness.
+describe("analyzeReadme — external documentation awareness", () => {
+  function readmeWith(content: string, options: { hasWiki?: boolean } = {}) {
+    return analyzeReadme(
+      { path: "README.md", size: content.length, content },
+      options,
+    );
+  }
+
+  it("recognises a Read the Docs link as external docs", () => {
+    const r = readmeWith(
+      `# My Project\n\nFull docs: https://myproject.readthedocs.io/en/latest/`,
+    );
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("Read the Docs");
+  });
+
+  it("recognises docs.rs / pkg.go.dev as ecosystem-canonical hosts", () => {
+    expect(
+      readmeWith(`See [docs.rs/serde](https://docs.rs/serde)`).externalDocsHost,
+    ).toBe("docs.rs");
+    expect(
+      readmeWith(`Reference: https://pkg.go.dev/github.com/foo/bar`)
+        .externalDocsHost,
+    ).toBe("pkg.go.dev");
+  });
+
+  it("recognises a docs subdomain (Tailwind-style)", () => {
+    const r = readmeWith(`Docs at https://docs.tailwindcss.com/`);
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("dedicated docs subdomain");
+  });
+
+  it("does NOT recognise an arbitrary marketing URL as external docs", () => {
+    const r = readmeWith(`Visit our site at https://mycompany.io/`);
+    expect(r.hasExternalDocs).toBe(false);
+    expect(r.externalDocsHost).toBeNull();
+  });
+
+  it("flags GitHub Wiki as external docs when has_wiki is true and README is thin", () => {
+    const r = readmeWith(`# Tiny`, { hasWiki: true });
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("GitHub Wiki");
+  });
+
+  it("prefers an explicit external-docs link over the GitHub Wiki signal", () => {
+    const r = readmeWith(
+      `# Project\n\nFull docs at https://myproject.readthedocs.io/`,
+      { hasWiki: true },
+    );
+    expect(r.externalDocsHost).toBe("Read the Docs");
+  });
+
+  it("surfaces GitHub Wiki even when the README is missing entirely", () => {
+    const r = analyzeReadme(null, { hasWiki: true });
+    expect(r.exists).toBe(false);
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("GitHub Wiki");
+  });
+
+  it("treats a repo with no README and no wiki as not having external docs", () => {
+    const r = analyzeReadme(null);
+    expect(r.hasExternalDocs).toBe(false);
+    expect(r.externalDocsHost).toBeNull();
+  });
+});

@@ -10,6 +10,27 @@ export interface ReadmeSignals {
   mentionsScreenshot: boolean;
   hasBadges: boolean;
   hasHeadings: boolean;
+  /**
+   * Phase 7.0.2 — when documentation lives somewhere other than the
+   * README itself, the README can be intentionally thin without that
+   * being a finding. We recognise three external surfaces:
+   *
+   *   - GitHub Wiki on the same repo (probed via `repo.has_wiki`
+   *     metadata; the Wiki content itself isn't fetched, since
+   *     wikis live in a separate git repo and Astraudit's tree
+   *     fetch doesn't see them — but presence-of-wiki is itself a
+   *     signal).
+   *   - A recognised external docs host linked from the README
+   *     (readthedocs / mintlify / gitbook / docs.rs / pkg.go.dev
+   *     / godoc.org / `docs.*` subdomains).
+   *   - A `docs/` or `documentation/` folder in the repo tree
+   *     (handled at the classifier level, not here).
+   *
+   * `externalDocsHost` is the human-readable label of whichever
+   * external surface was detected first; `null` when none.
+   */
+  hasExternalDocs: boolean;
+  externalDocsHost: string | null;
 }
 
 const INSTALL_PATTERNS = [
@@ -23,7 +44,77 @@ const API_PATTERNS = [/\bapi\b/i, /\bcli\b/i, /\boptions\b/i];
 const EXAMPLE_PATTERNS = [/\bexample\b/i, /\bdemo\b/i, /\bsample\b/i];
 const SCREENSHOT_PATTERNS = [/\bscreenshot\b/i, /\bdemo\b/i, /!\[/];
 
-export function analyzeReadme(readme: ImportantFile | null): ReadmeSignals {
+/**
+ * Hosts that count as legitimate external documentation surfaces.
+ * Each entry is a hostname substring + a friendly label for the
+ * dashboard copy. Phase 7.0.2.
+ *
+ * NOTE: this list is intentionally narrow. We only allow hosts that
+ * are obviously dedicated documentation platforms (or the canonical
+ * doc-host of the language's ecosystem). A repo that links to its
+ * own marketing site doesn't count — we'd happily nudge them to
+ * write a proper README anyway.
+ */
+const EXTERNAL_DOC_HOSTS: Array<{ host: string; label: string }> = [
+  // Multi-language documentation platforms.
+  { host: "readthedocs.io", label: "Read the Docs" },
+  { host: "readthedocs.org", label: "Read the Docs" },
+  { host: "mintlify.com", label: "Mintlify" },
+  { host: "gitbook.com", label: "GitBook" },
+  { host: "gitbook.io", label: "GitBook" },
+  { host: "vercel.app/docs", label: "Vercel-hosted docs" },
+  { host: "netlify.app/docs", label: "Netlify-hosted docs" },
+  { host: "deno.land/manual", label: "Deno manual" },
+  { host: "vitepress.dev", label: "VitePress" },
+  { host: "docusaurus.io", label: "Docusaurus" },
+  // Language-ecosystem canonical hosts.
+  { host: "docs.rs/", label: "docs.rs" },
+  { host: "pkg.go.dev/", label: "pkg.go.dev" },
+  { host: "godoc.org/", label: "GoDoc" },
+  { host: "rubydoc.info/", label: "RubyDoc.info" },
+  { host: "hexdocs.pm/", label: "HexDocs" },
+  { host: "pydoc.io/", label: "PyDoc" },
+];
+
+function detectExternalDocsLink(content: string): { host: string; label: string } | null {
+  // We only consider links inside Markdown link syntax `[text](url)`
+  // or bare URLs in the README — avoids matching code blocks that
+  // happen to contain the substring "readthedocs.io" as an example.
+  for (const entry of EXTERNAL_DOC_HOSTS) {
+    // Build a regex that requires `://` or `www.` before the host so
+    // we don't match a similarly-named string inside arbitrary prose.
+    const re = new RegExp(
+      `(?:https?://|www\\.)[^\\s)\\]"']*${entry.host.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}[^\\s)\\]"']*`,
+      "i",
+    );
+    if (re.test(content)) return entry;
+  }
+  return null;
+}
+
+/**
+ * Recognised "docs subdomain" pattern: `https://docs.foo.com/...`
+ * Catches projects that host their own docs on a dedicated
+ * subdomain (Tailwind, Vue, React, Next.js, Astro all do this).
+ */
+const DOCS_SUBDOMAIN_RE =
+  /https?:\/\/docs\.[a-z0-9-]+(?:\.[a-z0-9-]+)+\/?[^\s)\]"']*/i;
+
+export interface AnalyzeReadmeOptions {
+  /**
+   * `repo.has_wiki` from the GitHub repo metadata. When true and the
+   * README is thin, the analyser flags external-docs presence so
+   * downstream findings can soften their tone. Defaults to `false`
+   * (treat as "no wiki") when unspecified — preserves legacy
+   * behaviour for callers that don't yet plumb metadata through.
+   */
+  hasWiki?: boolean;
+}
+
+export function analyzeReadme(
+  readme: ImportantFile | null,
+  options: AnalyzeReadmeOptions = {},
+): ReadmeSignals {
   if (!readme || !readme.content) {
     return {
       exists: !!readme,
@@ -35,11 +126,28 @@ export function analyzeReadme(readme: ImportantFile | null): ReadmeSignals {
       mentionsScreenshot: false,
       hasBadges: false,
       hasHeadings: false,
+      // Wiki-only documentation is still real documentation. We
+      // surface it even when the README itself is empty so the
+      // dashboard doesn't shout "no docs" at a project whose
+      // entire documentation lives in the wiki.
+      hasExternalDocs: !!options.hasWiki,
+      externalDocsHost: options.hasWiki ? "GitHub Wiki" : null,
     };
   }
 
   const content = readme.content;
   const length = content.length;
+
+  let externalDocsHost: string | null = null;
+  const hosted = detectExternalDocsLink(content);
+  if (hosted) {
+    externalDocsHost = hosted.label;
+  } else if (DOCS_SUBDOMAIN_RE.test(content)) {
+    externalDocsHost = "dedicated docs subdomain";
+  } else if (options.hasWiki) {
+    externalDocsHost = "GitHub Wiki";
+  }
+
   return {
     exists: true,
     length,
@@ -50,5 +158,7 @@ export function analyzeReadme(readme: ImportantFile | null): ReadmeSignals {
     mentionsScreenshot: SCREENSHOT_PATTERNS.some((re) => re.test(content)),
     hasBadges: /\[!\[/.test(content) || /img.shields.io/.test(content),
     hasHeadings: /^#{1,3} /m.test(content),
+    hasExternalDocs: externalDocsHost !== null,
+    externalDocsHost,
   };
 }
