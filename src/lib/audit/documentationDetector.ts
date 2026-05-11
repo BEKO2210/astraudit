@@ -75,28 +75,63 @@ const EXTERNAL_DOC_HOSTS: Array<{ host: string; label: string }> = [
   { host: "pydoc.io", label: "PyDoc" },
 ];
 
+/**
+ * Generic URL extractor. Matches `https?://...` URLs and bare
+ * `www.foo.bar` URLs in any text content. We deliberately don't try
+ * to validate the URL here — we just extract candidate substrings
+ * and let the `URL` parser below decide which ones are real.
+ *
+ * Phase 7.x — the previous implementation built a per-host regex
+ * from the data in EXTERNAL_DOC_HOSTS, which tripped CodeQL's
+ * `js/regex/missing-regexp-anchor` rule on every host entry
+ * (the heuristic flags any hostname-shaped string used in a regex
+ * unless it's bracketed by `^` / `$` anchors). The new approach
+ * never feeds host strings into a regex at all: we extract URLs
+ * generically, parse each one with the `URL` constructor, and
+ * compare hostnames as plain strings against a Set.
+ */
+const URL_RE = /https?:\/\/[^\s)\]"']+|\bwww\.[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[^\s)\]"']*)?/gi;
+
+/** Set of known docs hostnames, indexed for O(1) host-suffix lookup. */
+const KNOWN_DOC_HOSTS = new Map<string, { host: string; label: string }>(
+  EXTERNAL_DOC_HOSTS.map((entry) => [entry.host.toLowerCase(), entry]),
+);
+
 function detectExternalDocsLink(
   content: string,
 ): { host: string; label: string } | null {
-  // Phase 7.x — hostname regex hardened against CodeQL's
-  // "Incomplete regular expression for hostnames" rule. The old
-  // pattern allowed arbitrary characters between `://` and the host
-  // token, which meant a URL like `https://evil.com.readthedocs.io.attacker.com/`
-  // would falsely match `readthedocs.io`. The new pattern:
-  //   1. Requires `https://`, `http://`, or `www.` (bare) before the host.
-  //   2. Allows OPTIONAL DNS-safe subdomain labels before the host
-  //      (e.g. `myproject.readthedocs.io`), each label limited to
-  //      `[a-z0-9-]+` with a literal dot separator.
-  //   3. Requires the host to be followed by a URL terminator:
-  //      `/`, `?`, `#`, whitespace, `)`, `]`, `"`, `'`, or end-of-string.
-  //      A trailing dot or letter (the lookalike attack) doesn't match.
-  for (const entry of EXTERNAL_DOC_HOSTS) {
-    const escapedHost = entry.host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(
-      `(?:https?:\\/\\/(?:[a-z0-9-]+\\.)*|\\bwww\\.)${escapedHost}(?:[\\/?#\\s)\\]"']|$)`,
-      "i",
-    );
-    if (re.test(content)) return entry;
+  // Scan every URL-shaped substring, parse it as a URL, and check
+  // whether its hostname ends with a known docs host. The
+  // `endsWith` check is what closes the lookalike attack:
+  // `https://evil.com.readthedocs.io.attacker.com/` parses with
+  // hostname `evil.com.readthedocs.io.attacker.com`, which does
+  // NOT end with `readthedocs.io` (it ends with `attacker.com`).
+  const matches = content.match(URL_RE);
+  if (!matches) return null;
+  for (const candidate of matches) {
+    let url: URL;
+    try {
+      // Bare `www.` URLs aren't valid input for `new URL(...)`
+      // unless we prepend a scheme. Normalise here so the lookup
+      // path is uniform.
+      const normalised = /^https?:\/\//i.test(candidate)
+        ? candidate
+        : `https://${candidate}`;
+      url = new URL(normalised);
+    } catch {
+      continue;
+    }
+    const host = url.hostname.toLowerCase();
+    // Exact match first (covers `readthedocs.io` → `readthedocs.io`
+    // and `docs.rs` → `docs.rs`).
+    const direct = KNOWN_DOC_HOSTS.get(host);
+    if (direct) return direct;
+    // Subdomain match: `myproject.readthedocs.io` → `readthedocs.io`.
+    // We require the apex to be a known host AND the boundary to be
+    // a `.` so `evil.readthedocs.io.attacker.com` doesn't false-match.
+    for (const [knownHost, entry] of KNOWN_DOC_HOSTS) {
+      if (host.endsWith(`.${knownHost}`)) return entry;
+    }
   }
   return null;
 }
