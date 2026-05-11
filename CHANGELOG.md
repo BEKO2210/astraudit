@@ -138,6 +138,23 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.6 — Repo polish (code-side groundwork).** New
+  Issue Form `rule_proposal.yml` walks contributors through a
+  structured rule submission with the constraint check baked in
+  (browser-only, free, public, rule-based) and forces the right
+  verdict-state vocabulary (`met` / `missing` / `unknown` per
+  7.0.5). New `docs/launch/welcome-issue.md` carries the body of
+  the pinned "Welcome — feedback wanted" issue so the wording is
+  reviewable + version-controlled rather than written ad-hoc in
+  GitHub's editor; the file has a paste-ready
+  `gh issue create --body-file` snippet at the top. `RELEASING.md`
+  post-release maintainer checklist gains the four-category
+  Discussions set (Rule proposals / Ideas / Q&A / Announcements)
+  and points the "open the welcome issue" step at the new file.
+  The remaining 7.6 work — `gh repo edit` (description / topics /
+  homepage), social-preview upload, opening + pinning the welcome
+  issue, creating the Discussion categories — is repo-admin only
+  and stays in the maintainer checklist.
 - **Phase 7 / 7.0.7 — Multi-stack honesty sweep + CI gate.**
   `scripts/honesty-check.ts` curated target list expanded from
   31 → 56 repos covering every supported ecosystem: 15 JS/TS,
