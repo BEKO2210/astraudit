@@ -3321,27 +3321,45 @@ this?" to a recognisable Astraudit card.
 
 ### IX · Release engineering
 
-- **6.49 Tagged releases.** Cut `v1.0.0` after Phase 6 closes.
-  Subsequent releases follow SemVer based on the public surface
-  (the rule book + the export schema + the share-URL format).
-- **6.50 GitHub Actions release workflow.** Triggered by tag
-  push: builds, runs the full quality matrix, generates the
-  CHANGELOG entry from commits, attaches the og-card and a
-  zipped `dist/` to the release.
-- **6.51 GitHub Pages CDN-cache headers.** Default Pages
-  caching is fine for static assets but not for `index.html`
-  (we want fresh JS chunk references on every visit). Verify
-  the deploy headers and add a `_headers` shim if needed.
-- **6.52 Rollback rehearsal.** Practice rolling back to the
-  previous tag from the GitHub Actions UI. Document the steps
-  in `docs/RUNBOOK.md` so the next time something breaks it's
-  a 60-second fix, not a debug-the-CI rabbit hole.
-- **6.53 Telemetry decision (final).** Reaffirm "no per-visitor
-  telemetry" in the anti-roadmap. If we ever want post-hoc
-  numbers, the only acceptable mechanism is an opt-in
-  privacy-respecting beacon (e.g. user-initiated "Share my
-  audit anonymously to help improve the rules"). Document the
-  decision so reviewers don't have to re-litigate it.
+- **6.49 Tagged releases.** ✅ Ready. `package.json` is already
+  at `1.0.0`, the release-notes preview block lives at the top of
+  `CHANGELOG.md` (Phase 6.41), and the release workflow (6.50)
+  picks up the tag automatically. The maintainer cuts v1.0.0
+  with `git tag v1.0.0 && git push origin v1.0.0` whenever the
+  green-on-main snapshot looks shippable. Subsequent releases
+  follow SemVer based on the public surface (the rule book, the
+  export schema, the share-URL format, the MCP tool surface).
+- **6.50 GitHub Actions release workflow.** ✅
+  `.github/workflows/release.yml` fires on every `v*.*.*` tag
+  push (and supports `workflow_dispatch` for re-issuing an
+  existing tag). It re-runs typecheck + vitest + bundle-size +
+  audit gates against the tag SHA, builds, zips `dist/`,
+  auto-generates release-notes bullets from merged PR titles
+  between the previous tag and the new one, then creates the
+  GitHub Release with `dist.zip` + `og-card.png` attached. The
+  npm publish of `astraudit-mcp` stays a manual maintainer step
+  on purpose — a CI compromise can't push a malicious package.
+- **6.51 GitHub Pages CDN-cache headers.** ✅ `index.html` now
+  carries `Cache-Control: no-cache, must-revalidate` (+ legacy
+  `Pragma: no-cache` and `Expires: 0`) so the document gets a
+  conditional GET on every visit while Vite's hashed asset
+  filenames continue to cache forever. Closes the deploy-vs-stale-
+  index race that would otherwise keep users on the previous
+  chunk hashes for up to 10 minutes after a deploy.
+- **6.52 Rollback rehearsal.** ✅ `docs/RUNBOOK.md` walks through
+  every realistic incident path: rolling back a broken Pages
+  deploy (revert vs. re-deploy a previous tag), npm publish
+  recovery for `astraudit-mcp`, CI-stuck diagnostics
+  (Playwright / WebKit / cache-key issues), CSP-regression
+  triage, bundle-budget blowouts, and a CLI smoke command for
+  Node-side audits.
+- **6.53 Telemetry decision (final).** ✅ Reaffirmed in the
+  anti-roadmap. The "no per-visitor analytics" line now carries
+  an explicit Phase 6.53 sub-note: the only acceptable post-hoc
+  mechanism would be a user-initiated, opt-in beacon with a
+  concrete rule-improvement payoff. Until then we ship blind to
+  user counts on purpose. The Datenschutzerklärung §6 reflects
+  this and is not allowed to drift.
 
 ---
 
@@ -3378,6 +3396,14 @@ These would compromise the constraints. They are out, permanently.
   secrets.
 - ❌ Cloning, installing, or executing code from the audited repo.
 - ❌ Per-visitor analytics, fingerprinting, or any tracking pixels.
+  *(Phase 6.53 — final reaffirmation: this is permanent. The only
+  acceptable post-hoc-numbers mechanism would be a user-initiated,
+  opt-in, privacy-respecting beacon like "Share this audit
+  anonymously to help improve the rules" — and only if there's a
+  concrete rule-improvement payoff. Until then we ship blind to
+  user counts on purpose. The Datenschutzerklärung's §6
+  "Keine Cookies, kein Tracking, keine Analyse" reflects this
+  decision and is not allowed to drift.)*
 
 If a new feature needs any of the above, we drop the feature.
 
