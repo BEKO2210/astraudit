@@ -42,6 +42,7 @@
     "build": "tsc -b && vite build",
     "build:bin": "tsx scripts/build-bin.ts",
     "check:bundle-size": "tsx scripts/check-bundle-size.ts",
+    "check:audit": "npm audit --omit=dev --audit-level=high",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "tsc -b --noEmit",
