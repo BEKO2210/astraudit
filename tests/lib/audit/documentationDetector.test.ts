@@ -76,6 +76,49 @@ describe("analyzeReadme — external documentation awareness", () => {
     expect(r.externalDocsHost).toBeNull();
   });
 
+  // Regression guard — Codex review on PR #76 caught that the
+  // host-only refactor dropped path-prefix entries (vercel.app/docs,
+  // netlify.app/docs, deno.land/manual). Restore + lock.
+  it("recognises *.vercel.app with /docs path as Vercel-hosted docs", () => {
+    const r = readmeWith(`Full docs: https://mycoolapp.vercel.app/docs/intro`);
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("Vercel-hosted docs");
+  });
+
+  it("recognises *.netlify.app with /docs path as Netlify-hosted docs", () => {
+    const r = readmeWith(`See [docs](https://mysite.netlify.app/docs)`);
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("Netlify-hosted docs");
+  });
+
+  it("recognises deno.land/manual as Deno manual", () => {
+    const r = readmeWith(`Reference: https://deno.land/manual@v1.30.0/intro`);
+    expect(r.hasExternalDocs).toBe(true);
+    expect(r.externalDocsHost).toBe("Deno manual");
+  });
+
+  it("does NOT flag a bare *.vercel.app marketing site (no /docs path)", () => {
+    const r = readmeWith(`Live demo: https://mycoolapp.vercel.app/`);
+    expect(r.hasExternalDocs).toBe(false);
+    expect(r.externalDocsHost).toBeNull();
+  });
+
+  it("does NOT flag a bare *.netlify.app marketing site (no /docs path)", () => {
+    const r = readmeWith(`Hosted at https://mysite.netlify.app`);
+    expect(r.hasExternalDocs).toBe(false);
+    expect(r.externalDocsHost).toBeNull();
+  });
+
+  // Regression guard — the lookalike attack the URL-parser refactor
+  // was supposed to close.
+  it("does NOT match a lookalike host (evil.com.readthedocs.io.attacker.com)", () => {
+    const r = readmeWith(
+      `Suspicious: https://evil.com.readthedocs.io.attacker.com/`,
+    );
+    expect(r.hasExternalDocs).toBe(false);
+    expect(r.externalDocsHost).toBeNull();
+  });
+
   it("flags GitHub Wiki as external docs when has_wiki is true and README is thin", () => {
     const r = readmeWith(`# Tiny`, { hasWiki: true });
     expect(r.hasExternalDocs).toBe(true);
