@@ -146,7 +146,12 @@ function stripMarkdownLite(md: string): string {
 }
 
 function countWords(text: string): number {
-  const matches = text.match(/[A-Za-z][A-Za-z'']*/g);
+  // Phase 7.x — fixed duplicate ASCII apostrophe in the char class
+  // (CodeQL js/duplicate-character-in-character-class). Original
+  // intent was probably to handle the typographic right-single-quote
+  // (U+2019) too, so the duplicate gets replaced with the Unicode
+  // codepoint — contractions like "don't" and "don’t" both count.
+  const matches = text.match(/[A-Za-z][A-Za-z'’]*/g);
   return matches ? matches.length : 0;
 }
 
