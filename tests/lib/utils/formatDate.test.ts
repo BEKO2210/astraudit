@@ -9,7 +9,7 @@
  * the dashboard reflected the latest deploy or a 12 h-old cache.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   formatDate,
   formatRelative,
@@ -18,6 +18,18 @@ import {
 
 const NOW = new Date("2026-05-10T12:00:00Z").getTime();
 const minus = (s: number) => new Date(NOW - s * 1000).toISOString();
+
+// `formatRelative` reads Date.now() directly and has no override hook.
+// Pin the system clock so the "today" rollover doesn't flake the test
+// once real wall-clock crosses midnight relative to the hardcoded NOW.
+beforeAll(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(NOW));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 describe("formatRelativeTime", () => {
   it("returns 'just now' for the last 5 seconds", () => {

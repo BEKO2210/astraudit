@@ -93,17 +93,22 @@ export function DocPage({
           :focus-visible for synthetic focus on non-interactive
           elements, so the universal focus ring doesn't paint a
           jarring outline on the heading. */}
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-3xl font-semibold tracking-tight text-white outline-none sm:text-4xl"
-      >
-        {title}
-      </h1>
+      {/* Phase 6.9 — wrap the page title + prose in a <main> so SR
+          users can jump straight to the document content with their
+          landmark-nav shortcut. */}
+      <main id="main">
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-semibold tracking-tight text-white outline-none sm:text-4xl"
+        >
+          {title}
+        </h1>
 
-      <div className="legal-prose mt-8 text-sm leading-relaxed text-slate-300">
-        {children}
-      </div>
+        <div className="legal-prose mt-8 text-sm leading-relaxed text-slate-300">
+          {children}
+        </div>
+      </main>
 
       <footer className="mt-12 border-t border-white/5 pt-6 text-[11px] text-slate-500">
         Astraudit · {new Date().getFullYear()} · Browser-only static analysis.
