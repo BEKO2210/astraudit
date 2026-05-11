@@ -190,7 +190,7 @@ themselves.
 ### LLM / AI inference
 
 Astraudit is **rule-based**. Every finding maps to a documented
-detector in the [rule book](/#/rules). Same input, same output —
+detector in the [rule book](#/rules). Same input, same output —
 every run. No LLM API in the loop, no inferred-by-vibes verdicts,
 no hallucinated "industry standard" claims.
 

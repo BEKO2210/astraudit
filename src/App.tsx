@@ -81,7 +81,13 @@ type CompareSide = "left" | "right";
 function routeFromHash(
   hash: string,
 ): "impressum" | "datenschutz" | "rules" | "scope" | null {
-  const normalized = hash.replace(/^#\/?/, "").toLowerCase();
+  // Strip leading `#/` AND any trailing slash so `#/scope`,
+  // `#/scope/`, and `#scope/` all resolve identically. Codex flagged
+  // that the documented `/scope/` shape was not handled (#78 review).
+  const normalized = hash
+    .replace(/^#\/?/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
   if (normalized === "impressum") return "impressum";
   if (normalized === "datenschutz" || normalized === "datenschutzerklaerung") {
     return "datenschutz";
