@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Info, Lock, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { CategoryScore } from "../types/audit";
 
 interface SecurityPanelProps {
@@ -16,6 +16,30 @@ export function SecurityPanel({ category }: SecurityPanelProps) {
         Static signals only. Branch protection cannot be inspected from a
         browser-only audit.
       </p>
+
+      {/* Phase 7.0.4 — transitive-dependency honesty disclaimer. The
+          Security panel is the first place a reader looks for CVE
+          coverage; we make it unmissable that Astraudit does NOT do
+          CVE scanning and what to run instead. Same line is copied
+          verbatim into the JSON / Markdown / AsciiDoc exports
+          (see src/lib/export/auditExport.ts). */}
+      <div
+        className="mt-3 flex items-start gap-2 rounded-md border border-aurora-cyan/30 bg-aurora-cyan/[0.06] px-3 py-2 text-[12px] text-slate-200/90"
+        role="note"
+      >
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-aurora-cyan" />
+        <span>
+          <strong className="font-semibold text-white">Scope:</strong>{" "}
+          Astraudit reads declared dependencies + lockfile presence. It does{" "}
+          <em>not</em> scan transitive CVEs — for that, run{" "}
+          <code className="font-mono">npm audit</code>,{" "}
+          <code className="font-mono">pip-audit</code>,{" "}
+          <code className="font-mono">cargo audit</code>, or{" "}
+          <code className="font-mono">bundler audit</code> depending on the
+          stack.
+        </span>
+      </div>
+
       <div className="mt-4 grid gap-2">
         {category.evidence.map((ev, idx) => {
           const positive =

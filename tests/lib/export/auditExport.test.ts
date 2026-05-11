@@ -101,6 +101,16 @@ describe("exportToJson", () => {
       expect(recs[0]).toHaveProperty("rationale");
     }
   });
+
+  it("Phase 7.0.4: includes the scope disclaimer block", () => {
+    const scope = parsed.scope as Record<string, string[]> | undefined;
+    expect(scope).toBeDefined();
+    expect(Array.isArray(scope?.what_we_check)).toBe(true);
+    expect(Array.isArray(scope?.what_we_do_not_check)).toBe(true);
+    expect(scope!.what_we_do_not_check.join(" ")).toMatch(/transitive CVE/i);
+    expect(scope!.what_we_do_not_check.join(" ")).toMatch(/authenticated/i);
+    expect(scope!.what_we_do_not_check.join(" ")).toMatch(/branch protection/i);
+  });
 });
 
 describe("exportToMarkdown", () => {
@@ -147,6 +157,14 @@ describe("exportToMarkdown", () => {
       expect(h).not.toMatch(/\*\w/);
     }
   });
+
+  it("Phase 7.0.4: carries the scope disclaimer section", () => {
+    expect(md).toMatch(/^## Scope of this audit$/m);
+    expect(md).toMatch(/### What Astraudit checks/);
+    expect(md).toMatch(/### What Astraudit does NOT check/);
+    expect(md).toMatch(/transitive CVE/i);
+    expect(md).toMatch(/npm audit/);
+  });
 });
 
 describe("exportToAsciiDoc", () => {
@@ -170,6 +188,13 @@ describe("exportToAsciiDoc", () => {
   it("renders the score table with `|===` delimiters", () => {
     expect(adoc).toMatch(/\|===/);
     expect(adoc).toMatch(/\|\s*Category\s*\|\s*Score\s*\|\s*Status/);
+  });
+
+  it("Phase 7.0.4: carries the scope disclaimer section", () => {
+    expect(adoc).toMatch(/^== Scope of this audit$/m);
+    expect(adoc).toMatch(/=== What Astraudit checks/);
+    expect(adoc).toMatch(/=== What Astraudit does \*not\* check/);
+    expect(adoc).toMatch(/transitive CVE/i);
   });
 });
 
