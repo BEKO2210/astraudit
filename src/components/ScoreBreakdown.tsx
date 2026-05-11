@@ -12,6 +12,12 @@ const STATUS_COLOR: Record<CategoryScore["status"], string> = {
   missing: "from-risk-critical/30 to-risk-critical/0",
   "not-detected": "from-slate-400/15 to-slate-400/0",
   info: "from-aurora-cyan/30 to-aurora-cyan/0",
+  // Phase 7.0.5 — `unknown` (public surface lacks the data) and
+  // `not-applicable` (file/pattern doesn't belong on this stack)
+  // are deliberately neutral. They aren't penalties — the slate
+  // wash matches `not-detected` and reads as "no opinion".
+  unknown: "from-slate-400/15 to-slate-400/0",
+  "not-applicable": "from-slate-400/15 to-slate-400/0",
 };
 
 const RING_COLOR: Record<CategoryScore["status"], string> = {
@@ -21,6 +27,20 @@ const RING_COLOR: Record<CategoryScore["status"], string> = {
   missing: "ring-risk-critical/40",
   "not-detected": "ring-white/10",
   info: "ring-aurora-cyan/40",
+  unknown: "ring-white/10",
+  "not-applicable": "ring-white/10",
+};
+
+/**
+ * Phase 7.0.5 — short text badge rendered in the per-category card
+ * for the new verdict states. Default (legacy) statuses don't render
+ * a badge: their colour-coded ring + `score/max` is already enough
+ * signal. Only the two new states get an explicit label so the
+ * dashboard never silently treats them as `missing`.
+ */
+const STATUS_BADGE_LABEL: Partial<Record<CategoryScore["status"], string>> = {
+  unknown: "?",
+  "not-applicable": "n/a",
 };
 
 /**
@@ -137,7 +157,17 @@ export function ScoreBreakdown({ categories }: ScoreBreakdownProps) {
       </div>
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {categories.map((c) => {
-          const ratio = c.score / c.max;
+          // Phase 7.0.5 — `unknown` (public surface lacks data) and
+          // `not-applicable` (file/pattern doesn't belong on this
+          // stack) deliberately suppress the `score/max` digit + the
+          // progress bar. Rendering "0/15 · 0%" alongside a `?` or
+          // `n/a` badge would still read as "missing" to a glance
+          // reader — which is precisely the false-positive 7.0.5
+          // exists to remove. The badge tells the whole story.
+          const badge = STATUS_BADGE_LABEL[c.status];
+          const suppressScore =
+            c.status === "unknown" || c.status === "not-applicable";
+          const ratio = suppressScore ? 0 : c.score / c.max;
           return (
             <div
               key={c.key}
@@ -150,16 +180,31 @@ export function ScoreBreakdown({ categories }: ScoreBreakdownProps) {
               <div className="relative">
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="uppercase tracking-[0.18em]">{c.label}</span>
-                  <span className="font-semibold text-slate-200">
-                    {c.score}/{c.max}
-                  </span>
+                  {badge ? (
+                    <span
+                      className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-200"
+                      aria-label={
+                        c.status === "unknown"
+                          ? "Unknown — public surface lacks the data"
+                          : "Not applicable to this stack"
+                      }
+                    >
+                      {badge}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-slate-200">
+                      {c.score}/{c.max}
+                    </span>
+                  )}
                 </div>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-aurora-violet via-aurora-blue to-aurora-mint"
-                    style={{ width: `${Math.round(ratio * 100)}%` }}
-                  />
-                </div>
+                {suppressScore ? null : (
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-aurora-violet via-aurora-blue to-aurora-mint"
+                      style={{ width: `${Math.round(ratio * 100)}%` }}
+                    />
+                  </div>
+                )}
                 <p className="mt-3 text-sm text-slate-200/90">{c.summary}</p>
                 {c.evidence.length > 0 ? (
                   <ul className="mt-2 space-y-1 text-xs text-slate-400">

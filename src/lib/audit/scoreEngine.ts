@@ -592,6 +592,32 @@ export function totalScore(categories: CategoryScore[]): number {
   return categories.reduce((sum, cat) => sum + cat.score, 0);
 }
 
+/**
+ * Phase 7.0.5 — denominator-aware total max.
+ *
+ * Categories whose status is `not-applicable` (the file / pattern
+ * doesn't belong on this stack — e.g. `Dockerfile` on a pure Rust
+ * library) drop out of the denominator entirely so the displayed
+ * percentage stays honest. Categories whose status is `unknown`
+ * (the public surface can't carry the data — e.g. branch
+ * protection) also drop out of the denominator: `0` to numerator,
+ * `0` to denominator, no penalty, no credit.
+ *
+ * Every other status — `strong` / `partial` / `weak` / `missing` /
+ * `not-detected` / `info` — contributes its declared `max` to the
+ * denominator unchanged. This keeps `totalScore` + `effectiveMaxScore`
+ * mathematically coherent: for a v1.0-era audit (no n/a + no unknown
+ * states emitted yet) `effectiveMaxScore === 100`, the legacy value.
+ */
+export function effectiveMaxScore(categories: CategoryScore[]): number {
+  return categories.reduce((sum, cat) => {
+    if (cat.status === "not-applicable" || cat.status === "unknown") {
+      return sum;
+    }
+    return sum + cat.max;
+  }, 0);
+}
+
 export function gradeFromScore(score: number): Grade {
   if (score >= 90) return "Excellent";
   if (score >= 80) return "Very Strong";
