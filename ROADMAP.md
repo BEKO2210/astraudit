@@ -3062,26 +3062,37 @@ this?" to a recognisable Astraudit card.
 
 ### IV · Cross-browser + device verification
 
-- **6.21 Safari (macOS) golden-path manual run.** Audit
-  facebook/react. Hit every dashboard panel. Open every dialog.
-  Print to PDF. Compare with Chromium's output side-by-side.
-  Flag any pixel-perfect drift; flag any functional drift.
-- **6.22 Safari (iOS) golden-path manual run.** Same routine
-  on a real iPhone. Special focus: the body-lock + dialog
-  scroll-trap fixes from Phase 5.x followups, the FAB sticky
-  positioning, the touch-action rule on the audit graph.
-- **6.23 Firefox (desktop) golden-path manual run.** Mostly a
-  smoke test — the Tailwind + React Flow + Vite stack is
-  well-supported there.
-- **6.24 Android Chrome on a real device.** Web Worker behaviour,
-  large-tree audits (memory pressure), the FAB safe-area inset
-  on phones with on-screen nav bars, the BadgeDialog scroll
-  containment when the keyboard isn't present.
-- **6.25 Browser-extension survival.** Dark-reader, uBlock,
-  Privacy Badger, Tampermonkey, Stylus. Confirm the dashboard
-  still renders sensibly with each enabled; document any
-  expected drift (e.g. dark-reader inverting the inverted
-  light-mode card).
+- **6.21 Safari (macOS) — engine smoke automated.** ✅ partial.
+  `tests/visual/crossBrowser.smoke.spec.ts` runs on Playwright's
+  bundled WebKit project (Apple's open-source engine that powers
+  Safari). Asserts home boots, no console errors, theme persists,
+  lazy legal route resolves, rule book scrolls cleanly. Pixel-
+  perfect comparison + Print-to-PDF stays manual — visual diffs
+  across engines aren't tractable in CI.
+- **6.22 Safari (iOS) — needs real iPhone.** ❎ manual. WebKit
+  engine smoke (6.21) catches most layout/JS regressions, but
+  iOS-specific behaviour (body-lock + dialog-scroll-trap with
+  `position: fixed`, FAB safe-area inset, touch-action on the
+  audit graph) only reproduces on a physical iPhone. Documented
+  as a maintainer pre-release task.
+- **6.23 Firefox (desktop).** ✅
+  `tests/visual/crossBrowser.smoke.spec.ts` runs on Playwright's
+  Firefox project. Same four cases as the other engines; locked
+  into `.github/workflows/playwright.yml` (firefox + webkit are
+  now part of the installed browser set).
+- **6.24 Android Chrome — emulated viewport.** ✅ partial.
+  Smoke spec runs under the Pixel 7 device descriptor
+  (`devices["Pixel 7"]`) so viewport + touch primary input +
+  UA string match a real Android Chrome. Genuine memory
+  pressure on a large-tree audit still requires a physical
+  device; documented as manual.
+- **6.25 Browser-extension survival.** ❎ manual. Dark Reader,
+  uBlock, Privacy Badger, Tampermonkey, Stylus need real
+  installs and don't run inside Playwright's isolated browser
+  contexts. Documented as a pre-release sweep with expected
+  drift (Dark Reader will invert the inverted light-mode card,
+  uBlock won't block anything since we have no third-party
+  trackers, etc.).
 
 ### V · Error paths + edge cases
 

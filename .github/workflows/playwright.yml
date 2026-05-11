@@ -42,15 +42,21 @@ jobs:
           path: ~/.cache/ms-playwright
           # Pinning to the bundled browser version keeps the cache
           # invalidated whenever Playwright's binary moves.
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          # The `-fx6.21` suffix forces a one-time re-population when
+          # Phase 6.21 added firefox + webkit to the installed set.
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}-fx6.21
 
       - name: Install Playwright browsers
+        # Phase 6.21–6.24 — Firefox + WebKit run the cross-browser
+        # smoke spec (tests/visual/*.smoke.spec.ts). Mobile Chromium
+        # rides on the chromium binary already installed alongside
+        # the Pixel 7 device descriptor.
         if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Install Playwright system deps
         if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: npx playwright install-deps chromium firefox webkit
 
       # Build separately so the Playwright webServer probe (60s) only
       # has to start `vite preview`, not pack a cold TypeScript +

@@ -49,9 +49,32 @@ export default defineConfig({
     timezoneId: "Europe/Berlin",
   },
   projects: [
+    // Chromium runs the full visual + axe + spec suite.
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    // Firefox / WebKit / mobile Chromium run the lighter
+    // *cross-browser smoke* suite only (tests/visual/*.smoke.spec.ts).
+    // Phase 6.21–6.24 — they catch engine-specific regressions
+    // (Safari containing-block quirks, Firefox flex bugs, mobile
+    // viewport sizing) without paying the snapshot-baseline cost,
+    // which would explode across three rendering engines × OS font
+    // stacks. Snapshots stay Chromium-only.
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /.*\.smoke\.spec\.ts/,
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+      testMatch: /.*\.smoke\.spec\.ts/,
+    },
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 7"] },
+      testMatch: /.*\.smoke\.spec\.ts/,
     },
   ],
   expect: {
