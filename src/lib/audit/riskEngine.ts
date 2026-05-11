@@ -1,4 +1,5 @@
 import type { Finding } from "../../types/finding";
+import type { StackSignals } from "../../types/audit";
 import type { ClassifiedFiles } from "./fileClassifier";
 import type { ReadmeSignals } from "./documentationDetector";
 import type { DependencySignals } from "./dependencyDetector";
@@ -15,6 +16,14 @@ interface RiskContext {
   maintenance: MaintenanceSignals;
   ci: CiSignals;
   dx: DxSignals;
+  /**
+   * Phase 7.0.9 — stack signals for stack-aware finding copy. Used
+   * to name the right test runner (`go test` / `cargo test` /
+   * `pytest`) per ecosystem instead of always recommending
+   * "Vitest, Jest, or similar". Required: callers must thread the
+   * existing `stack` value through.
+   */
+  stack: StackSignals;
 }
 
 let counter = 0;
@@ -198,6 +207,24 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   }
 
   if (!ctx.classified.hasTestSignals) {
+    // Phase 7.0.9 — stack-aware test-runner copy. The old
+    // "Vitest, Jest, or similar" line read as noise on Go / Rust /
+    // Python repos that already have their own canonical runner.
+    // Name the right one per stack; fall back to a generic line
+    // when the runtime detector couldn't pin one down.
+    const runtime = ctx.stack.runtime;
+    const runnerHint =
+      runtime === "Go"
+        ? "`go test ./...` is the canonical entry point"
+        : runtime === "Rust"
+          ? "`cargo test` runs the test suite in src/ + tests/"
+          : runtime === "Python"
+            ? "pytest is the de facto runner; `python -m unittest` works too"
+            : runtime === "Ruby"
+              ? "RSpec (`bundle exec rspec`) or Minitest (`rake test`)"
+              : runtime === "Node.js" || runtime === "Deno" || runtime === "Bun"
+                ? "Vitest, Jest, or `node --test`"
+                : "your ecosystem's test runner";
     findings.push({
       id: id("tests"),
       title: "No tests detected",
@@ -206,8 +233,7 @@ export function buildFindings(ctx: RiskContext): Finding[] {
       description:
         "No test files, test directories, or test scripts were detected. Static analysis cannot validate this is comprehensive.",
       evidence: "No matching test paths or scripts.",
-      recommendation:
-        "Add at least a smoke test plus a test runner (Vitest, Jest, or similar) and a test script.",
+      recommendation: `Add at least a smoke test — ${runnerHint}.`,
       affectedFiles: [],
       confidence: "medium",
     });

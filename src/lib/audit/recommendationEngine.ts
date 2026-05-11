@@ -1,9 +1,18 @@
-import type { CategoryScore, Recommendation } from "../../types/audit";
+import type { CategoryScore, Recommendation, StackSignals } from "../../types/audit";
 import type { Finding, FindingCategory } from "../../types/finding";
 
 interface RecoContext {
   categories: CategoryScore[];
   findings: Finding[];
+  /**
+   * Phase 7.0.9 — stack signals for stack-aware recommendation copy.
+   * Used to pick the right test-runner name, source-folder list,
+   * and onboarding-file mix for the detected ecosystem instead of
+   * defaulting to the JS-centric phrasing the v1.x copy used. Tests
+   * that don't care about per-stack copy can omit it; the helpers
+   * fall through to a generic line in that case.
+   */
+  stack?: StackSignals;
 }
 
 const SEVERITY_TO_IMPACT: Record<string, "high" | "medium" | "low"> = {
@@ -17,51 +26,95 @@ const SEVERITY_TO_IMPACT: Record<string, "high" | "medium" | "low"> = {
 // Used only when no specific finding exists for a weak category — phrasing
 // is intentionally hedged ("if missing") so it never claims something exists
 // or is missing without evidence.
-const FALLBACK_BY_CATEGORY: Record<
-  FindingCategory,
-  { title: string; rationale: string }
-> = {
-  security: {
-    title: "Tighten the security baseline",
-    rationale:
-      "If SECURITY.md, CODEOWNERS, Dependabot, or a CodeQL workflow are missing, add the ones that are not yet present.",
-  },
-  quality: {
-    title: "Strengthen the test and CI loop",
-    rationale:
-      "Add a smoke test, wire the test command to CI, and turn type/lint checks into PR gates.",
-  },
-  documentation: {
-    title: "Round out the README",
-    rationale:
-      "Aim for installation, usage, examples, and a roadmap section — even short ones help adopters.",
-  },
-  dx: {
-    title: "Polish the developer onboarding flow",
-    rationale:
-      "An .env.example, a Makefile or Dockerfile, and clean package.json scripts shorten time-to-first-contribution.",
-  },
-  maintenance: {
-    title: "Re-engage maintenance signals",
-    rationale:
-      "Triage the open queue, ship a small maintenance release, and update topics, description, and homepage.",
-  },
-  ci: {
-    title: "Add or expand the GitHub Actions workflow",
-    rationale:
-      "Even a minimal Actions workflow that runs build + test + lint on each PR makes regressions visible early.",
-  },
-  structure: {
-    title: "Reorganize files into clear top-level directories",
-    rationale:
-      "Move source, scripts, and configs out of the root into src/, scripts/, and config/.",
-  },
-  ecosystem: {
-    title: "Lock dependencies and document the stack",
-    rationale:
-      "Commit the package manager lockfile and add a stack section so contributors know what to expect.",
-  },
-};
+//
+// Phase 7.0.9 — fallbacks are now a `function(stack)` instead of a static
+// table so the copy can name the ecosystem's actual tooling (Go modules,
+// pyproject.toml, Cargo workspace) instead of always saying
+// "package.json scripts". The defaults stay generic-but-honest when the
+// stack signal is absent (e.g. unit tests that didn't plumb it through).
+function fallbackForCategory(
+  category: FindingCategory,
+  stack: StackSignals | undefined,
+): { title: string; rationale: string } {
+  const runtime = stack?.runtime ?? null;
+
+  const testRunnerExample = (() => {
+    if (runtime === "Go") return "`go test ./...`";
+    if (runtime === "Rust") return "`cargo test`";
+    if (runtime === "Ruby") return "`bundle exec rspec` (RSpec) or `rake test`";
+    if (runtime === "Python") return "`pytest` or `unittest`";
+    if (runtime === "Node.js" || runtime === "Deno" || runtime === "Bun") {
+      return "Vitest, Jest, or `node --test`";
+    }
+    return "your ecosystem's test runner";
+  })();
+
+  const scriptsExample = (() => {
+    if (runtime === "Go" || runtime === "Rust") return "a Makefile target";
+    if (runtime === "Python") return "a `pyproject.toml` `[tool]` section";
+    if (runtime === "Ruby") return "a Rake task";
+    if (runtime === "Node.js" || runtime === "Deno" || runtime === "Bun") {
+      return "package.json scripts";
+    }
+    return "a Makefile or task-runner config";
+  })();
+
+  // Source-folder list mirrors Phase 7.0.6's per-stack acceptance.
+  const sourceFolders = (() => {
+    if (runtime === "Go") return "cmd/, internal/, pkg/, or src/";
+    if (runtime === "Rust") return "src/ (or crates/ for workspaces)";
+    if (runtime === "Ruby") return "lib/ or app/";
+    return "src/, scripts/, and config/";
+  })();
+
+  switch (category) {
+    case "security":
+      return {
+        title: "Tighten the security baseline",
+        rationale:
+          "If SECURITY.md, CODEOWNERS, Dependabot, or a CodeQL workflow are missing, add the ones that are not yet present.",
+      };
+    case "quality":
+      return {
+        title: "Strengthen the test and CI loop",
+        rationale: `Add at least a smoke test (using ${testRunnerExample}), wire it to CI, and turn type/lint checks into PR gates.`,
+      };
+    case "documentation":
+      return {
+        title: "Round out the README",
+        rationale:
+          "Aim for installation, usage, examples, and a roadmap section — even short ones help adopters.",
+      };
+    case "dx":
+      return {
+        title: "Polish the developer onboarding flow",
+        rationale: `An .env.example, a Makefile or Dockerfile, and ${scriptsExample} shorten time-to-first-contribution.`,
+      };
+    case "maintenance":
+      return {
+        title: "Re-engage maintenance signals",
+        rationale:
+          "Triage the open queue, ship a small maintenance release, and update topics, description, and homepage.",
+      };
+    case "ci":
+      return {
+        title: "Add or expand the GitHub Actions workflow",
+        rationale:
+          "Even a minimal Actions workflow that runs build + test + lint on each PR makes regressions visible early.",
+      };
+    case "structure":
+      return {
+        title: "Reorganize files into clear top-level directories",
+        rationale: `Move source, scripts, and configs out of the root — for this stack the convention is ${sourceFolders}.`,
+      };
+    case "ecosystem":
+      return {
+        title: "Lock dependencies and document the stack",
+        rationale:
+          "Commit the package manager lockfile and add a stack section so contributors know what to expect.",
+      };
+  }
+}
 
 function titleFromFinding(f: Finding): string {
   // Convert "No X detected" / "An X appears" findings to action-oriented titles.
@@ -101,7 +154,7 @@ const SEVERITY_RANK: Record<Finding["severity"], number> = {
 };
 
 export function buildRecommendations(ctx: RecoContext): Recommendation[] {
-  const { findings, categories } = ctx;
+  const { findings, categories, stack } = ctx;
 
   const sortedFindings = [...findings].sort((a, b) => {
     const sev = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
@@ -141,7 +194,7 @@ export function buildRecommendations(ctx: RecoContext): Recommendation[] {
       .sort((a, b) => a.score / a.max - b.score / b.max);
     for (const cat of ranked) {
       if (recos.length >= 7) break;
-      const fb = FALLBACK_BY_CATEGORY[cat.key];
+      const fb = fallbackForCategory(cat.key, stack);
       if (!fb || seenTitles.has(fb.title)) continue;
       seenTitles.add(fb.title);
       const ratio = cat.score / cat.max;

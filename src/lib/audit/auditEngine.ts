@@ -101,6 +101,7 @@ export function runAudit(
     maintenance,
     ci,
     dx,
+    stack,
   }).sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 
   const score = totalScore(categories);
@@ -121,7 +122,7 @@ export function runAudit(
   });
 
   emit("recommendations");
-  const recommendations = buildRecommendations({ categories, findings });
+  const recommendations = buildRecommendations({ categories, findings, stack });
   const insights = deriveInsights({
     bundle,
     classified,
