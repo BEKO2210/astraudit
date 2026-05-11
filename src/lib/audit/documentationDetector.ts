@@ -147,6 +147,34 @@ function urlMatchesEntry(
   return url.pathname.startsWith(entry.pathPrefix);
 }
 
+/**
+ * Phase 7.x — shields.io badge detection. A README "has badges" when
+ * either (a) it contains the nested `[![` markdown pattern, or
+ * (b) it links to a real shields.io URL. The shields.io check parses
+ * every URL via the `URL` constructor and compares `hostname` to the
+ * literal `img.shields.io`. A substring match would fire CodeQL's
+ * `js/incomplete-url-substring-sanitization` rule (the substring
+ * `//img.shields.io/` could appear inside a query parameter of an
+ * unrelated host); proper URL parsing is the right shape of fix.
+ */
+function hasShieldsBadgeUrl(content: string): boolean {
+  const matches = content.match(URL_RE);
+  if (!matches) return false;
+  for (const candidate of matches) {
+    let url: URL;
+    try {
+      const normalised = /^https?:\/\//i.test(candidate)
+        ? candidate
+        : `https://${candidate}`;
+      url = new URL(normalised);
+    } catch {
+      continue;
+    }
+    if (url.hostname.toLowerCase() === "img.shields.io") return true;
+  }
+  return false;
+}
+
 function detectExternalDocsLink(
   content: string,
 ): { host: string; label: string } | null {
@@ -246,15 +274,7 @@ export function analyzeReadme(
     mentionsApi: API_PATTERNS.some((re) => re.test(content)),
     mentionsExamples: EXAMPLE_PATTERNS.some((re) => re.test(content)),
     mentionsScreenshot: SCREENSHOT_PATTERNS.some((re) => re.test(content)),
-    // Phase 7.x — shields.io check uses `String.includes()` rather
-    // than a regex. CodeQL's `js/regex/missing-regexp-anchor` rule
-    // flags any hostname-shaped substring inside a regex regardless
-    // of surrounding escapes or path-boundary anchors. Switching to
-    // a literal substring check sidesteps the analyser entirely and
-    // is also the most honest expression of intent: we're looking
-    // for the literal URL fragment `//img.shields.io/`, no pattern
-    // matching needed.
-    hasBadges: /\[!\[/.test(content) || content.includes("//img.shields.io/"),
+    hasBadges: /\[!\[/.test(content) || hasShieldsBadgeUrl(content),
     hasHeadings: /^#{1,3} /m.test(content),
     hasExternalDocs: externalDocsHost !== null,
     externalDocsHost,
