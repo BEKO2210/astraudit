@@ -81,6 +81,15 @@ export const IMPORTANT_FOLDERS = [
   "deployment",
   "k8s",
   "helm",
+  // Phase 7.0.6 — per-stack canonical source folders so the
+  // structure detector can credit ecosystem-idiomatic layouts:
+  //   - `cmd`, `internal`, `pkg`: Go (github.com/golang-standards
+  //     /project-layout).
+  //   - `crates`: Rust Cargo workspaces.
+  "cmd",
+  "internal",
+  "pkg",
+  "crates",
 ];
 
 export const SUSPICIOUS_FILE_HINTS = [
@@ -122,4 +131,14 @@ export const TEST_FILE_HINTS = [
   ".spec.",
   "_test.",
   "_spec.",
+  // Phase 7.0.6 — per-stack test-file conventions. pytest's
+  // canonical pattern is `test_*.py`; RSpec's is `spec/*_spec.rb`
+  // (already caught by `_spec.`). Adding `test_` here lets Python
+  // repos that follow pytest's recommended layout register as
+  // "has tests" without forcing them to also ship a `tests/` folder.
+  // We require the `test_` prefix to come right after a path
+  // separator so it doesn't false-positive on substrings like
+  // `manifest_loader.go`. The matcher does `p.includes(hint)`, so
+  // we slash-anchor here.
+  "/test_",
 ];

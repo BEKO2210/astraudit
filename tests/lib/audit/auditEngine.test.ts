@@ -111,4 +111,103 @@ describe("runAudit", () => {
       runAudit(base).insights.trustScore,
     );
   });
+
+  // Phase 7.0.6 — per-stack rule packs. The structure category used
+  // to scold any project that didn't ship `src/`, `app/`, or `lib/`
+  // — which read as JS-centric noise on Go / Rust / Ruby repos that
+  // follow their own ecosystem layout. These tests lock the
+  // stack-aware acceptance against regression.
+  describe("Phase 7.0.6 — per-stack source-layout acceptance", () => {
+    it("credits a Go project shipping cmd/internal/pkg as a recognised layout", () => {
+      const bundle = makeBundle({
+        languages: { Go: 95_000, "Go Module": 5_000 },
+        paths: [
+          "README.md",
+          "LICENSE",
+          "go.mod",
+          "go.sum",
+          "cmd/myapp/main.go",
+          "internal/server/server.go",
+          "pkg/api/api.go",
+          "internal/server/server_test.go",
+        ],
+      });
+      const result = runAudit(bundle);
+      const structure = result.categories.find((c) => c.key === "structure");
+      expect(structure, "structure category present").toBeTruthy();
+      const evidence = structure!.evidence.join("\n");
+      expect(evidence).toMatch(/Recognised source layout \(Go/);
+      expect(evidence).not.toMatch(/No standard source directory/);
+    });
+
+    it("credits a Rust workspace shipping crates/ as a recognised layout", () => {
+      const bundle = makeBundle({
+        languages: { Rust: 90_000 },
+        paths: [
+          "README.md",
+          "LICENSE",
+          "Cargo.toml",
+          "Cargo.lock",
+          "crates/core/src/lib.rs",
+          "crates/cli/src/main.rs",
+        ],
+      });
+      const result = runAudit(bundle);
+      const structure = result.categories.find((c) => c.key === "structure");
+      const evidence = structure!.evidence.join("\n");
+      expect(evidence).toMatch(/Recognised source layout \(Rust workspace/);
+    });
+
+    it("credits a Ruby on Rails project shipping app/ as a recognised layout", () => {
+      const bundle = makeBundle({
+        languages: { Ruby: 100_000 },
+        paths: [
+          "README.md",
+          "LICENSE",
+          "Gemfile",
+          "Gemfile.lock",
+          "app/controllers/application_controller.rb",
+          "app/models/user.rb",
+          "lib/tasks/seed.rake",
+        ],
+      });
+      const result = runAudit(bundle);
+      const structure = result.categories.find((c) => c.key === "structure");
+      const evidence = structure!.evidence.join("\n");
+      expect(evidence).toMatch(/Recognised source layout \(Ruby on Rails/);
+    });
+
+    it("falls back to the stack-named miss-copy on a flat Go repo", () => {
+      // No source folder, but Go-detected via go.mod. The miss-copy
+      // should name Go conventions, not JS ones.
+      const bundle = makeBundle({
+        languages: { Go: 50_000 },
+        paths: ["README.md", "main.go", "go.mod"],
+      });
+      const result = runAudit(bundle);
+      const structure = result.categories.find((c) => c.key === "structure");
+      const evidence = structure!.evidence.join("\n");
+      expect(evidence).toMatch(/cmd\/, internal\/, pkg\/, or src\//);
+    });
+
+    it("detects pytest's `test_*.py` files nested under a package", () => {
+      // The `/test_` hint catches pytest's canonical pattern when
+      // tests live inside a package subdirectory. The legacy
+      // `_test.` / `_spec.` hints would miss this.
+      const bundle = makeBundle({
+        languages: { Python: 80_000 },
+        paths: [
+          "README.md",
+          "LICENSE",
+          "pyproject.toml",
+          "src/mypkg/__init__.py",
+          "src/mypkg/test_core.py",
+        ],
+      });
+      const result = runAudit(bundle);
+      const structure = result.categories.find((c) => c.key === "structure");
+      const evidence = structure!.evidence.join("\n");
+      expect(evidence).toMatch(/Test directory or test files detected/);
+    });
+  });
 });
