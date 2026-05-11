@@ -138,6 +138,15 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.10 — Public Roadmap acknowledgement block** at
+  the top of the README. Names the post-launch feedback honestly
+  ("audit reads JS-centric on non-JS stacks; flags wiki/docs the
+  scanner can't see"), lists which Track 0 items already shipped
+  (7.0.1 / 7.0.2 / 7.0.4 / 7.0.8) and which remain open (7.0.3 /
+  7.0.5 / 7.0.6 / 7.0.7 / 7.0.9), and links to the full Track 0
+  plan in `ROADMAP.md` and the scope contract in `docs/SCOPE.md`.
+  Same honesty contract Astraudit applies to audit copy, applied
+  to the project itself.
 - **MCP server** (`bin/mcp-server.ts`, `dist-bin/mcp-server.js`).
   Astraudit now ships a Model Context Protocol server so any
   MCP-compatible AI client (Claude Desktop, Cursor, Zed, VS Code
