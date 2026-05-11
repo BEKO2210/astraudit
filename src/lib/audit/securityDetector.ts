@@ -9,7 +9,10 @@ import {
   parseSecurityPolicy,
   type ParsedSecurityPolicy,
 } from "./securityPolicyParser";
-import type { OrgHealthSnapshot } from "../../types/github";
+import type {
+  BranchProtectionSignals,
+  OrgHealthSnapshot,
+} from "../../types/github";
 
 export interface SecuritySignals {
   hasLicense: boolean;
@@ -46,6 +49,16 @@ export interface SecuritySignals {
   hasCommittedEnv: boolean;
   committedEnvFiles: string[];
   suspiciousFiles: string[];
+  /**
+   * Phase 7.0.3 — default-branch protection probe. Always carried
+   * through from the bundle so downstream consumers (score evidence,
+   * security panel UI, exports) can pattern-match on
+   * `status === "observed"` vs `status === "unknown"` without an
+   * extra presence guard. The `unknown` shape is the honest answer
+   * for any audit running without a repo-admin token — see
+   * SCOPE.md and ROADMAP.md § 7.0.3.
+   */
+  branchProtection: BranchProtectionSignals;
 }
 
 const ENV_REGEX = [
@@ -60,6 +73,7 @@ const ENV_REGEX = [
 export function analyzeSecurity(
   classified: ClassifiedFiles,
   orgHealth?: OrgHealthSnapshot,
+  branchProtection?: BranchProtectionSignals,
 ): SecuritySignals {
   const has = classified.hasFile;
   const hasFolder = classified.hasFolder;
@@ -220,5 +234,15 @@ export function analyzeSecurity(
     hasCommittedEnv: committedEnvFiles.length > 0,
     committedEnvFiles,
     suspiciousFiles: classified.suspiciousFiles,
+    // Phase 7.0.3 — branch protection probe. Defaults to `unknown`
+    // when the caller didn't pass the bundle through (test fixtures
+    // that exercise this detector in isolation). The branch label
+    // `"unknown"` is a sentinel; downstream consumers should still
+    // distinguish on `status`, not on `branch`.
+    branchProtection: branchProtection ?? {
+      status: "unknown",
+      branch: "unknown",
+      reason: "not-set",
+    },
   };
 }

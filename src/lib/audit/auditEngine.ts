@@ -73,7 +73,11 @@ export function runAudit(
   });
 
   emit("quality");
-  const security = analyzeSecurity(classified, bundle.orgHealth);
+  const security = analyzeSecurity(
+    classified,
+    bundle.orgHealth,
+    bundle.branchProtection,
+  );
   const maintenance = analyzeMaintenance(bundle);
   const ci = analyzeCi(classified, bundle.workflows);
   const dx = analyzeDx(classified, readme, deps, bundle.orgHealth);
