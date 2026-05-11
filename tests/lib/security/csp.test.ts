@@ -105,6 +105,17 @@ describe("index.html — Content-Security-Policy", () => {
     expect(csp!).toMatch(/https:\/\/raw\.githubusercontent\.com/);
   });
 
+  it("allow-lists the public package-registry endpoints that RegistryPanel calls", () => {
+    // RegistryPanel hits these three free, unauthenticated read-only
+    // endpoints directly from the browser. The Datenschutzerklärung
+    // §4a documents the call. CSP must allow them, otherwise the
+    // panel renders "Failed to fetch" on every audited repo.
+    expect(csp).not.toBeNull();
+    expect(csp!).toMatch(/https:\/\/registry\.npmjs\.org/);
+    expect(csp!).toMatch(/https:\/\/pypi\.org/);
+    expect(csp!).toMatch(/https:\/\/crates\.io/);
+  });
+
   it("does not allow any third-party origin for styles or fonts (Phase 6.33: self-hosted)", () => {
     expect(csp).not.toBeNull();
     // Fonts ship from /assets/ via @fontsource; Google Fonts allow-list
