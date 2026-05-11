@@ -1,0 +1,133 @@
+name: Honesty sweep (Phase 7.0.7)
+
+# Multi-stack honesty audit. Runs `scripts/honesty-check.ts` against
+# 50+ curated cross-stack repos on every PR + main push, then posts
+# a PR comment summarising the lie-count delta versus the base branch.
+#
+# A PR that introduces a new lie blocks merge (the script exits 1 on
+# any non-error lie; this workflow propagates that via the `exit-on-lie`
+# step).
+#
+# The honesty check hits api.github.com directly, so GITHUB_TOKEN is
+# required (we pull from the workflow-scoped one, which is the same
+# token GitHub already gives every workflow). No third-party secrets.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  honesty:
+    runs-on: ubuntu-latest
+    # 56 repos × 10 GitHub API calls × ~0.5s + audit work. A clean run
+    # is ~6-8 minutes; the timeout protects against hangs (e.g. a slow
+    # response from api.github.com on a flaky run).
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run honesty sweep (head)
+        id: honesty-head
+        # Stdout = JSON summary, stderr = per-repo progress.
+        # The `|| true` keeps the step from failing on lies — we
+        # decide whether to block merge in the comparison step below
+        # (so we always get the PR comment, even on regressions).
+        run: |
+          set +e
+          npx tsx scripts/honesty-check.ts --json > honesty-head.json 2> honesty-head.log
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run honesty sweep (base — for PRs only)
+        if: github.event_name == 'pull_request'
+        id: honesty-base
+        run: |
+          set +e
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git checkout origin/${{ github.base_ref }} -- scripts/honesty-check.ts
+          npx tsx scripts/honesty-check.ts --json > honesty-base.json 2> honesty-base.log
+          # Restore the head version so subsequent steps see PR copy.
+          git checkout HEAD -- scripts/honesty-check.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute lie-count delta + build PR comment
+        if: github.event_name == 'pull_request'
+        id: delta
+        run: |
+          node <<'JS' > comment.md
+          const fs = require("fs");
+          const head = JSON.parse(fs.readFileSync("honesty-head.json", "utf8"));
+          let base = { total_lies: 0, total_repos: head.total_repos };
+          try {
+            base = JSON.parse(fs.readFileSync("honesty-base.json", "utf8"));
+          } catch (_) {}
+          const delta = head.total_lies - base.total_lies;
+          const verdict =
+            delta > 0
+              ? `🚨 **${delta} new lie${delta === 1 ? "" : "s"}** — this PR makes the audit dishonest on ${head.lies_per_repo.length} repo(s).`
+              : delta < 0
+                ? `✅ **${-delta} lie${delta === -1 ? "" : "s"} fixed** — ${head.total_lies} remaining across ${head.total_repos} repos.`
+                : `✅ **No lie-count change** — ${head.total_lies} lie(s) across ${head.total_repos} repos (same as base).`;
+          let out = `## Honesty sweep — Phase 7.0.7\n\n${verdict}\n\n`;
+          out += `| Branch | Repos | Lies | Errors |\n|---|---:|---:|---:|\n`;
+          out += `| base | ${base.total_repos} | ${base.total_lies} | ${base.errors?.length ?? 0} |\n`;
+          out += `| head | ${head.total_repos} | ${head.total_lies} | ${head.errors?.length ?? 0} |\n\n`;
+          if (head.lies_per_repo.length) {
+            out += `### Repos with lies on this PR\n\n`;
+            for (const r of head.lies_per_repo) {
+              out += `- **${r.repo}** — ${r.lies} lie(s)\n`;
+              for (const d of r.details) out += `  - \`${d.trim()}\`\n`;
+            }
+          }
+          if (head.errors?.length) {
+            out += `\n### Errors (audit couldn't run — typically rate-limit)\n\n`;
+            for (const e of head.errors) out += `- **${e.repo}** — ${e.message}\n`;
+          }
+          fs.writeFileSync("/tmp/honesty-delta.txt", String(delta));
+          console.log(out);
+          JS
+          echo "delta=$(cat /tmp/honesty-delta.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Post / update PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: honesty-sweep
+          path: comment.md
+
+      - name: Block merge on new lies
+        if: github.event_name == 'pull_request' && steps.delta.outputs.delta != '0' && steps.delta.outputs.delta != ''
+        run: |
+          if [ "${{ steps.delta.outputs.delta }}" -gt 0 ]; then
+            echo "::error::This PR introduces ${{ steps.delta.outputs.delta }} new honesty-sweep lie(s). See the PR comment for details."
+            exit 1
+          fi
+
+      - name: Upload honesty artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: honesty-sweep
+          path: |
+            honesty-head.json
+            honesty-head.log
+            honesty-base.json
+            honesty-base.log
+            comment.md
+          retention-days: 14
+          if-no-files-found: ignore
