@@ -138,6 +138,19 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.0.7 — Multi-stack honesty sweep + CI gate.**
+  `scripts/honesty-check.ts` curated target list expanded from
+  31 → 56 repos covering every supported ecosystem: 15 JS/TS,
+  8 Python, 7 Rust, 8 Go, 4 Ruby, 3 PHP/Composer, 3 Java/JVM,
+  2 Swift, 3 C/C++/system, plus Astraudit itself. The script
+  gains a `--json` mode that emits a structured summary on
+  stdout (per-repo progress moves to stderr) so a CI workflow
+  can compute the lie-count delta against base. New
+  `.github/workflows/honesty.yml` runs the sweep on every PR +
+  main push, compares head vs base, posts a sticky PR comment
+  with the delta, and blocks merge when the head introduces a
+  new lie. Closes the last open Track 0 item; the credibility
+  track is now complete. 905/905 vitest cases still green.
 - **Phase 7 / 7.0.9 — Honest finding-copy review.** Every
   "Add X" / "missing X" / "no X" recommendation line was
   re-read with the framing *"would the maintainer of this
