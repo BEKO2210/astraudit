@@ -32,6 +32,8 @@ export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputP
             inputMode="url"
             className="w-full rounded-md bg-transparent py-3 text-base text-white placeholder:text-slate-500"
             aria-label="GitHub repository URL"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "repo-input-error" : undefined}
           />
         </div>
         <button
@@ -53,7 +55,13 @@ export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputP
         </button>
       </div>
       {error ? (
-        <p className="mt-3 text-sm text-risk-critical/90">{error}</p>
+        <p
+          id="repo-input-error"
+          role="alert"
+          className="mt-3 text-sm text-risk-critical/90"
+        >
+          {error}
+        </p>
       ) : null}
     </form>
   );

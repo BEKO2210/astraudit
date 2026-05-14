@@ -220,3 +220,27 @@ export function formatResetCountdown(
   const minutes = Math.ceil(deltaSec / 60);
   return `Resets in ${minutes} min`;
 }
+
+/**
+ * The concrete wall-clock time the rate-limit window reopens,
+ * formatted in the viewer's locale (e.g. "2:45 PM"). Pairs with
+ * `formatResetCountdown` so the error panel can show both the
+ * relative countdown ("Resets in 23 min") and the exact timestamp —
+ * the latter is what a user copies into a reminder. Returns null
+ * when the timestamp is absent or already in the past.
+ */
+export function formatResetClock(
+  resetAtSeconds: number | null | undefined,
+  nowMs: number = Date.now(),
+): string | null {
+  if (!resetAtSeconds || !Number.isFinite(resetAtSeconds)) return null;
+  if (resetAtSeconds * 1000 <= nowMs) return null;
+  try {
+    return new Date(resetAtSeconds * 1000).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return null;
+  }
+}

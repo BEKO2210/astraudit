@@ -24,6 +24,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 import {
+  formatResetClock,
   formatResetCountdown,
   type AuditErrorAction,
   type AuditErrorView,
@@ -72,6 +73,7 @@ export function ErrorState({
 
   const Icon = ICONS[view.kind] ?? AlertTriangle;
   const countdown = formatResetCountdown(view.resetAtSeconds);
+  const resetClock = formatResetClock(view.resetAtSeconds);
 
   const handle = (action: AuditErrorAction): (() => void) | undefined => {
     switch (action.kind) {
@@ -100,7 +102,10 @@ export function ErrorState({
         {countdown ? (
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-slate-400">
             <Clock className="h-3 w-3" aria-hidden="true" />
-            <span>{countdown}</span>
+            <span>
+              {countdown}
+              {resetClock ? ` · at ${resetClock}` : ""}
+            </span>
           </p>
         ) : null}
         {view.actions.length > 0 ? (
