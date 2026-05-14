@@ -192,7 +192,10 @@ export function ScoreBreakdown({ categories }: ScoreBreakdownProps) {
                       {badge}
                     </span>
                   ) : (
-                    <span className="font-semibold text-slate-200">
+                    <span
+                      className="font-semibold text-slate-200"
+                      aria-label={`${c.score} out of ${c.max} points`}
+                    >
                       {c.score}/{c.max}
                     </span>
                   )}
