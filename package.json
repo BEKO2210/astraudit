@@ -62,7 +62,7 @@
     "lucide-react": "^1.14.0",
     "markdown-it": "^14.1.1",
     "react": "^19.2.6",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.2.6",
     "reactflow": "^11.11.4",
     "zod": "^3.23.0"
   },
@@ -72,7 +72,7 @@
     "@playwright/test": "^1.59.1",
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^18.3.1",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.4.20",
