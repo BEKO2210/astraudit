@@ -41,8 +41,10 @@ const BUDGETS: Budget[] = [
   // Main entry chunk — the JS users pay for on first paint.
   // Phase 6.16 brought it from 537 KB to 484 KB by lazy-loading the
   // BadgeDialog / CompareDashboard / CommandPalette / legal pages.
-  // The 520 KB ceiling absorbs ~7% normal drift before the gate fires.
-  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 520 * 1024 },
+  // 2026-05 dep bump (React 19.2 + reactflow 11.11 + markdown-it 14.1 +
+  // friends) raised the post-build size to ~549 KB; ceiling lifted to
+  // 570 KB to absorb the new baseline plus ~4% normal drift.
+  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 570 * 1024 },
   // AuditGraph is React Flow's lazy chunk — Phase 4.4 split it out so
   // it doesn't load until the user enters the dashboard.
   { label: "AuditGraph chunk (React Flow)", prefix: "AuditGraph-", suffix: ".js", maxBytes: 175 * 1024 },

@@ -129,10 +129,10 @@ export interface UseDialogOptions {
   /** Called when the user dismisses via Escape. */
   onClose: () => void;
   /** Ref to the dialog's outermost element. Focus stays inside it. */
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>;
   /** Optional: ref to the element to focus on open. Defaults to the
    *  first focusable descendant of `containerRef`. */
-  initialFocusRef?: React.RefObject<HTMLElement>;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
