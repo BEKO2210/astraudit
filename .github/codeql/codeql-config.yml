@@ -1,0 +1,40 @@
+# CodeQL scan configuration for Astraudit.
+#
+# Phase 7.x — narrow the scan surface to user-facing production code.
+# The default GitHub-Actions setup includes EVERY .ts/.tsx file in
+# the repo, which generates a long tail of false positives on:
+#
+#   1. Test fixtures that intentionally use unsafe patterns to
+#      VERIFY our sanitizers and validators block them
+#      (e.g. tests/lib/security/dangerouslySetInnerHTML.test.ts
+#      contains <script>alert(1)</script> on purpose). CodeQL's
+#      `js/bad-tag-filter`, `js/incomplete-multi-character-sanitization`,
+#      `js/incomplete-url-substring-sanitization`,
+#      `js/incomplete-string-escape-encoding`, and `js/regex/*`
+#      rules all fire against these fixtures.
+#
+#   2. Maintainer scripts under scripts/ that run on a trusted
+#      developer machine, not in any user's browser. The
+#      `js/file-system-race` (TOCTOU) and
+#      `js/uncontrolled-command-line` findings are real-but-
+#      irrelevant outside a production server context.
+#
+# What we DO keep under analysis:
+#
+#   - Everything in src/ (the SPA + the audit engine + lib code).
+#   - bin/ (the MCP server, which IS shipped to user machines as
+#     `astraudit-mcp` via npm).
+#   - .github/workflows/ (only what CodeQL itself supports there).
+
+paths-ignore:
+  - tests/**
+  - scripts/**
+  - dist/**
+  - dist-bin/**
+  - docs/**
+  - node_modules/**
+
+# Default query suite stays `security-and-quality`. We don't add
+# extra queries here — the suite is already broad. If we ever need
+# to disable a specific rule, add it under `queries: -` with an
+# explicit comment justifying the suppression.

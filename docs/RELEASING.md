@@ -138,8 +138,24 @@ Then in the GitHub UI:
 
 1. **Settings → General → Social preview** — upload
    `public/og-card.png`.
-2. **Issues → New** — open a "Feedback welcome" issue + pin it.
-3. **Insights → Community Standards** — verify the checklist is
+2. **Issues → New** — paste the body from
+   [`docs/launch/welcome-issue.md`](./launch/welcome-issue.md)
+   (Phase 7.6 — checked-in copy is reviewable + version-controlled),
+   title it *"Welcome — feedback wanted (Phase 7.6)"*, label it
+   `discussion`, then **⋯ → Pin issue**. Or use the one-liner
+   from the top of that file: `gh issue create --body-file …`.
+3. **Settings → Features → Discussions → Set up Discussions** —
+   enable Discussions if not already, then **Categories → New**
+   for the Phase 7.6 set:
+   - **🛠 Rule proposals** (Discussions, not Q&A — a rule is a
+     conversation, not a single-answer question).
+   - **💡 Ideas** (Discussions — open-ended product brainstorming).
+   - **❓ Q&A** (Q&A — for "how do I…" / "why does Astraudit…").
+   - **📣 Announcements** (Announcement — maintainer-only posts).
+   The Issue Form `rule_proposal.yml` (Phase 7.6) deliberately
+   covers the *structured* rule submission — Discussions catches
+   the *exploratory* ones that aren't ready for a formal proposal.
+4. **Insights → Community Standards** — verify the checklist is
    green (README, LICENSE, CODE_OF_CONDUCT, CONTRIBUTING, SECURITY,
    issue + PR templates).
 

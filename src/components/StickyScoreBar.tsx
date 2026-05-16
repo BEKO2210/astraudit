@@ -34,6 +34,7 @@ import type { AuditResult } from "../types/audit";
 import { CopyButton } from "./CopyButton";
 import { PrintButton } from "./PrintButton";
 import { ShareButton } from "./ShareButton";
+import { Tooltip } from "./ui/Tooltip";
 
 const STICKY_OFFSET_VAR = "--sticky-offset";
 const BAR_HEIGHT_PX = 48;
@@ -41,6 +42,9 @@ const BAR_HEIGHT_PX = 48;
 interface StickyScoreBarProps {
   result: AuditResult;
   onOpenCompare?: () => void;
+  /** False until the local history holds a second repo to diff
+   *  against — keeps the Compare button visible but disabled. */
+  canCompare?: boolean;
   onOpenBadge?: () => void;
   /** Element id to observe for the "scrolled past" trigger. */
   observeId?: string;
@@ -56,6 +60,7 @@ function gradeTone(score: number): string {
 export function StickyScoreBar({
   result,
   onOpenCompare,
+  canCompare = true,
   onOpenBadge,
   observeId = "score",
 }: StickyScoreBarProps) {
@@ -146,15 +151,34 @@ export function StickyScoreBar({
             (now ~26 px) without disturbing the visual rhythm. */}
         <div className="ml-auto hidden items-center gap-1.5 sm:flex">
           {onOpenCompare ? (
-            <button
-              type="button"
-              onClick={onOpenCompare}
-              className="inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20"
-              tabIndex={visible ? 0 : -1}
-            >
-              <ArrowLeftRight className="h-3 w-3" />
-              Compare
-            </button>
+            canCompare ? (
+              <button
+                type="button"
+                onClick={onOpenCompare}
+                className="inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-2.5 py-1 text-[11px] font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20"
+                tabIndex={visible ? 0 : -1}
+              >
+                <ArrowLeftRight className="h-3 w-3" />
+                Compare
+              </button>
+            ) : (
+              <Tooltip
+                label="Run another audit to enable comparison"
+                placement="bottom"
+                describe
+              >
+                <button
+                  type="button"
+                  aria-disabled="true"
+                  onClick={(e) => e.preventDefault()}
+                  className="inline-flex min-h-[1.625rem] cursor-not-allowed items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-slate-500"
+                  tabIndex={visible ? 0 : -1}
+                >
+                  <ArrowLeftRight className="h-3 w-3" />
+                  Compare
+                </button>
+              </Tooltip>
+            )
           ) : null}
           <ShareButton coords={{ owner, repo }} />
           {onOpenBadge ? (

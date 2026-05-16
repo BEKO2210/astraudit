@@ -9,6 +9,7 @@ import { fetchCommits } from "./fetchCommits";
 import { fetchReleases } from "./fetchReleases";
 import { fetchIssuesSnapshot } from "./fetchIssues";
 import { fetchWorkflows } from "./fetchWorkflows";
+import { fetchBranchProtection } from "./fetchBranchProtection";
 import { GithubError } from "./githubClient";
 
 export type LoadProgressKey =
@@ -20,7 +21,8 @@ export type LoadProgressKey =
   | "workflows"
   | "commits"
   | "releases"
-  | "issues";
+  | "issues"
+  | "protection";
 
 export interface LoadOptions {
   signal?: AbortSignal;
@@ -136,6 +138,18 @@ async function loadRepoBundleInner(
     signal,
   );
 
+  // Phase 7.0.3 — branch protection probe. Always populated (the
+  // fetcher returns the `unknown` shape on 403/404 rather than
+  // throwing), so the audit never sees `undefined` for this field
+  // and downstream pattern-matches stay simple.
+  tick("protection");
+  const branchProtection = await fetchBranchProtection(
+    coords.owner,
+    coords.repo,
+    metadata.defaultBranch,
+    signal,
+  );
+
   // Org-level community-health probe. We deliberately run this AFTER
   // the per-repo file fetch so the per-repo path always wins when both
   // are present; the org probe is a *fallback*, not a merge. Its
@@ -154,6 +168,7 @@ async function loadRepoBundleInner(
     releases,
     issues,
     orgHealth,
+    branchProtection,
   };
 }
 

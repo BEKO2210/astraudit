@@ -39,6 +39,7 @@
 
 import { tryParseJson } from "../utils/safeText";
 import type { ClassifiedFiles } from "./fileClassifier";
+import { createSafeDict, safeAssign } from "./safeDict";
 
 /** Coarse classification of an `engines.node` declaration. */
 export type NodeFreshness =
@@ -149,10 +150,15 @@ export function parseManifestObject(raw: RawPackageJson): ParsedManifest {
   if (raw.type === "module" || raw.type === "commonjs") moduleType = raw.type;
 
   // engines map — drop non-string values gracefully.
-  const engines: Record<string, string> = {};
+  // Phase 7.x — safeDict + safeAssign closes the
+  // js/remote-property-injection CodeQL finding: the user-controlled
+  // `package.json` key `__proto__` (or `constructor`) is rejected by
+  // safeAssign's forbidden-key check, and the underlying object has
+  // no prototype to pollute.
+  const engines = createSafeDict<string>();
   if (raw.engines && typeof raw.engines === "object") {
     for (const [k, v] of Object.entries(raw.engines)) {
-      if (typeof v === "string" && v.trim()) engines[k] = v.trim();
+      if (typeof v === "string" && v.trim()) safeAssign(engines, k, v.trim());
     }
   }
 

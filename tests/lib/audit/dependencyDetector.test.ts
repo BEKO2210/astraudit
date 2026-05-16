@@ -71,3 +71,82 @@ describe("analyzeDependencies", () => {
     expect(analyzeDependencies(c).hasTestScript).toBe(true);
   });
 });
+
+// Phase 7.0.1 — stack-aware manifest + lockfile awareness.
+describe("analyzeDependencies — per-stack manifests + lockfiles", () => {
+  it("flags Cargo.toml WITHOUT Cargo.lock as missing-lockfile (Rust)", () => {
+    const c = classifyFiles(makeTree(["Cargo.toml", "src/main.rs"]), []);
+    const d = analyzeDependencies(c);
+    expect(d.manifestsPresent.map((m) => m.manifest)).toContain("Cargo.toml");
+    expect(d.missingLockfiles).toHaveLength(1);
+    expect(d.missingLockfiles[0].manifest).toBe("Cargo.toml");
+    expect(d.missingLockfiles[0].expectedLockfiles).toEqual(["Cargo.lock"]);
+    expect(d.missingLockfiles[0].ecosystem).toMatch(/Rust/);
+  });
+
+  it("doesn't flag missing-lockfile when Cargo.lock IS present", () => {
+    const c = classifyFiles(makeTree(["Cargo.toml", "Cargo.lock", "src/main.rs"]), []);
+    expect(analyzeDependencies(c).missingLockfiles).toHaveLength(0);
+  });
+
+  it("flags go.mod WITHOUT go.sum (Go)", () => {
+    const c = classifyFiles(makeTree(["go.mod", "main.go"]), []);
+    const d = analyzeDependencies(c);
+    expect(d.missingLockfiles).toHaveLength(1);
+    expect(d.missingLockfiles[0].expectedLockfiles).toEqual(["go.sum"]);
+  });
+
+  it("accepts poetry.lock / pdm.lock / uv.lock as satisfying pyproject.toml", () => {
+    expect(
+      analyzeDependencies(
+        classifyFiles(makeTree(["pyproject.toml", "poetry.lock"]), []),
+      ).missingLockfiles,
+    ).toHaveLength(0);
+    expect(
+      analyzeDependencies(
+        classifyFiles(makeTree(["pyproject.toml", "pdm.lock"]), []),
+      ).missingLockfiles,
+    ).toHaveLength(0);
+    expect(
+      analyzeDependencies(
+        classifyFiles(makeTree(["pyproject.toml", "uv.lock"]), []),
+      ).missingLockfiles,
+    ).toHaveLength(0);
+  });
+
+  it("emits one finding per stack in a polyglot monorepo (Cargo + npm)", () => {
+    const c = classifyFiles(
+      makeTree(["Cargo.toml", "package.json", "src/main.rs"]),
+      [],
+    );
+    const d = analyzeDependencies(c);
+    expect(d.manifestsPresent).toHaveLength(2);
+    expect(d.missingLockfiles).toHaveLength(2);
+    const kinds = d.missingLockfiles.map((m) => m.manifest).sort();
+    expect(kinds).toEqual(["Cargo.toml", "package.json"]);
+  });
+
+  it("emits NO lockfile finding for a header-only repo with no manifest", () => {
+    const c = classifyFiles(
+      makeTree(["include/header.h", "src/lib.c", "Makefile"]),
+      [],
+    );
+    const d = analyzeDependencies(c);
+    expect(d.manifestsPresent).toHaveLength(0);
+    expect(d.missingLockfiles).toHaveLength(0);
+  });
+
+  it("flags Gemfile WITHOUT Gemfile.lock (Ruby)", () => {
+    const c = classifyFiles(makeTree(["Gemfile", "lib/app.rb"]), []);
+    const d = analyzeDependencies(c);
+    expect(d.missingLockfiles).toHaveLength(1);
+    expect(d.missingLockfiles[0].expectedLockfiles).toEqual(["Gemfile.lock"]);
+  });
+
+  it("flags Package.swift WITHOUT Package.resolved (Swift)", () => {
+    const c = classifyFiles(makeTree(["Package.swift", "Sources/foo.swift"]), []);
+    const d = analyzeDependencies(c);
+    expect(d.missingLockfiles).toHaveLength(1);
+    expect(d.missingLockfiles[0].expectedLockfiles).toEqual(["Package.resolved"]);
+  });
+});

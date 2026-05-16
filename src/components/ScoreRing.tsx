@@ -27,8 +27,18 @@ export function ScoreRing({ score, max, grade }: ScoreRingProps) {
   const colors = colorForScore(score);
 
   return (
-    <div className="relative flex flex-col items-center">
-      <svg width="200" height="200" viewBox="0 0 200 200" className="-rotate-90">
+    <div
+      className="relative flex flex-col items-center"
+      role="img"
+      aria-label={`Audit score ${score} out of ${max}. Grade: ${grade}.`}
+    >
+      <svg
+        width="200"
+        height="200"
+        viewBox="0 0 200 200"
+        className="-rotate-90"
+        aria-hidden="true"
+      >
         <defs>
           <linearGradient id="scoreGradient" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={colors.from} />
@@ -55,7 +65,7 @@ export function ScoreRing({ score, max, grade }: ScoreRingProps) {
           style={{ transition: "stroke-dasharray 600ms ease" }}
         />
       </svg>
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[2.6rem] text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
           Score
         </span>
@@ -68,6 +78,7 @@ export function ScoreRing({ score, max, grade }: ScoreRingProps) {
       </div>
       <div
         className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
+        aria-hidden="true"
         style={{
           borderColor: `${colors.ring}66`,
           color: colors.ring,

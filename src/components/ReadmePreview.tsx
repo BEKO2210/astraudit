@@ -25,14 +25,36 @@ export function ReadmePreview({
 }: ReadmePreviewProps) {
   const [expanded, setExpanded] = useState(false);
   const cap = expanded ? EXPANDED_CAP : SOFT_CAP;
+  const hasContent = !!content && !!content.trim();
 
   const { html, isTruncated } = useMemo(() => {
+    if (!hasContent) return { html: "", isTruncated: false };
     const { content: source, truncated } = truncateMarkdown(content, cap);
     const html = renderReadmeMarkdown(source, { owner, repo, branch });
     return { html, isTruncated: truncated };
-  }, [content, cap, owner, repo, branch]);
+  }, [content, cap, owner, repo, branch, hasContent]);
 
-  if (!content || !content.trim()) return null;
+  // Repos with no README still get a card in the dashboard's reading
+  // order — a friendly, explicit "none here" beats a silently
+  // missing section that leaves the README nav anchor pointing at
+  // nothing.
+  if (!hasContent) {
+    return (
+      <section className="glass overflow-hidden p-5 sm:p-6">
+        <header className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-aurora-cyan" />
+          <h3 className="text-sm font-semibold text-white">README preview</h3>
+        </header>
+        <p className="mt-3 text-sm text-slate-300/85">
+          This repository does not have a README file.
+        </p>
+        <p className="mt-1 text-[11px] text-slate-500">
+          A README is the first thing most visitors read — adding one is
+          usually the highest-leverage documentation fix.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="glass overflow-hidden p-5 sm:p-6">

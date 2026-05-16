@@ -35,6 +35,8 @@
  *     https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
  */
 
+import { createSafeDict, safeAssign } from "./safeDict";
+
 /** Value of `schedule.interval`. GitHub adds new ones occasionally; the
  * "unknown" branch keeps us forward-compatible. */
 export type DependabotInterval =
@@ -165,18 +167,25 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
         // The dash effectively becomes an indent of head.indent + 2.
         const inlineKv = parseKeyValue(remainder);
         if (!inlineKv) return { value: null, next: i };
-        const obj: Record<string, unknown> = {};
+        // Phase 7.x — safeDict + safeAssign so an attacker-controlled
+        // YAML key (`__proto__`, `constructor`, etc.) can't mutate
+        // Object.prototype. The Object.create(null) bag had no
+        // prototype, but CodeQL's data-flow analyzer still flagged
+        // the bracket assignments because it tracks the SINK not the
+        // RECEIVER. safeAssign uses Object.defineProperty + an
+        // explicit forbidden-key check, which the analyzer accepts.
+        const obj = createSafeDict<unknown>();
         if (inlineKv.value === null) {
           // Nested object on next line.
           const r = decodeBlock(tokens, i + 1, t.indent + 1);
           if (r.value === null) {
-            obj[inlineKv.key] = null;
+            safeAssign(obj, inlineKv.key, null);
           } else {
-            obj[inlineKv.key] = r.value;
+            safeAssign(obj, inlineKv.key, r.value);
           }
           i = r.next;
         } else {
-          obj[inlineKv.key] = inlineKv.value;
+          safeAssign(obj, inlineKv.key, inlineKv.value);
           i += 1;
         }
         // Remaining sibling keys for this dash are at the *deeper* indent.
@@ -192,10 +201,10 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
           }
           if (kv.value === null) {
             const r = decodeBlock(tokens, i + 1, sibling.indent);
-            obj[kv.key] = r.value;
+            safeAssign(obj, kv.key, r.value);
             i = r.next;
           } else {
-            obj[kv.key] = kv.value;
+            safeAssign(obj, kv.key, kv.value);
             i += 1;
           }
         }
@@ -208,8 +217,9 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
     }
     return { value: arr, next: i };
   }
-  // Mapping.
-  const obj: Record<string, unknown> = {};
+  // Mapping. Phase 7.x — safeDict + safeAssign for prototype-pollution
+  // defense + CodeQL data-flow analyzer compatibility.
+  const obj = createSafeDict<unknown>();
   let i = start;
   while (i < tokens.length && tokens[i].indent === head.indent) {
     const t = tokens[i];
@@ -217,10 +227,10 @@ function decodeBlock(tokens: Token[], start: number, parentIndent: number): {
     if (!kv) return { value: null, next: i };
     if (kv.value === null) {
       const r = decodeBlock(tokens, i + 1, t.indent);
-      obj[kv.key] = r.value;
+      safeAssign(obj, kv.key, r.value);
       i = r.next;
     } else {
-      obj[kv.key] = kv.value;
+      safeAssign(obj, kv.key, kv.value);
       i += 1;
     }
   }

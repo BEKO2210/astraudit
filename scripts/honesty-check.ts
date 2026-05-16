@@ -17,8 +17,17 @@ import { loadRepoBundle } from "../src/lib/github/index";
 import { runAudit } from "../src/lib/audit/auditEngine";
 import { parseRepoInput } from "../src/lib/github/parseRepoInput";
 
+/**
+ * Phase 7.0.7 — multi-stack honesty sweep. The target list grew
+ * from 31 → 56 repos, deliberately covering every supported
+ * ecosystem so the CI gate catches stack-specific regressions
+ * (Reddit's original critique was JS-centric noise on non-JS
+ * stacks). Each repo is curated: a well-maintained, popular,
+ * representative project from its ecosystem so any "we said X but
+ * truth is Y" delta points at a real bug.
+ */
 const DEFAULT_TARGETS = [
-  // JS / TS ecosystem
+  // ---- JS / TS ecosystem (15) ----
   "expressjs/express",
   "facebook/react",
   "vuejs/core",
@@ -34,26 +43,53 @@ const DEFAULT_TARGETS = [
   "remix-run/react-router",
   "webpack/webpack",
   "rollup/rollup",
-  // Python
+  // ---- Python (8) ----
   "django/django",
   "pallets/flask",
   "psf/requests",
   "fastapi/fastapi",
   "pandas-dev/pandas",
-  // Rust
+  "pytest-dev/pytest",
+  "scikit-learn/scikit-learn",
+  "pypa/pip",
+  // ---- Rust (7) ----
   "rust-lang/rust",
   "tokio-rs/tokio",
   "BurntSushi/ripgrep",
-  // Go
+  "rust-lang/cargo",
+  "serde-rs/serde",
+  "clap-rs/clap",
+  "rayon-rs/rayon",
+  // ---- Go (8) ----
   "golang/go",
   "kubernetes/kubernetes",
   "gin-gonic/gin",
-  // Ruby
+  "spf13/cobra",
+  "cli/cli",
+  "hashicorp/terraform",
+  "prometheus/prometheus",
+  "grpc/grpc-go",
+  // ---- Ruby (4) ----
   "rails/rails",
   "ruby/ruby",
-  // Other
+  "fastlane/fastlane",
+  "rubocop/rubocop",
+  // ---- PHP / Composer (3) ----
+  "laravel/framework",
+  "symfony/symfony",
+  "composer/composer",
+  // ---- Java / JVM (3) ----
+  "spring-projects/spring-boot",
+  "elastic/elasticsearch",
+  "apache/kafka",
+  // ---- Swift / iOS (2) ----
+  "apple/swift",
+  "Alamofire/Alamofire",
+  // ---- C / C++ / system (3) ----
   "torvalds/linux",
   "git/git",
+  "redis/redis",
+  // ---- Astraudit itself (eat your own dog food) ----
   "BEKO2210/astraudit",
 ];
 
@@ -103,7 +139,17 @@ async function audit(target: string): Promise<Verdict> {
     /^security/i,
     /\/security/i,
   ]) || !!oh?.securityPolicyPath;
-  const truthDependabot = dotGithub.some((f) => /dependabot\.(yml|yaml)$/i.test(f));
+  // Phase 7.0.7 follow-up — the previous heuristic matched any path
+  // under `.github/` whose filename ENDS in `dependabot.yml`, which
+  // false-positives on workflow files like
+  // `.github/workflows/automerge-dependabot.yml` (a workflow that
+  // merges Dependabot's PRs, not a Dependabot v2 config). Dependabot
+  // only reads `.github/dependabot.yml` or `.github/dependabot.yaml`
+  // — anchor the check to those exact paths so the truth signal
+  // matches the actual ground truth (and the detector's contract).
+  const truthDependabot = dotGithub.some(
+    (f) => f === ".github/dependabot.yml" || f === ".github/dependabot.yaml",
+  );
   const truthChangelog = existsByPattern(rootFiles, [
     /^changelog(\.|$)/i,
     /^history(\.|$)/i,
@@ -146,35 +192,87 @@ async function audit(target: string): Promise<Verdict> {
   return { repo: target, ok: lies.length === 0, lies, notes };
 }
 
-async function main() {
-  const arg = process.argv[2];
-  const targets = arg ? [arg] : DEFAULT_TARGETS;
-  console.log(`Honesty check across ${targets.length} repo(s)\n`);
-  const verdicts: Verdict[] = [];
-  for (const t of targets) {
-    process.stdout.write(`• ${t.padEnd(28)} `);
-    try {
-      const v = await audit(t);
-      verdicts.push(v);
-      if (v.ok) console.log("✓");
-      else console.log(`× (${v.lies.length} lie${v.lies.length === 1 ? "" : "s"})`);
-    } catch (err) {
-      console.log(`error: ${(err as Error).message}`);
-      verdicts.push({ repo: t, ok: false, lies: [`error: ${(err as Error).message}`], notes: [] });
-    }
-  }
-  console.log("\n--- Details ---");
+/**
+ * Phase 7.0.7 — JSON summary mode for the CI gate.
+ *
+ * When the script is invoked with `--json`, it emits a single JSON
+ * blob on stdout (plus the per-repo summary on stderr so the log
+ * is still readable). The CI workflow uses the JSON to compute the
+ * lie-count delta versus `main` and posts a PR comment.
+ */
+interface Summary {
+  total_repos: number;
+  total_lies: number;
+  lies_per_repo: Array<{ repo: string; lies: number; details: string[] }>;
+  errors: Array<{ repo: string; message: string }>;
+}
+
+function buildSummary(verdicts: Verdict[]): Summary {
   let totalLies = 0;
+  const lies_per_repo: Summary["lies_per_repo"] = [];
+  const errors: Summary["errors"] = [];
   for (const v of verdicts) {
-    console.log(`\n${v.repo}:`);
-    for (const n of v.notes) console.log(n);
-    if (v.lies.length) {
-      console.log("  LIES:");
-      for (const l of v.lies) console.log(l);
+    const errorLies = v.lies.filter((l) => l.startsWith("error:"));
+    if (errorLies.length > 0) {
+      errors.push({ repo: v.repo, message: errorLies[0].slice("error:".length).trim() });
+      continue;
+    }
+    if (v.lies.length > 0) {
+      lies_per_repo.push({ repo: v.repo, lies: v.lies.length, details: v.lies });
       totalLies += v.lies.length;
     }
   }
-  console.log(`\nTotal lies across ${targets.length} repos: ${totalLies}`);
+  return {
+    total_repos: verdicts.length,
+    total_lies: totalLies,
+    lies_per_repo,
+    errors,
+  };
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const jsonMode = args.includes("--json");
+  const repoArg = args.find((a) => !a.startsWith("--"));
+  const targets = repoArg ? [repoArg] : DEFAULT_TARGETS;
+  const log = jsonMode
+    ? (msg: string) => process.stderr.write(msg + "\n")
+    : (msg: string) => console.log(msg);
+
+  log(`Honesty check across ${targets.length} repo(s)\n`);
+  const verdicts: Verdict[] = [];
+  for (const t of targets) {
+    if (jsonMode) process.stderr.write(`• ${t.padEnd(36)} `);
+    else process.stdout.write(`• ${t.padEnd(36)} `);
+    try {
+      const v = await audit(t);
+      verdicts.push(v);
+      if (v.ok) log("✓");
+      else log(`× (${v.lies.length} lie${v.lies.length === 1 ? "" : "s"})`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      log(`error: ${msg}`);
+      verdicts.push({ repo: t, ok: false, lies: [`error: ${msg}`], notes: [] });
+    }
+  }
+  log("\n--- Details ---");
+  let totalLies = 0;
+  for (const v of verdicts) {
+    log(`\n${v.repo}:`);
+    for (const n of v.notes) log(n);
+    if (v.lies.length) {
+      log("  LIES:");
+      for (const l of v.lies) log(l);
+      // Don't double-count error lines (they're reported in `errors`
+      // section of the JSON summary, not the lie count).
+      const realLies = v.lies.filter((l) => !l.startsWith("error:"));
+      totalLies += realLies.length;
+    }
+  }
+  log(`\nTotal lies across ${targets.length} repos: ${totalLies}`);
+  if (jsonMode) {
+    process.stdout.write(JSON.stringify(buildSummary(verdicts), null, 2) + "\n");
+  }
   process.exitCode = totalLies > 0 ? 1 : 0;
 }
 

@@ -67,6 +67,28 @@ export function DashboardSkeleton() {
         </div>
       </section>
 
+      {/* Signal details — 8 compact signal badges */}
+      <section>
+        <Skeleton className="mb-3 h-3 w-32 rounded-sm" />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="glass relative overflow-hidden p-3 ring-1 ring-white/10"
+            >
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-7 rounded-lg" />
+                <Skeleton className="h-3 w-20 rounded-sm" />
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <Skeleton className="h-4 w-16 rounded-md" />
+                <Skeleton className="h-2 w-10 rounded-sm" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Story grid */}
       <section className="glass p-5 sm:p-6">
         <Skeleton className="h-4 w-40 rounded-md" />

@@ -43,6 +43,12 @@ const Datenschutzerklaerung = lazy(() =>
 const RuleBook = lazy(() =>
   import("./components/legal/RuleBook").then((m) => ({ default: m.RuleBook })),
 );
+// Phase 7.0.8 — `/scope/` route. Documents what Astraudit does +
+// doesn't check, in answer to the Reddit feedback that the tool
+// produced confident-sounding output outside its real surface area.
+const ScopePage = lazy(() =>
+  import("./components/legal/ScopePage").then((m) => ({ default: m.ScopePage })),
+);
 import { readBundle, removeBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -74,8 +80,14 @@ type CompareSide = "left" | "right";
 /** Map a hash fragment to one of the doc-page slugs (or null). */
 function routeFromHash(
   hash: string,
-): "impressum" | "datenschutz" | "rules" | null {
-  const normalized = hash.replace(/^#\/?/, "").toLowerCase();
+): "impressum" | "datenschutz" | "rules" | "scope" | null {
+  // Strip leading `#/` AND any trailing slash so `#/scope`,
+  // `#/scope/`, and `#scope/` all resolve identically. Codex flagged
+  // that the documented `/scope/` shape was not handled (#78 review).
+  const normalized = hash
+    .replace(/^#\/?/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
   if (normalized === "impressum") return "impressum";
   if (normalized === "datenschutz" || normalized === "datenschutzerklaerung") {
     return "datenschutz";
@@ -88,6 +100,18 @@ function routeFromHash(
     normalized === "rule-book"
   ) {
     return "rules";
+  }
+  // Phase 7.0.8 — explicit scope page documenting what Astraudit
+  // does + doesn't check. Linked from the footer + every error
+  // state + the Security panel's "what's not covered" callout.
+  // Accept `scope`, `limits`, and `whats-not-checked` so guessable
+  // URLs all land here.
+  if (
+    normalized === "scope" ||
+    normalized === "limits" ||
+    normalized === "whats-not-checked"
+  ) {
+    return "scope";
   }
   return null;
 }
@@ -136,7 +160,7 @@ export default function App() {
   // hash-based router rather than touching the existing audit/compare
   // hash logic — the legal hashes are independent and never overlap.
   const [legalRoute, setLegalRoute] = useState<
-    "impressum" | "datenschutz" | "rules" | null
+    "impressum" | "datenschutz" | "rules" | "scope" | null
   >(() => routeFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
@@ -625,6 +649,13 @@ export default function App() {
     return (
       <Suspense fallback={<PanelSkeleton label="Loading rule book" rows={8} />}>
         <RuleBook />
+      </Suspense>
+    );
+  }
+  if (legalRoute === "scope") {
+    return (
+      <Suspense fallback={<PanelSkeleton label="Loading scope page" rows={8} />}>
+        <ScopePage />
       </Suspense>
     );
   }

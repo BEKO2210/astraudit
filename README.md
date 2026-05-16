@@ -23,6 +23,26 @@
 
 > **TL;DR** — paste a `github.com/owner/repo` URL, get a 100‑point readiness score across eight categories, an interactive audit graph, prioritized next steps, and a printable PDF report. **No backend. No login. No tokens. No AI inference.**
 
+> **Status note · May 2026 · Phase 7 Track 0 closed.** v1.0.0
+> shipped on 2026‑05‑11 and was discussed publicly soon after.
+> The community feedback that landed — *"the audit reads
+> JS‑centric on non‑JS stacks; it scolds projects for missing
+> files the stack doesn't use; it flags 'no wiki / no docs' on
+> repos whose docs live on Read the Docs or a wiki it can't see"*
+> — was fair, and Phase 7's first track was a credibility pass
+> against it. **All 10 Track 0 items shipped:** stack‑aware
+> finding gates (7.0.1), Wiki + external‑docs awareness (7.0.2),
+> branch‑protection probe with an honest *Unknown* verdict
+> (7.0.3), transitive‑dependency honesty disclaimer (7.0.4),
+> `not‑applicable` + `unknown` verdict states (7.0.5), per‑stack
+> rule packs for Go / Rust / Ruby / pytest (7.0.6), a multi‑stack
+> honesty sweep + CI gate that blocks any PR introducing a new
+> "lie" (7.0.7), the [public scope page](./docs/SCOPE.md) (7.0.8),
+> stack‑aware finding‑copy review (7.0.9), and this very block
+> (7.0.10). Full per‑item history lives in
+> [`ROADMAP.md` § Phase 7 / Track 0](./ROADMAP.md#0--credibility--stack-awareness-must-clear-before-launch).
+> The launch sequence (Tracks A / B / C) is the next focus.
+
 <p align="center">
   <img src="docs/readme/desktop-dark.png" alt="Astraudit on desktop in dark mode" width="900" />
 </p>

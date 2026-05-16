@@ -20,6 +20,7 @@
  */
 import {
   GithubError,
+  InvalidTokenError,
   NotFoundError,
   RateLimitError,
   TooLargeError,
@@ -30,6 +31,7 @@ export type AuditErrorKind =
   | "rate-limit-anon"
   | "not-found"
   | "too-large"
+  | "invalid-token"
   | "github"
   | "network"
   | "empty"
@@ -121,6 +123,41 @@ export function mapAuditError(err: unknown): AuditErrorView {
     };
   }
 
+  // Phase 7.x — 401 means the credential is bad, not the repo.
+  // Route the user to Settings (clear / replace the token) instead
+  // of the misleading "Try a different repository" copy that the
+  // generic GithubError path used to emit on this status.
+  if (err instanceof InvalidTokenError) {
+    if (err.unauthenticated) {
+      // Unusual: 401 fired without any token in scope. Could be a
+      // misconfigured corporate proxy, a network-layer auth header
+      // being stripped, or a GitHub-side glitch. The user-facing
+      // remediation isn't "open Settings" because there's no token
+      // to clear — surface the raw situation so they have something
+      // to investigate.
+      return {
+        kind: "invalid-token",
+        title: "GitHub rejected an unauthenticated request",
+        message:
+          "GitHub responded 401 even though no PAT was sent. This usually means a corporate proxy is intercepting the request, or GitHub's API is having a transient hiccup. Retry in a moment, or try from a network without a proxy.",
+        actions: [
+          { kind: "retry", label: "Retry" },
+          { kind: "reset", label: "Try a different repository" },
+        ],
+      };
+    }
+    return {
+      kind: "invalid-token",
+      title: "Your GitHub PAT is invalid or expired",
+      message:
+        "GitHub rejected the stored Personal Access Token (HTTP 401). It's likely revoked, expired, or never had the `public_repo` read scope. Open Settings to clear or replace the token — the audit will retry automatically against the public 60/h rate limit.",
+      actions: [
+        { kind: "open-settings", label: "Open Settings" },
+        { kind: "retry", label: "Retry without the token" },
+      ],
+    };
+  }
+
   if (err instanceof GithubError) {
     const transient = err.status >= 500 || err.status === 0;
     return {
@@ -182,4 +219,28 @@ export function formatResetCountdown(
   if (deltaSec < 60) return `Resets in ${deltaSec} sec`;
   const minutes = Math.ceil(deltaSec / 60);
   return `Resets in ${minutes} min`;
+}
+
+/**
+ * The concrete wall-clock time the rate-limit window reopens,
+ * formatted in the viewer's locale (e.g. "2:45 PM"). Pairs with
+ * `formatResetCountdown` so the error panel can show both the
+ * relative countdown ("Resets in 23 min") and the exact timestamp —
+ * the latter is what a user copies into a reminder. Returns null
+ * when the timestamp is absent or already in the past.
+ */
+export function formatResetClock(
+  resetAtSeconds: number | null | undefined,
+  nowMs: number = Date.now(),
+): string | null {
+  if (!resetAtSeconds || !Number.isFinite(resetAtSeconds)) return null;
+  if (resetAtSeconds * 1000 <= nowMs) return null;
+  try {
+    return new Date(resetAtSeconds * 1000).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return null;
+  }
 }

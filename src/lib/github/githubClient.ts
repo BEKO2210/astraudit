@@ -62,6 +62,35 @@ export class NotFoundError extends GithubError {
   }
 }
 
+/**
+ * Phase 7.x — 401-specific error. GitHub returns 401 when the
+ * Authorization header is bad: revoked token, expired fine-grained
+ * PAT, typo when pasting, or a token that lacks `public_repo` /
+ * `Read public repositories`. The old generic "GitHub error - try
+ * a different repository" copy was actively misleading on this path
+ * — the issue is the credential, not the repo. We surface it as a
+ * distinct kind so the UI can route the user to Settings instead.
+ */
+export class InvalidTokenError extends GithubError {
+  /** True when no token was in scope when the 401 fired — almost
+   *  never happens (public reads work unauthenticated), but a
+   *  misconfigured proxy or a GitHub-side glitch can produce it.
+   *  Drives a slightly different message ("GitHub rejected the
+   *  unauthenticated request") vs the common case ("your stored
+   *  GitHub PAT is invalid or expired"). */
+  unauthenticated: boolean;
+  constructor(options: { unauthenticated?: boolean } = {}) {
+    super(
+      options.unauthenticated
+        ? "GitHub returned 401 even without a token in scope."
+        : "Your stored GitHub PAT is invalid, expired, or was revoked.",
+      401,
+    );
+    this.name = "InvalidTokenError";
+    this.unauthenticated = options.unauthenticated ?? false;
+  }
+}
+
 export class TooLargeError extends GithubError {
   constructor() {
     super("This repository is too large for a browser-only audit.", 413);
@@ -122,6 +151,14 @@ export async function githubFetch<T>(
 
   if (response.status === 404) {
     throw new NotFoundError();
+  }
+  if (response.status === 401) {
+    // Phase 7.x — 401 means the credential is bad, not that the repo
+    // is missing. Throw the dedicated error so the UI routes the
+    // user to Settings instead of "try a different repository".
+    throw new InvalidTokenError({
+      unauthenticated: !(options.tokenOverride ?? loadToken()),
+    });
   }
   if (response.status === 403) {
     const remaining = response.headers.get("x-ratelimit-remaining");

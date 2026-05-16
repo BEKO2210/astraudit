@@ -1,4 +1,5 @@
 import type { Finding } from "../../types/finding";
+import type { StackSignals } from "../../types/audit";
 import type { ClassifiedFiles } from "./fileClassifier";
 import type { ReadmeSignals } from "./documentationDetector";
 import type { DependencySignals } from "./dependencyDetector";
@@ -15,6 +16,14 @@ interface RiskContext {
   maintenance: MaintenanceSignals;
   ci: CiSignals;
   dx: DxSignals;
+  /**
+   * Phase 7.0.9 — stack signals for stack-aware finding copy. Used
+   * to name the right test runner (`go test` / `cargo test` /
+   * `pytest`) per ecosystem instead of always recommending
+   * "Vitest, Jest, or similar". Required: callers must thread the
+   * existing `stack` value through.
+   */
+  stack: StackSignals;
 }
 
 let counter = 0;
@@ -102,6 +111,17 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
+  // Phase 7.0.2 — when documentation lives elsewhere (GitHub Wiki,
+  // Read the Docs, a docs.* subdomain, etc.), the README itself
+  // can be intentionally thin. The thin-README findings below
+  // soften their severity + copy when this is the case, so we
+  // don't tell e.g. a Tailwind-style project with a dedicated docs
+  // site that they have "no docs".
+  const externalDocs = ctx.readme.exists ? ctx.readme.externalDocsHost : null;
+  const externalDocsClause = externalDocs
+    ? ` Astraudit detected external documentation at ${externalDocs}; consider mirroring a short overview in the README too so first-time visitors see it without clicking through.`
+    : "";
+
   if (!ctx.readme.exists) {
     findings.push({
       id: id("readme"),
@@ -119,19 +139,24 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   } else if (ctx.readme.length < 600) {
     findings.push({
       id: id("readme-short"),
-      title: "README is too short",
+      title: externalDocs
+        ? "README is short — most docs may live elsewhere"
+        : "README is too short",
       category: "documentation",
-      severity: "medium",
-      description:
-        "Very short READMEs typically miss installation, usage, and contribution context.",
-      evidence: `README content length: ~${ctx.readme.length} chars.`,
-      recommendation: "Expand the README with sections for setup, usage, and examples.",
+      severity: externalDocs ? "low" : "medium",
+      description: externalDocs
+        ? `The README is short (~${ctx.readme.length} chars). That's expected when documentation lives on a separate surface.${externalDocsClause}`
+        : "Very short READMEs typically miss installation, usage, and contribution context.",
+      evidence: `README content length: ~${ctx.readme.length} chars. external-docs=${externalDocs ?? "none detected"}.`,
+      recommendation: externalDocs
+        ? "Add a short README intro that points first-time visitors at the full docs."
+        : "Expand the README with sections for setup, usage, and examples.",
       affectedFiles: ["README.md"],
-      confidence: "medium",
+      confidence: externalDocs ? "low" : "medium",
     });
   }
 
-  if (!ctx.readme.mentionsInstall) {
+  if (!ctx.readme.mentionsInstall && !externalDocs) {
     findings.push({
       id: id("readme-install"),
       title: "No setup instructions detected",
@@ -146,7 +171,7 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
-  if (!ctx.readme.mentionsExamples) {
+  if (!ctx.readme.mentionsExamples && !externalDocs) {
     findings.push({
       id: id("readme-examples"),
       title: "No usage examples detected",
@@ -182,6 +207,24 @@ export function buildFindings(ctx: RiskContext): Finding[] {
   }
 
   if (!ctx.classified.hasTestSignals) {
+    // Phase 7.0.9 — stack-aware test-runner copy. The old
+    // "Vitest, Jest, or similar" line read as noise on Go / Rust /
+    // Python repos that already have their own canonical runner.
+    // Name the right one per stack; fall back to a generic line
+    // when the runtime detector couldn't pin one down.
+    const runtime = ctx.stack.runtime;
+    const runnerHint =
+      runtime === "Go"
+        ? "`go test ./...` is the canonical entry point"
+        : runtime === "Rust"
+          ? "`cargo test` runs the test suite in src/ + tests/"
+          : runtime === "Python"
+            ? "pytest is the de facto runner; `python -m unittest` works too"
+            : runtime === "Ruby"
+              ? "RSpec (`bundle exec rspec`) or Minitest (`rake test`)"
+              : runtime === "Node.js" || runtime === "Deno" || runtime === "Bun"
+                ? "Vitest, Jest, or `node --test`"
+                : "your ecosystem's test runner";
     findings.push({
       id: id("tests"),
       title: "No tests detected",
@@ -190,8 +233,7 @@ export function buildFindings(ctx: RiskContext): Finding[] {
       description:
         "No test files, test directories, or test scripts were detected. Static analysis cannot validate this is comprehensive.",
       evidence: "No matching test paths or scripts.",
-      recommendation:
-        "Add at least a smoke test plus a test runner (Vitest, Jest, or similar) and a test script.",
+      recommendation: `Add at least a smoke test — ${runnerHint}.`,
       affectedFiles: [],
       confidence: "medium",
     });
@@ -213,17 +255,29 @@ export function buildFindings(ctx: RiskContext): Finding[] {
     });
   }
 
-  if (!ctx.deps.hasLockfile && ctx.deps.hasPackageJson) {
+  // Phase 7.0.1 — stack-aware lockfile findings. One finding per
+  // (manifest present, lockfile absent) pair, with stack-specific
+  // copy. A Rust crate without `Cargo.lock` gets a finding that
+  // names `Cargo.lock` — never "your package manager's lockfile"
+  // generically (the Reddit critique called that out as noise on
+  // non-JS repos). Repos with no recognised manifest at all (e.g.
+  // header-only C libraries, raw docs repos) get no lockfile
+  // finding — there's nothing meaningful to commit.
+  for (const miss of ctx.deps.missingLockfiles) {
+    const canonical = miss.expectedLockfiles[0];
+    const alts = miss.expectedLockfiles.slice(1);
+    const lockList = alts.length
+      ? `${canonical} (or ${alts.join(" / ")})`
+      : canonical;
     findings.push({
-      id: id("lockfile"),
-      title: "No lockfile detected",
+      id: id(`lockfile-${miss.manifest.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`),
+      title: `${miss.manifest} present but no ${canonical} detected`,
       category: "ecosystem",
       severity: "medium",
-      description:
-        "A lockfile pins exact dependency versions for reproducible installs.",
-      evidence: "package.json present but no package-lock.json/pnpm-lock.yaml/yarn.lock.",
-      recommendation: "Commit your package manager's lockfile.",
-      affectedFiles: ["package.json"],
+      description: `A lockfile pins exact dependency versions for reproducible installs across teammates and CI. ${miss.ecosystem} uses ${lockList}.`,
+      evidence: `${miss.manifest} found at repo root; no ${miss.expectedLockfiles.join(" / ")} alongside it.`,
+      recommendation: `Run the ecosystem's install command to generate ${canonical} and commit it.`,
+      affectedFiles: [miss.manifest],
       confidence: "high",
     });
   }

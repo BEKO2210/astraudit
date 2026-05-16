@@ -61,6 +61,22 @@ describe("Honesty contract — CONTRIBUTING recognition", () => {
   it("accepts docs/CONTRIBUTING.md", () => {
     expect(dxFor(["docs/CONTRIBUTING.md"]).hasContributingGuide).toBe(true);
   });
+  // Phase 7.0.7 follow-up — Spring Boot ships `CONTRIBUTING.adoc`
+  // (AsciiDoc is the standard for many Java/Spring + Eclipse-family
+  // projects). The honesty sweep caught the detector returning false
+  // on the truth-positive case.
+  it("accepts CONTRIBUTING.adoc (AsciiDoc — spring-projects/spring-boot)", () => {
+    expect(dxFor(["CONTRIBUTING.adoc"]).hasContributingGuide).toBe(true);
+  });
+  it("accepts CONTRIBUTING.asciidoc (long-form .asciidoc extension)", () => {
+    expect(dxFor(["CONTRIBUTING.asciidoc"]).hasContributingGuide).toBe(true);
+  });
+  it("accepts .github/CONTRIBUTING.adoc", () => {
+    expect(dxFor([".github/CONTRIBUTING.adoc"]).hasContributingGuide).toBe(true);
+  });
+  it("accepts docs/CONTRIBUTING.adoc", () => {
+    expect(dxFor(["docs/CONTRIBUTING.adoc"]).hasContributingGuide).toBe(true);
+  });
   it("returns false when nothing matches", () => {
     expect(dxFor(["README.md", "package.json"]).hasContributingGuide).toBe(
       false,

@@ -24,6 +24,9 @@ import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
 import { ScoreRing } from "./ScoreRing";
 import { ScoreBreakdown } from "./ScoreBreakdown";
+import { SignalDetails } from "./SignalDetails";
+import { Tooltip } from "./ui/Tooltip";
+import { getStats as getHistoryStats } from "../lib/history/historyStore";
 import { RepoStory } from "./RepoStory";
 import { FindingsPanel } from "./FindingsPanel";
 // Phase 4.4 — lazy-load AuditGraph so React Flow + its CSS only ship
@@ -69,6 +72,7 @@ interface ReviewDashboardProps {
 const SECTIONS: SectionItem[] = [
   { id: "overview", label: "Overview" },
   { id: "score", label: "Score" },
+  { id: "signals", label: "Signals" },
   { id: "story", label: "Story" },
   { id: "readme", label: "README" },
   { id: "insights", label: "Insights" },
@@ -107,6 +111,16 @@ export function ReviewDashboard({
     setSimpleMode(next);
   };
 
+  // Re-render every 30 s so the "Generated …" chip ages in place —
+  // a tab left open for a few minutes should read "Generated 2
+  // minutes ago", not stay frozen on "just now". One cheap timer,
+  // formatting ~4 chars of text; mirrors the ErrorState pattern.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   if (simpleMode === "on") {
     return (
       <SimpleAuditView
@@ -116,6 +130,14 @@ export function ReviewDashboard({
       />
     );
   }
+
+  // Comparison needs a second repo to diff against. Until the local
+  // history holds at least two repos there's nothing to compare, so
+  // the "Compare with…" button stays visible but disabled with a
+  // tooltip explaining how to unlock it. The current repo is already
+  // recorded by the time the dashboard paints, so `total >= 2` means
+  // "at least one other repo exists".
+  const canCompare = getHistoryStats().total >= 2;
 
   // Mobile speed-dial cluster (Phase 2.8.4). The desktop UI surfaces
   // these via the StickyScoreBar; on phones the action surface lives
@@ -171,6 +193,7 @@ export function ReviewDashboard({
       <StickyScoreBar
         result={result}
         onOpenCompare={onOpenCompare}
+        canCompare={canCompare}
         onOpenBadge={() => setBadgeOpen(true)}
       />
       <SectionNav sections={SECTIONS} />
@@ -208,14 +231,32 @@ export function ReviewDashboard({
                   links" came from this mis-wrap. */}
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {onOpenCompare ? (
-                  <button
-                    type="button"
-                    onClick={onOpenCompare}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-3 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 print:hidden"
-                  >
-                    <ArrowLeftRight className="h-3.5 w-3.5" />
-                    Compare with…
-                  </button>
+                  canCompare ? (
+                    <button
+                      type="button"
+                      onClick={onOpenCompare}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-3 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 print:hidden"
+                    >
+                      <ArrowLeftRight className="h-3.5 w-3.5" />
+                      Compare with…
+                    </button>
+                  ) : (
+                    <Tooltip
+                      label="Run another audit to enable comparison"
+                      placement="bottom"
+                      describe
+                    >
+                      <button
+                        type="button"
+                        aria-disabled="true"
+                        onClick={(e) => e.preventDefault()}
+                        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-500 print:hidden"
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5" />
+                        Compare with…
+                      </button>
+                    </Tooltip>
+                  )
                 ) : null}
                 {onReaudit ? (
                   <button
@@ -275,7 +316,7 @@ export function ReviewDashboard({
                 dateTime={result.generatedAt}
                 title={new Date(result.generatedAt).toLocaleString()}
               >
-                {formatRelativeTime(result.generatedAt)}
+                {formatRelativeTime(result.generatedAt, now)}
               </time>{" "}
               ·{" "}
               {result.findings.length} findings · {result.recommendations.length}{" "}
@@ -298,21 +339,26 @@ export function ReviewDashboard({
         </div>
       </section>
 
+      <section id="signals">
+        <SignalDetails categories={result.categories} />
+      </section>
+
       <section id="story">
         <RepoStory story={result.story} />
       </section>
 
-      {result.bundle.readme?.content ? (
-        <section id="readme">
-          <ReadmePreview
-            content={result.bundle.readme.content}
-            owner={result.bundle.metadata.owner.login}
-            repo={result.bundle.metadata.name}
-            branch={result.bundle.metadata.defaultBranch}
-            htmlUrl={result.bundle.metadata.htmlUrl}
-          />
-        </section>
-      ) : null}
+      {/* The README section always renders so the section nav anchor
+          is never dead — <ReadmePreview /> shows a friendly
+          "no README" message when the repo doesn't ship one. */}
+      <section id="readme">
+        <ReadmePreview
+          content={result.bundle.readme?.content ?? ""}
+          owner={result.bundle.metadata.owner.login}
+          repo={result.bundle.metadata.name}
+          branch={result.bundle.metadata.defaultBranch}
+          htmlUrl={result.bundle.metadata.htmlUrl}
+        />
+      </section>
 
       <section id="insights">
         <InsightsPanel insights={result.insights} stack={result.stack} />

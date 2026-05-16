@@ -27,6 +27,80 @@ function statusForRatio(ratio: number, hasAnything: boolean): CategoryStatus {
   return "missing";
 }
 
+/**
+ * Phase 7.0.6 — per-stack source-directory acceptance.
+ *
+ * Different ecosystems lay out source code differently. Without a
+ * stack-aware accept list, the audit's structure category reads
+ * JS-centric: it expects `src/` / `app/` / `lib/` and scolds any
+ * project that uses an ecosystem-idiomatic layout instead. This
+ * helper returns the (stack, label) pair when the repo's top-level
+ * folders match the conventions of the detected runtime. The
+ * returned label is what surfaces in the evidence line so the
+ * dashboard can credit the right convention.
+ *
+ *   - **Go**: `cmd/`, `internal/`, `pkg/` (canonical project layout
+ *     per github.com/golang-standards/project-layout).
+ *   - **Rust**: `src/` (already accepted), additionally `crates/`
+ *     for Cargo workspaces.
+ *   - **Python**: `src/` (PEP 518 src layout) OR a top-level package
+ *     directory matching the repo name. We don't have the manifest
+ *     name handy here so we keep the cross-stack default. Pure
+ *     Python projects without `src/` are flagged less harshly via
+ *     the test-folder check below.
+ *   - **Ruby**: `lib/` (already accepted), additionally `app/` (for
+ *     Rails apps).
+ *   - **Default**: `src/`, `app/`, `lib/` (the legacy v1.x behaviour).
+ */
+function recognisedSourceLayout(
+  folders: readonly string[],
+  runtime: string | null,
+): { matched: string[]; convention: string } | null {
+  // Default + Rust/Ruby still get the legacy accept list since
+  // `src/` and `lib/` are already idiomatic for them.
+  const legacy = folders.filter((f) => ["src", "app", "lib"].includes(f));
+  if (runtime === "Go") {
+    const matched = folders.filter((f) =>
+      ["cmd", "internal", "pkg", "src"].includes(f),
+    );
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("cmd") || matched.includes("internal")
+          ? "Go (cmd/internal/pkg)"
+          : "Go",
+      };
+    }
+    return null;
+  }
+  if (runtime === "Rust") {
+    const matched = folders.filter((f) =>
+      ["src", "crates"].includes(f),
+    );
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("crates") ? "Rust workspace" : "Rust",
+      };
+    }
+    return null;
+  }
+  if (runtime === "Ruby") {
+    const matched = folders.filter((f) => ["lib", "app", "src"].includes(f));
+    if (matched.length > 0) {
+      return {
+        matched,
+        convention: matched.includes("app") ? "Ruby on Rails" : "Ruby",
+      };
+    }
+    return null;
+  }
+  if (legacy.length > 0) {
+    return { matched: legacy, convention: "src/app/lib" };
+  }
+  return null;
+}
+
 function scoreDocumentation(ctx: ScoreContext): CategoryScore {
   const { readme, classified } = ctx;
   const evidence: string[] = [];
@@ -109,11 +183,34 @@ function scoreStructure(ctx: ScoreContext): CategoryScore {
   const evidence: string[] = [];
   let score = 0;
   const folders = classified.importantFolders;
-  if (folders.includes("src") || folders.includes("app") || folders.includes("lib")) {
+  // Phase 7.0.6 — per-stack source-layout acceptance. The runtime
+  // signal from stackDetector tells us whether the repo follows the
+  // ecosystem's idiomatic layout (Go's cmd/internal/pkg; Rust's
+  // src/crates; Ruby's lib/app), so a Go project doesn't get
+  // scolded for "missing src/" when it ships a perfectly fine
+  // `cmd/myapp/main.go` layout.
+  const sourceLayout = recognisedSourceLayout(folders, stack.runtime);
+  if (sourceLayout) {
     score += 3;
-    evidence.push("Recognizable source directory present.");
+    const dirs = sourceLayout.matched
+      .map((f) => `\`${f}/\``)
+      .join(", ");
+    evidence.push(
+      `Recognised source layout (${sourceLayout.convention}): ${dirs}.`,
+    );
   } else {
-    evidence.push("No standard source directory (src/app/lib) detected.");
+    // Stack-aware miss-copy: name the convention the audit expected
+    // for this stack so the maintainer knows what would clear the
+    // finding without having to guess.
+    const expected =
+      stack.runtime === "Go"
+        ? "cmd/, internal/, pkg/, or src/"
+        : stack.runtime === "Rust"
+          ? "src/ or crates/"
+          : stack.runtime === "Ruby"
+            ? "lib/ or app/"
+            : "src/, app/, or lib/";
+    evidence.push(`No standard source directory (${expected}) detected.`);
   }
   if (
     folders.includes("test") ||
@@ -309,13 +406,54 @@ function scoreSecurity(ctx: ScoreContext): CategoryScore {
       `${security.suspiciousFiles.length} potentially sensitive filename(s) detected.`,
     );
   }
-  if (
+  // Phase 7.0.3 — branch protection probe evidence. The probe lives
+  // on the bundle (`fetchBranchProtection`); the detector hands it
+  // here as-is. When the probe succeeded, surface the real numbers.
+  // When it returned `unknown` (the public surface couldn't carry
+  // the data — gated to repo admins), surface the honest *Unknown*
+  // verdict instead of pretending the absence of evidence is
+  // evidence of absence. **Never** emit a `no required reviews`
+  // finding from an unknown probe.
+  const protection = security.branchProtection;
+  if (protection.status === "observed") {
+    const reviewCount = protection.requiredReviews;
+    const reviewsCopy =
+      reviewCount === null
+        ? "configured"
+        : reviewCount === 0
+          ? "0 required"
+          : `${reviewCount} required`;
+    const checksCopy = protection.requiredStatusChecks
+      ? "status checks enabled"
+      : "no status checks";
+    evidence.push(
+      `Branch protection observed on \`${protection.branch}\`: ${reviewsCopy} review${reviewCount === 1 ? "" : "s"}, ${checksCopy}.`,
+    );
+    // Tiny positive bump when the public surface actively confirms
+    // protection. We deliberately cap this so the audit can't be
+    // gamed by a project that ticks branch-protection but ships no
+    // license / no SECURITY.md. The status-checks bonus is the
+    // higher-trust signal because it implies a real CI gate.
+    if (protection.requiredStatusChecks) score += 1;
+    if (reviewCount && reviewCount >= 1) score += 1;
+  } else if (
     !security.hasLicense &&
     !security.hasSecurityPolicy &&
     !security.hasCodeowners &&
     !security.hasDependabot
   ) {
-    evidence.push("Branch protection cannot be inspected from a public static audit.");
+    // Pre-7.0.3 copy, narrowed: only fire when the rest of the
+    // security surface is also empty. A repo that ships a LICENSE
+    // + SECURITY.md but hides branch protection behind admin auth
+    // doesn't deserve to read "couldn't inspect protection" — the
+    // honest line below covers it.
+    evidence.push(
+      "Branch protection is private to repo admins — Unknown verdict.",
+    );
+  } else {
+    evidence.push(
+      "Branch protection is private to repo admins — Unknown (see /scope for why).",
+    );
   }
   score = clamp(score, 0, 15);
   const has = security.hasLicense || security.hasSecurityPolicy;
@@ -590,6 +728,32 @@ export function buildCategoryScores(ctx: ScoreContext): CategoryScore[] {
 
 export function totalScore(categories: CategoryScore[]): number {
   return categories.reduce((sum, cat) => sum + cat.score, 0);
+}
+
+/**
+ * Phase 7.0.5 — denominator-aware total max.
+ *
+ * Categories whose status is `not-applicable` (the file / pattern
+ * doesn't belong on this stack — e.g. `Dockerfile` on a pure Rust
+ * library) drop out of the denominator entirely so the displayed
+ * percentage stays honest. Categories whose status is `unknown`
+ * (the public surface can't carry the data — e.g. branch
+ * protection) also drop out of the denominator: `0` to numerator,
+ * `0` to denominator, no penalty, no credit.
+ *
+ * Every other status — `strong` / `partial` / `weak` / `missing` /
+ * `not-detected` / `info` — contributes its declared `max` to the
+ * denominator unchanged. This keeps `totalScore` + `effectiveMaxScore`
+ * mathematically coherent: for a v1.0-era audit (no n/a + no unknown
+ * states emitted yet) `effectiveMaxScore === 100`, the legacy value.
+ */
+export function effectiveMaxScore(categories: CategoryScore[]): number {
+  return categories.reduce((sum, cat) => {
+    if (cat.status === "not-applicable" || cat.status === "unknown") {
+      return sum;
+    }
+    return sum + cat.max;
+  }, 0);
 }
 
 export function gradeFromScore(score: number): Grade {

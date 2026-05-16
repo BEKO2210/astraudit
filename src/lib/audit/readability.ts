@@ -212,7 +212,10 @@ export function splitSentences(text: string): string[] {
 export function splitWords(text: string): string[] {
   if (!text) return [];
   // Word = run of letters / apostrophes; drop bare punctuation.
-  return text.match(/[A-Za-z][A-Za-z'']*/g) ?? [];
+  // Phase 7.x — fixed duplicate ASCII apostrophe in the char class
+  // (CodeQL js/duplicate-character-in-character-class). Original
+  // intent was apostrophes + typographic right-single-quote.
+  return text.match(/[A-Za-z][A-Za-z'’]*/g) ?? [];
 }
 
 /* --------------------------------------------------------------------------

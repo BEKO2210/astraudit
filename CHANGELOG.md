@@ -138,6 +138,127 @@ sections.
 
 ### Added
 
+- **Phase 7 / 7.6 — Repo polish (code-side groundwork).** New
+  Issue Form `rule_proposal.yml` walks contributors through a
+  structured rule submission with the constraint check baked in
+  (browser-only, free, public, rule-based) and forces the right
+  verdict-state vocabulary (`met` / `missing` / `unknown` per
+  7.0.5). New `docs/launch/welcome-issue.md` carries the body of
+  the pinned "Welcome — feedback wanted" issue so the wording is
+  reviewable + version-controlled rather than written ad-hoc in
+  GitHub's editor; the file has a paste-ready
+  `gh issue create --body-file` snippet at the top. `RELEASING.md`
+  post-release maintainer checklist gains the four-category
+  Discussions set (Rule proposals / Ideas / Q&A / Announcements)
+  and points the "open the welcome issue" step at the new file.
+  The remaining 7.6 work — `gh repo edit` (description / topics /
+  homepage), social-preview upload, opening + pinning the welcome
+  issue, creating the Discussion categories — is repo-admin only
+  and stays in the maintainer checklist.
+- **Phase 7 / 7.0.7 — Multi-stack honesty sweep + CI gate.**
+  `scripts/honesty-check.ts` curated target list expanded from
+  31 → 56 repos covering every supported ecosystem: 15 JS/TS,
+  8 Python, 7 Rust, 8 Go, 4 Ruby, 3 PHP/Composer, 3 Java/JVM,
+  2 Swift, 3 C/C++/system, plus Astraudit itself. The script
+  gains a `--json` mode that emits a structured summary on
+  stdout (per-repo progress moves to stderr) so a CI workflow
+  can compute the lie-count delta against base. New
+  `.github/workflows/honesty.yml` runs the sweep on every PR +
+  main push, compares head vs base, posts a sticky PR comment
+  with the delta, and blocks merge when the head introduces a
+  new lie. Closes the last open Track 0 item; the credibility
+  track is now complete. 905/905 vitest cases still green.
+- **Phase 7 / 7.0.9 — Honest finding-copy review.** Every
+  "Add X" / "missing X" / "no X" recommendation line was
+  re-read with the framing *"would the maintainer of this
+  kind of project recognise this as a useful nudge?"* The two
+  highest-impact noise sources moved to stack-aware copy:
+  - **"No tests detected"** finding recommendation now names
+    the canonical runner per stack: `go test ./...` (Go),
+    `cargo test` (Rust), `pytest` (Python), RSpec / Minitest
+    (Ruby), Vitest / Jest / `node --test` (Node-ish). The old
+    "Vitest, Jest, or similar" suggestion read as JS-centric
+    noise on every non-Node repo.
+  - **Category fallback recommendations** (`dx`, `structure`,
+    `quality`) now adapt their copy to the detected runtime
+    instead of always saying *"package.json scripts"* or
+    *"src/, scripts/, and config/"*. Go projects see Makefile
+    targets, Python projects see `pyproject.toml`, Rust
+    projects see the workspace conventions, etc. The
+    `FALLBACK_BY_CATEGORY` static table became a
+    `fallbackForCategory(category, stack)` function.
+  - `RiskContext` and `RecoContext` now thread the existing
+    `stack` signal through so the engines don't have to re-
+    derive it. 2 new vitest cases lock the per-stack
+    "No tests" copy against regression (Go → `go test`,
+    Rust → `cargo test`, never Vitest).
+  905/905 vitest cases green.
+- **Phase 7 / 7.0.6 — Per-stack rule packs (Go / Rust / Ruby /
+  pytest layout).** The structure category used to scold every
+  project that didn't ship `src/` / `app/` / `lib/` — JS-centric
+  noise on Go, Rust, and Ruby repos that follow their own
+  ecosystem layout. New `recognisedSourceLayout()` helper in
+  `scoreEngine` returns the matched-convention pair when the
+  repo's top-level folders match the detected runtime:
+  - **Go** — `cmd/`, `internal/`, `pkg/`, or `src/` (the
+    canonical golang-standards/project-layout shape).
+  - **Rust** — `src/` or `crates/` (single crate or workspace).
+  - **Ruby** — `lib/`, `app/`, or `src/` (Rails repos credit
+    `app/` explicitly).
+  - **Default** — `src/`, `app/`, `lib/` (legacy v1.x behaviour
+    preserved for every other stack).
+  The miss-copy now names the stack-specific expected folders
+  ("No standard source directory (cmd/, internal/, pkg/, or
+  src/) detected.") instead of always recommending the JS list.
+  `IMPORTANT_FOLDERS` extended to include `cmd` / `internal` /
+  `pkg` / `crates` so `classifyFiles` actually surfaces them.
+  `TEST_FILE_HINTS` extended with `/test_` so pytest's canonical
+  `test_*.py` pattern (under a package subdirectory) registers
+  as "has tests" without forcing the project to also ship a
+  `tests/` folder. 5 new vitest cases in `auditEngine.test.ts`
+  lock the per-stack acceptance + the new pytest hint against
+  regression. 903/903 vitest cases green.
+- **Phase 7 / 7.0.3 — Branch-protection probe with `Unknown`
+  graceful degrade.** New `src/lib/github/fetchBranchProtection.ts`
+  probes `/repos/{owner}/{repo}/branches/{default}/protection` and
+  threads the result through `RepoBundle.branchProtection`. The
+  endpoint is gated to admin tokens, so for a typical
+  unauthenticated browser-only audit the probe returns 404 →
+  `{ status: "unknown", reason: "not-set" }`. When the probe
+  succeeds (admin-token audit), the security panel surfaces the
+  real numbers — required-review count, status-checks presence,
+  enforce-admins, linear-history, force-push + deletion flags.
+  A tiny credit (+1 for status checks, +1 for ≥1 required review)
+  lands inside the existing Security category cap. The
+  score-engine's branch-protection evidence line now reads
+  honestly ("Branch protection is private to repo admins —
+  Unknown (see /scope for why)") instead of the old absence-of-
+  evidence placeholder. Never emits a *"no required reviews"*
+  finding from the Unknown probe — that's the contract from the
+  roadmap. SecurityPanel disclaimer updated to point at the new
+  scope page. 6 new fetcher tests + 2 new security-passthrough
+  tests; full suite at 898/898.
+- **Phase 7 / 7.0.5 — `unknown` + `not-applicable` verdict states.**
+  Two new `CategoryStatus` values (and matching `GraphNodeStatus`
+  entries) so the audit can report honestly when the public surface
+  lacks the data (`unknown`, e.g. branch protection — gated to repo
+  admins) or the file/pattern doesn't belong on this stack
+  (`not-applicable`, e.g. `Dockerfile` on a pure Rust library).
+  New `effectiveMaxScore()` helper in `scoreEngine` makes both
+  states drop out of the denominator entirely — no penalty, no
+  credit. `auditEngine` now uses `effectiveMaxScore()` for
+  `result.maxScore`, so the score-ring, sticky bar, exporters, and
+  MCP JSON all read the honest denominator automatically.
+  `ScoreBreakdown` cards render a `?` / `n/a` badge in place of
+  the `score/max` digits when those states fire, and suppress the
+  progress bar so a glance reader can't mistake them for `missing`.
+  `auditGraphHelpers` extends `STATUS_ORDER` / `STATUS_LABEL` /
+  `countByStatus` to cover both new states. 5 new vitest cases
+  in `scoreEngine.test.ts` lock the denominator math against
+  regression; the existing `auditGraphHelpers` suite re-baselined
+  for the new statuses. Detectors don't emit the new states yet —
+  this PR lands the infrastructure; 7.0.3 (branch-protection
+  probe) and 7.0.6 (per-stack rule packs) are the first consumers.
 - **MCP server** (`bin/mcp-server.ts`, `dist-bin/mcp-server.js`).
   Astraudit now ships a Model Context Protocol server so any
   MCP-compatible AI client (Claude Desktop, Cursor, Zed, VS Code
