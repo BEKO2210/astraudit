@@ -1,4 +1,4 @@
-import { ChevronRight, Github } from "lucide-react";
+import { ChevronRight, GitBranch } from "lucide-react";
 import { EXAMPLE_REPOS } from "../data/exampleRepos";
 
 interface ExampleReposProps {
@@ -21,7 +21,7 @@ export function ExampleRepos({ onPick, disabled }: ExampleReposProps) {
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <Github className="h-3.5 w-3.5 text-slate-400" />
+                <GitBranch className="h-3.5 w-3.5 text-slate-400" />
                 <span className="truncate text-sm font-medium text-white">
                   {repo.fullName}
                 </span>
