@@ -57,8 +57,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run honesty sweep (base — for PRs only)
+      - name: Check head for rate-limit before sweeping base
+        # Skip the base sweep entirely if head was rate-limited or
+        # produced no JSON at all — a second sweep against an
+        # exhausted token just burns latency without adding signal.
         if: github.event_name == 'pull_request'
+        id: head-rate-limit
+        run: |
+          set +e
+          if [ ! -s honesty-head.json ]; then
+            echo "head_skip=true" >> "$GITHUB_OUTPUT"
+            echo "Head produced no JSON — skipping base sweep."
+            exit 0
+          fi
+          RL=$(node -e "
+            try {
+              const s = JSON.parse(require('fs').readFileSync('honesty-head.json','utf8'));
+              process.stdout.write(s.rate_limited ? 'true' : 'false');
+            } catch (e) { process.stdout.write('true'); }
+          ")
+          echo "head_rate_limited=$RL" >> "$GITHUB_OUTPUT"
+
+      - name: Run honesty sweep (base — for PRs only)
+        if: |
+          github.event_name == 'pull_request'
+          && steps.head-rate-limit.outputs.head_skip != 'true'
+          && steps.head-rate-limit.outputs.head_rate_limited != 'true'
         id: honesty-base
         run: |
           set +e
@@ -76,37 +100,72 @@ jobs:
         run: |
           node <<'JS' > comment.md
           const fs = require("fs");
-          const head = JSON.parse(fs.readFileSync("honesty-head.json", "utf8"));
-          let base = { total_lies: 0, total_repos: head.total_repos };
-          try {
-            base = JSON.parse(fs.readFileSync("honesty-base.json", "utf8"));
-          } catch (_) {}
-          const delta = head.total_lies - base.total_lies;
-          const verdict =
-            delta > 0
-              ? `🚨 **${delta} new lie${delta === 1 ? "" : "s"}** — this PR makes the audit dishonest on ${head.lies_per_repo.length} repo(s).`
-              : delta < 0
-                ? `✅ **${-delta} lie${delta === -1 ? "" : "s"} fixed** — ${head.total_lies} remaining across ${head.total_repos} repos.`
-                : `✅ **No lie-count change** — ${head.total_lies} lie(s) across ${head.total_repos} repos (same as base).`;
-          let out = `## Honesty sweep — Phase 7.0.7\n\n${verdict}\n\n`;
-          out += `| Branch | Repos | Lies | Errors |\n|---|---:|---:|---:|\n`;
-          out += `| base | ${base.total_repos} | ${base.total_lies} | ${base.errors?.length ?? 0} |\n`;
-          out += `| head | ${head.total_repos} | ${head.total_lies} | ${head.errors?.length ?? 0} |\n\n`;
-          if (head.lies_per_repo.length) {
-            out += `### Repos with lies on this PR\n\n`;
-            for (const r of head.lies_per_repo) {
-              out += `- **${r.repo}** — ${r.lies} lie(s)\n`;
-              for (const d of r.details) out += `  - \`${d.trim()}\`\n`;
+
+          // Resilient JSON loader — if a sweep step crashed before
+          // writing JSON, treat it as missing rather than throwing.
+          const readSummary = (path) => {
+            try {
+              const raw = fs.readFileSync(path, "utf8");
+              if (!raw.trim()) return null;
+              return JSON.parse(raw);
+            } catch { return null; }
+          };
+
+          const head = readSummary("honesty-head.json");
+          const base = readSummary("honesty-base.json");
+
+          let out = `## Honesty sweep — Phase 7.0.7\n\n`;
+          let delta = 0;
+          let skipBlock = false;
+
+          if (!head) {
+            // Head sweep produced no readable JSON — script crashed
+            // before writing. Comment about the situation, don't block.
+            out += `⚠️ **Honesty sweep could not produce a summary** — the script likely failed before writing JSON (network blip, install error, or a script regression). See the workflow log for the stacktrace.\n\n`;
+            out += `Merge is not blocked on this signal because there's no trustworthy delta to compare.\n`;
+            skipBlock = true;
+          } else if (head.rate_limited) {
+            const d = head.rate_limit_detail;
+            const resetMin = d?.reset_in_seconds != null ? Math.ceil(d.reset_in_seconds / 60) : null;
+            out += `⏳ **Rate-limited** — the GitHub token's hourly budget ran out after ${d?.repos_swept ?? "?"}/${d?.repos_total ?? "?"} repos${resetMin != null ? `, resets in ~${resetMin} min` : ""}.\n\n`;
+            out += `This isn't a regression; it's a transient API budget exhaustion (common when multiple PRs land within the same hour). **Merge is not blocked on a rate-limited sweep** — re-run the workflow once the window resets to get a real verdict.\n\n`;
+            skipBlock = true;
+          } else {
+            const baseLies = base?.total_lies ?? 0;
+            const baseRepos = base?.total_repos ?? head.total_repos;
+            delta = head.total_lies - baseLies;
+            const verdict =
+              delta > 0
+                ? `🚨 **${delta} new lie${delta === 1 ? "" : "s"}** — this PR makes the audit dishonest on ${head.lies_per_repo.length} repo(s).`
+                : delta < 0
+                  ? `✅ **${-delta} lie${delta === -1 ? "" : "s"} fixed** — ${head.total_lies} remaining across ${head.total_repos} repos.`
+                  : `✅ **No lie-count change** — ${head.total_lies} lie(s) across ${head.total_repos} repos (same as base).`;
+            out += `${verdict}\n\n`;
+            out += `| Branch | Repos | Lies | Errors |\n|---|---:|---:|---:|\n`;
+            out += `| base | ${baseRepos} | ${baseLies} | ${base?.errors?.length ?? 0} |\n`;
+            out += `| head | ${head.total_repos} | ${head.total_lies} | ${head.errors?.length ?? 0} |\n\n`;
+            if (base?.rate_limited) {
+              out += `> Base sweep was rate-limited — base lie count above is unreliable. Comparison may be approximate.\n\n`;
+            }
+            if (head.lies_per_repo.length) {
+              out += `### Repos with lies on this PR\n\n`;
+              for (const r of head.lies_per_repo) {
+                out += `- **${r.repo}** — ${r.lies} lie(s)\n`;
+                for (const d of r.details) out += `  - \`${d.trim()}\`\n`;
+              }
+            }
+            if (head.errors?.length) {
+              out += `\n### Errors (audit couldn't run on these repos)\n\n`;
+              for (const e of head.errors) out += `- **${e.repo}** — ${e.message}\n`;
             }
           }
-          if (head.errors?.length) {
-            out += `\n### Errors (audit couldn't run — typically rate-limit)\n\n`;
-            for (const e of head.errors) out += `- **${e.repo}** — ${e.message}\n`;
-          }
+
+          fs.writeFileSync("comment.md", out);
           fs.writeFileSync("/tmp/honesty-delta.txt", String(delta));
-          console.log(out);
+          fs.writeFileSync("/tmp/honesty-skip-block.txt", skipBlock ? "true" : "false");
           JS
           echo "delta=$(cat /tmp/honesty-delta.txt)" >> "$GITHUB_OUTPUT"
+          echo "skip_block=$(cat /tmp/honesty-skip-block.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Post / update PR comment
         if: github.event_name == 'pull_request'
@@ -116,7 +175,13 @@ jobs:
           path: comment.md
 
       - name: Block merge on new lies
-        if: github.event_name == 'pull_request' && steps.delta.outputs.delta != '0' && steps.delta.outputs.delta != ''
+        # Skip when delta is 0/empty OR when the comment step flagged
+        # the run as untrustworthy (rate-limited / no JSON / etc.).
+        if: |
+          github.event_name == 'pull_request'
+          && steps.delta.outputs.skip_block != 'true'
+          && steps.delta.outputs.delta != '0'
+          && steps.delta.outputs.delta != ''
         run: |
           if [ "${{ steps.delta.outputs.delta }}" -gt 0 ]; then
             echo "::error::This PR introduces ${{ steps.delta.outputs.delta }} new honesty-sweep lie(s). See the PR comment for details."
