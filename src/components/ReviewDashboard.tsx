@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { useTranslation } from "../lib/i18n";
 import { AuditGraphSkeleton } from "./AuditGraphSkeleton";
 import { formatRelativeTime } from "../lib/utils/formatDate";
 import {
@@ -97,6 +98,7 @@ export function ReviewDashboard({
   onOpenStackMates,
   onReaudit,
 }: ReviewDashboardProps) {
+  const { t } = useTranslation();
   const securityCategory = result.categories.find((c) => c.key === "security");
   const [badgeOpen, setBadgeOpen] = useState(false);
 
@@ -152,7 +154,7 @@ export function ReviewDashboard({
   const fabActions: SpeedDialAction[] = [
     {
       id: "share",
-      label: "Share",
+      label: t("dashboard.fab.share"),
       icon: ShareIcon,
       onClick: async () => {
         const outcome = await performShare({
@@ -160,26 +162,26 @@ export function ReviewDashboard({
           repo: result.bundle.metadata.name,
         });
         if (outcome.kind === "copied") {
-          pushToast({ tone: "success", message: "Link copied to clipboard" });
+          pushToast({ tone: "success", message: t("toast.share.copied") });
         } else if (outcome.kind === "error") {
           pushToast({
             tone: "warn",
-            message: "Could not copy the share link",
-            detail: "The full URL is in your address bar.",
+            message: t("toast.share.error"),
+            detail: t("toast.share.errorDetail"),
           });
         }
       },
     },
     {
       id: "badge",
-      label: "Badge",
+      label: t("dashboard.actions.badge"),
       icon: Award,
       onClick: () => setBadgeOpen(true),
       toneClass: "bg-aurora-mint/15 hover:bg-aurora-mint/25 border-aurora-mint/40 text-aurora-mint",
     },
     {
       id: "print",
-      label: "Save as PDF",
+      label: t("dashboard.fab.print"),
       icon: PrinterIcon,
       onClick: () => window.print(),
     },
@@ -188,7 +190,7 @@ export function ReviewDashboard({
   if (onOpenCompare) {
     fabActions.unshift({
       id: "compare",
-      label: "Compare",
+      label: t("dashboard.fab.compare"),
       icon: ArrowLeftRight,
       onClick: onOpenCompare,
       toneClass: "bg-aurora-cyan/15 hover:bg-aurora-cyan/25 border-aurora-cyan/40 text-aurora-cyan",
@@ -227,7 +229,7 @@ export function ReviewDashboard({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-300">
                 <Award className="h-3.5 w-3.5 text-aurora-mint" />
-                Astraudit verdict
+                {t("dashboard.verdictBadge")}
               </div>
               {/* Phase 5.x bugfix — `justify-end` so wrapped action
                   rows right-align too. Without it, the second-row
@@ -249,7 +251,7 @@ export function ReviewDashboard({
                     className="inline-flex items-center gap-1.5 rounded-full border border-aurora-violet/40 bg-aurora-violet/10 px-3 py-1 text-xs font-medium text-aurora-violet transition hover:bg-aurora-violet/20 print:hidden"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Similar repos
+                    {t("dashboard.actions.similar")}
                   </button>
                 ) : null}
                 {onOpenCompare ? (
@@ -260,11 +262,11 @@ export function ReviewDashboard({
                       className="inline-flex items-center gap-1.5 rounded-full border border-aurora-cyan/40 bg-aurora-cyan/10 px-3 py-1 text-xs font-medium text-aurora-cyan transition hover:bg-aurora-cyan/20 print:hidden"
                     >
                       <ArrowLeftRight className="h-3.5 w-3.5" />
-                      Compare with…
+                      {t("dashboard.actions.compare")}
                     </button>
                   ) : (
                     <Tooltip
-                      label="Run another audit to enable comparison"
+                      label={t("dashboard.actions.compareDisabledTip")}
                       placement="bottom"
                       describe
                     >
@@ -275,7 +277,7 @@ export function ReviewDashboard({
                         className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-500 print:hidden"
                       >
                         <ArrowLeftRight className="h-3.5 w-3.5" />
-                        Compare with…
+                        {t("dashboard.actions.compare")}
                       </button>
                     </Tooltip>
                   )
@@ -284,21 +286,21 @@ export function ReviewDashboard({
                   <button
                     type="button"
                     onClick={onReaudit}
-                    title="Drop the cached bundle and re-fetch from GitHub. Useful after a deploy or when the dashboard shows a stale score."
+                    title={t("dashboard.actions.reauditTitle")}
                     className="inline-flex items-center gap-1.5 rounded-full border border-aurora-violet/40 bg-aurora-violet/10 px-3 py-1 text-xs font-medium text-aurora-violet transition hover:bg-aurora-violet/20 print:hidden"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
-                    Re-audit
+                    {t("dashboard.actions.reaudit")}
                   </button>
                 ) : null}
                 <button
                   type="button"
                   onClick={flipSimpleMode}
                   aria-pressed={false}
-                  title="Show a stripped-down view: score, plain-language verdict, top three strengths and gaps."
+                  title={t("dashboard.actions.simpleModeTitle")}
                   className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white print:hidden"
                 >
-                  Simple mode
+                  {t("dashboard.actions.simpleMode")}
                 </button>
                 <ShareButton
                   coords={{
@@ -312,11 +314,11 @@ export function ReviewDashboard({
                   className="inline-flex items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-3 py-1 text-xs font-medium text-aurora-mint transition hover:bg-aurora-mint/20 print:hidden"
                 >
                   <Award className="h-3.5 w-3.5" />
-                  Badge
+                  {t("dashboard.actions.badge")}
                 </button>
                 <CopyButton
                   value={`Astraudit · ${result.bundle.metadata.fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`}
-                  label="Copy verdict"
+                  label={t("dashboard.actions.copyVerdict")}
                   withText
                 />
                 <ExportMenu result={result} />
@@ -333,16 +335,16 @@ export function ReviewDashboard({
               {result.verdict}
             </p>
             <p className="mt-3 text-xs text-slate-500">
-              Generated{" "}
+              {t("dashboard.meta.generated")}{" "}
               <time
                 dateTime={result.generatedAt}
                 title={new Date(result.generatedAt).toLocaleString()}
               >
                 {formatRelativeTime(result.generatedAt, now)}
               </time>{" "}
-              ·{" "}
-              {result.findings.length} findings · {result.recommendations.length}{" "}
-              recommended next steps
+              · {t("dashboard.meta.findingsLabel")}: {result.findings.length} ·{" "}
+              {t("dashboard.meta.recommendationsLabel")}:{" "}
+              {result.recommendations.length}
               {onReaudit ? (
                 <>
                   {" · "}
