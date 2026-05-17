@@ -53,6 +53,7 @@
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
     "press:shots": "tsx scripts/capture-press-shots.ts",
+    "press:pdf": "tsx scripts/render-press-pdf.ts",
     "mcp": "tsx bin/mcp-server.ts",
     "prepack": "tsx scripts/build-bin.ts",
     "prepare": "husky || true"

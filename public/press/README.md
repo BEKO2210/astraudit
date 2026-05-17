@@ -58,13 +58,21 @@ chromium` once on the local machine). The script seeds the same
 golden fixture as the README screenshots, so both image sets stay
 in sync.
 
-## Coming in a follow‑up press‑kit PR (M2.1 — 3/3)
+## One‑pager PDF (M2.1 — 3/3)
+
+`one-pager.pdf` is generated on demand from `one-pager.md` via
+headless Chrome. A4 portrait, Inter font, aurora‑violet brand
+accent, page footer with the homepage URL repeated. Gitignored.
+
+**Re‑run:** `npm run press:pdf` (same Playwright Chromium binary
+the screenshot script uses — installed once via
+`npx playwright install chromium`).
+
+## Bleibt Maintainer‑Task
 
 - 60‑second screencast (`.mp4` + transcript `.vtt`) — maintainer
   records manually; no automation planned (a real human voice and
   hand cursor read better than a synthesised walkthrough).
-- One‑page PDF rendered from `one-pager.md` — headless Chrome print
-  job, slice 3/3 of M2.1.
 
 ## Brand notes
 
