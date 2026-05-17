@@ -16,7 +16,12 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["chrome"]
+    "types": ["chrome", "node"]
   },
-  "include": ["extension/src"]
+  "include": [
+    "extension/src",
+    "src/audit-engine.ts",
+    "src/lib/**/*",
+    "src/types/**/*"
+  ]
 }
