@@ -71,6 +71,31 @@ export interface Catalog {
   "header.pillPatOptional": string;
   "header.pillAiMcp": string;
   "header.pillAiMcpTitle": string;
+  // Hero h1 + lead paragraph (M4.3 slice 2 — marketing copy).
+  "hero.h1.prefix": string;
+  "hero.h1.brand": string;
+  "hero.h1.suffix": string;
+  "hero.lead.prefix": string;
+  "hero.lead.bold": string;
+  "hero.lead.suffix": string;
+  // Empty state (pre-audit dashboard).
+  "empty.heading": string;
+  "empty.feature1.title": string;
+  "empty.feature1.body": string;
+  "empty.feature2.title": string;
+  "empty.feature2.body": string;
+  "empty.feature3.title": string;
+  "empty.feature3.body": string;
+  "empty.feature4.title": string;
+  "empty.feature4.body": string;
+  // Onboarding panel (post-audit "how to use this repo").
+  "onboarding.heading": string;
+  "onboarding.subtitle": string;
+  "onboarding.emptyTitle": string;
+  "onboarding.emptyDescription": string;
+  "onboarding.pillOptional": string;
+  "onboarding.pillRecommended": string;
+  "onboarding.copyCommand": string;
 }
 
 /**

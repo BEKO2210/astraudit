@@ -22,6 +22,7 @@ import { Sparkles } from "lucide-react";
 import { EmptyPanelState } from "../../src/components/ui/EmptyPanelState";
 import { RecommendationsPanel } from "../../src/components/RecommendationsPanel";
 import { OnboardingPanel } from "../../src/components/OnboardingPanel";
+import { I18nProvider } from "../../src/lib/i18n";
 
 describe("<EmptyPanelState />", () => {
   it("renders the title + icon + glass card chrome", () => {
@@ -96,16 +97,27 @@ describe("RecommendationsPanel — empty path", () => {
 });
 
 describe("OnboardingPanel — empty path", () => {
+  // Roadmap M4.3 slice 2 — OnboardingPanel now consumes
+  // useTranslation(), so every render needs an <I18nProvider />.
+  // The default (sync EN catalog) keeps the test copy identical
+  // to the pre-i18n behaviour.
+  const renderEmpty = () =>
+    renderToStaticMarkup(
+      <I18nProvider initialLocale="en">
+        <OnboardingPanel steps={[]} />
+      </I18nProvider>,
+    );
+
   it("renders a coherent empty state instead of returning null", () => {
     // The old behaviour was `return null` — the section silently
     // disappeared. Now users get an explicit explanation.
-    const html = renderToStaticMarkup(<OnboardingPanel steps={[]} />);
+    const html = renderEmpty();
     expect(html).toContain("No automated onboarding steps detected");
     expect(html).toContain("README");
   });
 
   it("falls back to the README pointer when there's no detected stack", () => {
-    const html = renderToStaticMarkup(<OnboardingPanel steps={[]} />);
+    const html = renderEmpty();
     expect(html).toContain("install instructions");
   });
 });
