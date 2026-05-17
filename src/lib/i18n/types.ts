@@ -279,6 +279,7 @@ export interface Catalog {
   "footer.builtWith": string;
   "examples.tryKnown": string;
   "input.repoAria": string;
+  "input.repoPlaceholder": string;
   "graph.filterAria": string;
   "graph.loadingAria": string;
   "registry.aria": string;
@@ -295,9 +296,122 @@ export interface Catalog {
   "overview.forkPill": string;
   "overview.templatePill": string;
   "overview.copyUrl": string;
+  "overview.copyOwnerRepo": string;
+  "overview.openOnGithub": string;
+  "overview.noDescription": string;
+  "overview.licenseNone": string;
   "stackmates.close": string;
   "compareDashboard.copySummary": string;
   "compareDashboard.shared": string;
+  // OverviewHeader Stat cards (M4.3 slice 6b).
+  "overview.statStars": string;
+  "overview.statForks": string;
+  "overview.statWatchers": string;
+  "overview.statOpenIssues": string;
+  "overview.statLanguage": string;
+  "overview.statLicense": string;
+  "overview.statDefaultBranch": string;
+  "overview.statLastPush": string;
+  "overview.statCreated": string;
+  "overview.statHomepage": string;
+  // InsightsPanel cards.
+  "insights.projectAge": string;
+  "insights.starMomentum": string;
+  "insights.pushFreshness": string;
+  "insights.commitCadence": string;
+  "insights.recentAuthors": string;
+  "insights.releaseRhythm": string;
+  "insights.openQueue": string;
+  "insights.languageMix": string;
+  "insights.fileTreeShape": string;
+  "insights.ciProfile": string;
+  "insights.dependabotCoverage": string;
+  "insights.codeOwnership": string;
+  "insights.securityPolicy": string;
+  "insights.runtimeContract": string;
+  "insights.changelogCadence": string;
+  "insights.trustSignalScore": string;
+  "insights.readmeFootprint": string;
+  "insights.lastRelease": string;
+  "insights.topFileTypes": string;
+  "insights.topicSignals": string;
+  "insights.aiAgentTooling": string;
+  "insights.toolchainPinning": string;
+  "insights.supplyChainTransparency": string;
+  // MaintenancePanel cards.
+  "maintenance.cardLastPush": string;
+  "maintenance.cardReleases": string;
+  "maintenance.cardOpenIssues": string;
+  "maintenance.headingRecentCommits": string;
+  "maintenance.copyCommitSha": string;
+  "maintenance.copyTag": string;
+  // DependencyPanel fields.
+  "deps.fieldPrimaryLang": string;
+  "deps.fieldRuntime": string;
+  "deps.fieldPackageManager": string;
+  "deps.fieldLockfile": string;
+  "deps.fieldFrameworks": string;
+  "deps.fieldBuildTools": string;
+  "deps.fieldTestTools": string;
+  "deps.fieldToolchainManagers": string;
+  "deps.fieldPythonEcosystem": string;
+  "deps.fieldSbom": string;
+  "deps.fieldLintFormat": string;
+  "deps.fieldAiAgentTooling": string;
+  "deps.headingLanguageMix": string;
+  "deps.notDetected": string;
+  // FileStructurePanel.
+  "fileTree.heading": string;
+  "fileTree.filesMappedSuffix": string;
+  "fileTree.rootFilesSuffix": string;
+  "fileTree.importantPresent": string;
+  "fileTree.notableMissing": string;
+  "fileTree.recognizedFolders": string;
+  "fileTree.suspiciousFiles": string;
+  "fileTree.suspiciousFooter": string;
+  "fileTree.treeTruncated": string;
+  "fileTree.noneDetected": string;
+  // CompareDashboard headings + paragraphs.
+  "compareDashboard.perCategoryScore": string;
+  "compareDashboard.findingsDiff": string;
+  "compareDashboard.stackDiff": string;
+  "compareDashboard.quickVerdict": string;
+  "compareDashboard.onlyInLeft": string;
+  "compareDashboard.onlyInRight": string;
+  "compareDashboard.noneShort": string;
+  // TopicChecks panel.
+  "topicChecks.aria": string;
+  "topicChecks.emptyTitle": string;
+  "topicChecks.emptyDescription": string;
+  "topicChecks.heading": string;
+  "topicChecks.metSuffix": string;
+  "topicChecks.partialSuffix": string;
+  "topicChecks.missingSuffix": string;
+  "topicChecks.intro": string;
+  "topicChecks.hintLabel": string;
+  // ReadmePreview heading + body.
+  "panel.readmePreview": string;
+  "readmePreview.noReadme": string;
+  "readmePreview.noReadmeHint": string;
+  "readmePreview.showLess": string;
+  "readmePreview.showMore": string;
+  "readmePreview.viewFullReadme": string;
+  "readmePreview.renderedSafelyPrefix": string;
+  // App.tsx errors + skeleton labels.
+  "app.tryDifferentRepo": string;
+  "app.invalidInput": string;
+  "app.workerNotReady": string;
+  "app.pickDifferent": string;
+  "app.runSingleFirst": string;
+  "app.compareFailed": string;
+  "app.auditFailed": string;
+  "app.workerNotReadyMsg": string;
+  "app.workerNotReadyCompareMsg": string;
+  "app.retry": string;
+  "skeleton.loadingRuleBook": string;
+  "skeleton.loadingScope": string;
+  "skeleton.loadingBookmarklet": string;
+  "skeleton.loadingCompare": string;
 }
 
 /**

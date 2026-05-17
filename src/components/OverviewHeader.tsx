@@ -42,7 +42,7 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
               </h2>
               <CopyButton
                 value={metadata.fullName}
-                label="Copy owner/repo"
+                label={t("overview.copyOwnerRepo")}
               />
               <a
                 href={metadata.htmlUrl}
@@ -50,7 +50,7 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
                 rel="noreferrer noopener"
                 className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-aurora-cyan"
               >
-                Open on GitHub
+                {t("overview.openOnGithub")}
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
               <CopyButton
@@ -70,7 +70,7 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
               ) : null}
             </div>
             <p className="mt-2 max-w-2xl text-sm text-slate-300/85">
-              {safeText(metadata.description, "No description provided.")}
+              {safeText(metadata.description, t("overview.noDescription"))}
             </p>
             {metadata.topics.length > 0 ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -86,42 +86,42 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-        <Stat icon={Star} label="Stars" value={formatNumber(metadata.stars)} />
-        <Stat icon={GitFork} label="Forks" value={formatNumber(metadata.forks)} />
-        <Stat icon={Eye} label="Watchers" value={formatNumber(metadata.watchers)} />
+        <Stat icon={Star} label={t("overview.statStars")} value={formatNumber(metadata.stars)} />
+        <Stat icon={GitFork} label={t("overview.statForks")} value={formatNumber(metadata.forks)} />
+        <Stat icon={Eye} label={t("overview.statWatchers")} value={formatNumber(metadata.watchers)} />
         <Stat
           icon={CircleDot}
-          label="Open Issues"
+          label={t("overview.statOpenIssues")}
           value={formatNumber(metadata.openIssues)}
         />
         <Stat
           icon={Languages}
-          label="Language"
+          label={t("overview.statLanguage")}
           value={safeText(metadata.language)}
         />
         <Stat
           icon={Scale}
-          label="License"
-          value={metadata.license?.spdxId ?? metadata.license?.name ?? "None"}
+          label={t("overview.statLicense")}
+          value={metadata.license?.spdxId ?? metadata.license?.name ?? t("overview.licenseNone")}
         />
         <Stat
           icon={GitBranch}
-          label="Default Branch"
+          label={t("overview.statDefaultBranch")}
           value={safeText(metadata.defaultBranch)}
         />
         <Stat
           icon={Calendar}
-          label="Last Push"
+          label={t("overview.statLastPush")}
           value={formatRelative(metadata.pushedAt)}
         />
         <Stat
           icon={Calendar}
-          label="Created"
+          label={t("overview.statCreated")}
           value={formatDate(metadata.createdAt)}
         />
         <Stat
           icon={Globe}
-          label="Homepage"
+          label={t("overview.statHomepage")}
           value={
             metadata.homepage ? (
               <a

@@ -77,6 +77,7 @@ import {
 } from "./lib/share/urlState";
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import { loadRepoBundle } from "./lib/github";
+import { useTranslation } from "./lib/i18n";
 import {
   emptyRepoView,
   mapAuditError,
@@ -152,6 +153,7 @@ type AppState =
   | { kind: "error"; view: AuditErrorView; lastInput?: string };
 
 export default function App() {
+  const { t } = useTranslation();
   const [input, setInput] = useState<string>("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [state, setState] = useState<AppState>({ kind: "idle" });
@@ -226,9 +228,9 @@ export default function App() {
           kind: "error",
           view: {
             kind: "unknown",
-            title: "Compare failed",
+            title: t("app.compareFailed"),
             message: message.message,
-            actions: [{ kind: "reset", label: "Try a different repository" }],
+            actions: [{ kind: "reset", label: t("app.tryDifferentRepo") }],
           },
         });
         return;
@@ -259,9 +261,9 @@ export default function App() {
           kind: "error",
           view: {
             kind: "unknown",
-            title: "Audit failed",
+            title: t("app.auditFailed"),
             message: message.message,
-            actions: [{ kind: "reset", label: "Try a different repository" }],
+            actions: [{ kind: "reset", label: t("app.tryDifferentRepo") }],
           },
         });
       }
@@ -280,7 +282,7 @@ export default function App() {
     ) => {
       const parsed = parseRepoInput(rawInput);
       if (!parsed.ok || !parsed.coords) {
-        setValidationError(parsed.error ?? "Invalid input.");
+        setValidationError(parsed.error ?? t("app.invalidInput"));
         return;
       }
       setValidationError(null);
@@ -357,10 +359,9 @@ export default function App() {
           kind: "error",
           view: {
             kind: "unknown",
-            title: "Worker not ready",
-            message:
-              "The audit worker isn't available in this browser. Reload the page or try a different browser (Chromium / Firefox / Safari, all current).",
-            actions: [{ kind: "retry", label: "Retry" }],
+            title: t("app.workerNotReady"),
+            message: t("app.workerNotReadyMsg"),
+            actions: [{ kind: "retry", label: t("app.retry") }],
           },
           lastInput: rawInput,
         });
@@ -423,7 +424,7 @@ export default function App() {
         a.owner.toLowerCase() === b.owner.toLowerCase() &&
         a.repo.toLowerCase() === b.repo.toLowerCase()
       ) {
-        setValidationError("Pick two different repositories to compare.");
+        setValidationError(t("app.pickDifferent"));
         return;
       }
       setValidationError(null);
@@ -463,10 +464,9 @@ export default function App() {
           kind: "error",
           view: {
             kind: "unknown",
-            title: "Worker not ready",
-            message:
-              "The audit worker isn't available in this browser. Reload the page or try a different browser.",
-            actions: [{ kind: "retry", label: "Retry" }],
+            title: t("app.workerNotReady"),
+            message: t("app.workerNotReadyCompareMsg"),
+            actions: [{ kind: "retry", label: t("app.retry") }],
           },
         });
         return;
@@ -486,7 +486,7 @@ export default function App() {
     (rawRight: string) => {
       const parsedRight = parseRepoInput(rawRight);
       if (!parsedRight.ok || !parsedRight.coords) {
-        setValidationError(parsedRight.error ?? "Invalid input.");
+        setValidationError(parsedRight.error ?? t("app.invalidInput"));
         return;
       }
       let leftCoords: RepoCoordinates | null = null;
@@ -502,9 +502,7 @@ export default function App() {
         };
       }
       if (!leftCoords) {
-        setValidationError(
-          "Run a single-repo audit first, then choose a repo to compare against.",
-        );
+        setValidationError(t("app.runSingleFirst"));
         return;
       }
       setCompareOpen(false);
@@ -665,7 +663,7 @@ export default function App() {
     onCheatSheet: () => setShortcutsOpen(true),
     onFocusInput: () => {
       const el = document.querySelector<HTMLInputElement>(
-        'input[aria-label="GitHub repository URL"]',
+        "input[data-astraudit-repo-input]",
       );
       el?.focus();
     },
@@ -696,14 +694,14 @@ export default function App() {
   }
   if (legalRoute === "rules") {
     return (
-      <Suspense fallback={<PanelSkeleton label="Loading rule book" rows={8} />}>
+      <Suspense fallback={<PanelSkeleton label={t("skeleton.loadingRuleBook")} rows={8} />}>
         <RuleBook />
       </Suspense>
     );
   }
   if (legalRoute === "scope") {
     return (
-      <Suspense fallback={<PanelSkeleton label="Loading scope page" rows={8} />}>
+      <Suspense fallback={<PanelSkeleton label={t("skeleton.loadingScope")} rows={8} />}>
         <ScopePage />
       </Suspense>
     );
@@ -711,7 +709,7 @@ export default function App() {
   if (legalRoute === "bookmarklet") {
     return (
       <Suspense
-        fallback={<PanelSkeleton label="Loading bookmarklet page" rows={6} />}
+        fallback={<PanelSkeleton label={t("skeleton.loadingBookmarklet")} rows={6} />}
       >
         <BookmarkletPage />
       </Suspense>
@@ -800,7 +798,7 @@ export default function App() {
 
       {state.kind === "compared" ? (
         <Suspense
-          fallback={<PanelSkeleton label="Loading compare dashboard" rows={6} />}
+          fallback={<PanelSkeleton label={t("skeleton.loadingCompare")} rows={6} />}
         >
           <CompareDashboard
             compare={state.compare}

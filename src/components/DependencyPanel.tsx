@@ -31,69 +31,69 @@ export function DependencyPanel({ stack }: DependencyPanelProps) {
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <Field
           icon={Cpu}
-          label="Primary language"
-          value={stack.language ?? "Not detected"}
+          label={t("deps.fieldPrimaryLang")}
+          value={stack.language ?? t("deps.notDetected")}
         />
         <Field
           icon={GitBranch}
-          label="Runtime"
-          value={stack.runtime ?? "Not detected"}
+          label={t("deps.fieldRuntime")}
+          value={stack.runtime ?? t("deps.notDetected")}
         />
         <Field
           icon={Hammer}
-          label="Package manager"
-          value={stack.packageManager ?? "Not detected"}
+          label={t("deps.fieldPackageManager")}
+          value={stack.packageManager ?? t("deps.notDetected")}
         />
         <Field
           icon={ShieldCheck}
-          label="Lockfile"
+          label={t("deps.fieldLockfile")}
           value={stack.hasLockfile ? "Present" : "Missing"}
         />
         <Field
           icon={Boxes}
-          label="Frameworks"
-          value={stack.frameworks.length ? stack.frameworks.join(", ") : "Not detected"}
+          label={t("deps.fieldFrameworks")}
+          value={stack.frameworks.length ? stack.frameworks.join(", ") : t("deps.notDetected")}
         />
         <Field
           icon={Hammer}
-          label="Build tools"
-          value={stack.buildTools.length ? stack.buildTools.join(", ") : "Not detected"}
+          label={t("deps.fieldBuildTools")}
+          value={stack.buildTools.length ? stack.buildTools.join(", ") : t("deps.notDetected")}
         />
         <Field
           icon={FlaskConical}
-          label="Test tools"
-          value={stack.testTools.length ? stack.testTools.join(", ") : "Not detected"}
+          label={t("deps.fieldTestTools")}
+          value={stack.testTools.length ? stack.testTools.join(", ") : t("deps.notDetected")}
         />
         <Field
           icon={ShieldCheck}
-          label="Lint/format tools"
-          value={stack.lintTools.length ? stack.lintTools.join(", ") : "Not detected"}
+          label={t("deps.fieldLintFormat")}
+          value={stack.lintTools.length ? stack.lintTools.join(", ") : t("deps.notDetected")}
         />
         {stack.envManagers.length > 0 ? (
           <Field
             icon={Wrench}
-            label="Toolchain managers"
+            label={t("deps.fieldToolchainManagers")}
             value={stack.envManagers.join(", ")}
           />
         ) : null}
         {stack.pythonTools.length > 0 ? (
           <Field
             icon={Layers3}
-            label="Python ecosystem"
+            label={t("deps.fieldPythonEcosystem")}
             value={stack.pythonTools.join(", ")}
           />
         ) : null}
         {stack.sboms.length > 0 ? (
           <Field
             icon={ClipboardCheck}
-            label="Software bill of materials"
+            label={t("deps.fieldSbom")}
             value={stack.sboms.join(", ")}
           />
         ) : null}
         {stack.aiDevTools.length > 0 ? (
           <Field
             icon={Bot}
-            label="AI / agent tooling"
+            label={t("deps.fieldAiAgentTooling")}
             value={stack.aiDevTools.join(", ")}
           />
         ) : null}
@@ -109,7 +109,7 @@ export function DependencyPanel({ stack }: DependencyPanelProps) {
 
       {stack.languages.length > 0 ? (
         <div className="mt-5">
-          <h4 className="card-title">Language mix</h4>
+          <h4 className="card-title">{t("deps.headingLanguageMix")}</h4>
           <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-white/5">
             {stack.languages.slice(0, 6).map((lang, idx) => (
               <div
@@ -164,7 +164,8 @@ interface FieldProps {
 }
 
 function Field({ icon: Icon, label, value }: FieldProps) {
-  const isMissing = value === "Not detected" || value === "Missing";
+  const { t } = useTranslation();
+  const isMissing = value === t("deps.notDetected") || value === "Missing";
   return (
     <div className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">

@@ -256,9 +256,10 @@ function CompareCategories({
   leftFullName: string;
   rightFullName: string;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="glass p-5 sm:p-6">
-      <h3 className="text-sm font-semibold text-white">Per-category score</h3>
+      <h3 className="text-sm font-semibold text-white">{t("compareDashboard.perCategoryScore")}</h3>
       <p className="mt-1 text-xs text-slate-500">
         Bars show the share of each category's max points scored by{" "}
         <span className="text-aurora-cyan">{leftFullName}</span> vs{" "}
@@ -336,11 +337,12 @@ function CompareFindings({
   leftFullName: string;
   rightFullName: string;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="glass p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <ShieldAlert className="h-4 w-4 text-aurora-violet" />
-        <h3 className="text-sm font-semibold text-white">Findings diff</h3>
+        <h3 className="text-sm font-semibold text-white">{t("compareDashboard.findingsDiff")}</h3>
       </div>
       <p className="mt-1 text-xs text-slate-500">
         Findings are matched by category + title. Severity differences inside
@@ -354,7 +356,7 @@ function CompareFindings({
           items={findings.onlyInLeft.map((f) => ({ key: f.id, top: f, bottom: null }))}
         />
         <FindingsColumn
-          title="Shared"
+          title={t("compareDashboard.shared")}
           tone="violet"
           items={findings.shared.map((p) => ({
             key: p.left.id,
@@ -389,6 +391,7 @@ function FindingsColumn({
   tone: "cyan" | "violet" | "amber";
   items: FindingsColumnItem[];
 }) {
+  const { t } = useTranslation();
   const accent: Record<typeof tone, string> = {
     cyan: "border-aurora-cyan/40 text-aurora-cyan",
     violet: "border-aurora-violet/40 text-aurora-violet",
@@ -400,7 +403,7 @@ function FindingsColumn({
         {title} ({items.length})
       </h4>
       {items.length === 0 ? (
-        <p className="mt-2 text-xs text-slate-500">None.</p>
+        <p className="mt-2 text-xs text-slate-500">{t("compareDashboard.noneShort")}</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {items.map((item) => (
@@ -457,9 +460,10 @@ function CompareStack({
     stack.pythonTools,
     stack.aiDevTools,
   ];
+  const { t } = useTranslation();
   return (
     <section className="glass p-5 sm:p-6">
-      <h3 className="text-sm font-semibold text-white">Stack diff</h3>
+      <h3 className="text-sm font-semibold text-white">{t("compareDashboard.stackDiff")}</h3>
       <p className="mt-1 text-xs text-slate-500">
         Tools detected on each side.{" "}
         <span className="text-aurora-cyan">{leftFullName}</span> only ·{" "}
@@ -501,19 +505,19 @@ function CompareStack({
               </h4>
               {s.shared.length > 0 ? (
                 <div className="mt-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-mint">Shared</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-mint">{t("compareDashboard.shared")}</p>
                   <p className="mt-0.5 break-words text-xs text-slate-300">{s.shared.join(", ")}</p>
                 </div>
               ) : null}
               {s.onlyInLeft.length > 0 ? (
                 <div className="mt-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-cyan">Only in left</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-cyan">{t("compareDashboard.onlyInLeft")}</p>
                   <p className="mt-0.5 break-words text-xs text-slate-300">{s.onlyInLeft.join(", ")}</p>
                 </div>
               ) : null}
               {s.onlyInRight.length > 0 ? (
                 <div className="mt-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-violet">Only in right</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-aurora-violet">{t("compareDashboard.onlyInRight")}</p>
                   <p className="mt-0.5 break-words text-xs text-slate-300">{s.onlyInRight.join(", ")}</p>
                 </div>
               ) : null}
@@ -527,9 +531,10 @@ function CompareStack({
 
 function CompareSummary({ compare }: { compare: CompareResult }) {
   const { left, right, summary } = compare;
+  const { t } = useTranslation();
   return (
     <section className="glass p-5 sm:p-6">
-      <h3 className="text-sm font-semibold text-white">Quick verdict</h3>
+      <h3 className="text-sm font-semibold text-white">{t("compareDashboard.quickVerdict")}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-200/95">
         {summary.winner === "tie" ? (
           <>

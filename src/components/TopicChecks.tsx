@@ -13,6 +13,7 @@ import {
   type CheckStatus,
   type TopicCheck,
 } from "../lib/audit/topicRules";
+import { useTranslation } from "../lib/i18n";
 import { EmptyPanelState } from "./ui/EmptyPanelState";
 
 interface Props {
@@ -37,6 +38,7 @@ const STATUS_ICON: Record<
 };
 
 export function TopicChecks({ checks }: Props) {
+  const { t } = useTranslation();
   // Phase 6.3 — when the repo declares zero topics in its About
   // settings (or none of the declared topics map to a check), render
   // an EmptyPanelState instead of vanishing. The user expects a
@@ -46,21 +48,13 @@ export function TopicChecks({ checks }: Props) {
     return (
       <section
         id="topic-checks"
-        aria-label="Topic-driven contextual checks"
+        aria-label={t("topicChecks.aria")}
         className="mt-6"
       >
         <EmptyPanelState
           icon={Sparkles}
-          title="No topic alignment yet"
-          description={
-            <>
-              Add a few topics in your repo's GitHub <em>About</em>{" "}
-              settings (e.g. <code>react</code>, <code>cli</code>,{" "}
-              <code>typescript</code>). Astraudit then checks the topics
-              against the repo's actual signals — README, lockfile,
-              tests, CI, license — and surfaces gaps here.
-            </>
-          }
+          title={t("topicChecks.emptyTitle")}
+          description={t("topicChecks.emptyDescription")}
           accentClass="text-aurora-violet"
         />
       </section>
@@ -71,26 +65,24 @@ export function TopicChecks({ checks }: Props) {
   return (
     <section
       id="topic-checks"
-      aria-label="Topic-driven contextual checks"
+      aria-label={t("topicChecks.aria")}
       className="glass mt-6 p-5 sm:p-6"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-aurora-violet" />
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
-            Topic alignment
+            {t("topicChecks.heading")}
           </h2>
         </div>
         <span className="text-[11px] text-slate-400">
-          {summary.met}/{summary.total} met
-          {summary.partial > 0 ? ` · ${summary.partial} partial` : ""}
-          {summary.missing > 0 ? ` · ${summary.missing} missing` : ""}
+          {summary.met}/{summary.total} {t("topicChecks.metSuffix")}
+          {summary.partial > 0 ? ` · ${summary.partial} ${t("topicChecks.partialSuffix")}` : ""}
+          {summary.missing > 0 ? ` · ${summary.missing} ${t("topicChecks.missingSuffix")}` : ""}
         </span>
       </header>
       <p className="mt-1 text-xs text-slate-500">
-        Each rule fires from a GitHub topic on the repo and verifies a
-        contract that topic conventionally implies (e.g. <code>cli</code>
-        → expect a <code>bin</code> entry).
+        {t("topicChecks.intro")}
       </p>
 
       <ul className="mt-4 space-y-3">
@@ -129,7 +121,7 @@ export function TopicChecks({ checks }: Props) {
               ) : null}
               {c.hint ? (
                 <p className="mt-2 rounded-md border border-white/5 bg-white/[0.02] p-2 text-[11px] text-slate-400">
-                  <span className="font-medium text-slate-300">Hint: </span>
+                  <span className="font-medium text-slate-300">{t("topicChecks.hintLabel")} </span>
                   {c.hint}
                 </p>
               ) : null}
