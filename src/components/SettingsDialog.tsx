@@ -12,6 +12,7 @@ import {
   Rows4,
   ShieldCheck,
   ShieldOff,
+  Sliders,
   Trash2,
   X,
 } from "lucide-react";
@@ -32,14 +33,31 @@ import {
   type Density,
 } from "../lib/density/densityStore";
 import { pushToast } from "../lib/ui/toastStore";
-import { useTranslation } from "../lib/i18n";
+import { useTranslation, type TranslationKey } from "../lib/i18n";
+import { RULE_PACK_REGISTRY } from "../lib/audit/rulePacks/registry";
+import {
+  RULE_PACK_IDS,
+  type RulePackId,
+} from "../lib/audit/rulePacks/types";
 
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * Roadmap M5.5 — currently-active rule packs. Sourced from the
+   * URL on App boot; mutated from this dialog when the user
+   * toggles a pack. URL flag stays the source of truth.
+   */
+  enabledPacks: readonly RulePackId[];
+  onChangeEnabledPacks: (next: readonly RulePackId[]) => void;
 }
 
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+export function SettingsDialog({
+  open,
+  onClose,
+  enabledPacks,
+  onChangeEnabledPacks,
+}: SettingsDialogProps) {
   const { t } = useTranslation();
   const [tokenInput, setTokenInput] = useState("");
   const [reveal, setReveal] = useState(false);
@@ -378,6 +396,71 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="block text-sm font-medium">{label}</span>
                     <span className="block text-[11px] text-slate-500">
                       {hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Roadmap M5.5 — opt‑in Rule Pack toggles. Sits below
+            density (visual prefs) and above the cache (data
+            controls). Each toggle is a checkbox-shaped <button> to
+            keep keyboard semantics + visible focus consistent with
+            the rest of the dialog. */}
+        <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <Sliders className="h-3.5 w-3.5 shrink-0 text-aurora-violet" />
+            <span className="font-medium text-white">
+              {t("settings.rulePacksHeading")}
+            </span>
+          </div>
+          <p className="mt-0.5 text-slate-500">
+            {t("settings.rulePacksHint")}
+          </p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {RULE_PACK_IDS.map((id) => {
+              const meta = RULE_PACK_REGISTRY[id];
+              const checked = enabledPacks.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="checkbox"
+                  aria-checked={checked}
+                  onClick={() => {
+                    const next = checked
+                      ? enabledPacks.filter((p) => p !== id)
+                      : [...enabledPacks, id];
+                    onChangeEnabledPacks(next);
+                    pushToast({
+                      tone: "info",
+                      message: t("settings.rulePacksReauditToast"),
+                    });
+                  }}
+                  className={`group flex min-h-[3rem] items-start gap-2 rounded-lg border px-3 py-2 text-left transition ${
+                    checked
+                      ? "border-aurora-violet/50 bg-aurora-violet/10 text-white"
+                      : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                      checked
+                        ? "border-aurora-violet bg-aurora-violet text-white"
+                        : "border-white/20 bg-white/[0.04]"
+                    }`}
+                  >
+                    {checked ? <CheckCircle2 className="h-3 w-3" /> : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">
+                      {t(meta.labelKey as TranslationKey)}
+                    </span>
+                    <span className="block text-[11px] text-slate-500">
+                      {t(meta.descriptionKey as TranslationKey)}
                     </span>
                   </span>
                 </button>
