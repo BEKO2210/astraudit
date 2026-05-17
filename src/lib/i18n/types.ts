@@ -191,6 +191,40 @@ export interface Catalog {
   "settings.timeMinAgo": string;
   "settings.timeHourAgo": string;
   "settings.timeDayAgo": string;
+  // Shortcuts dialog (M4.3 slice 5b).
+  "shortcuts.close": string;
+  "shortcuts.title": string;
+  "shortcuts.subtitle": string;
+  "shortcuts.openPalette": string;
+  "shortcuts.openPaletteWinLinux": string;
+  "shortcuts.focusInput": string;
+  "shortcuts.showSheet": string;
+  "shortcuts.closeDialog": string;
+  "shortcuts.jumpOverview": string;
+  "shortcuts.jumpScore": string;
+  "shortcuts.jumpStory": string;
+  "shortcuts.jumpReadme": string;
+  "shortcuts.jumpInsights": string;
+  "shortcuts.jumpGraph": string;
+  "shortcuts.jumpFindings": string;
+  "shortcuts.jumpStructure": string;
+  "shortcuts.jumpStack": string;
+  "shortcuts.jumpMaintenance": string;
+  "shortcuts.jumpOnboarding": string;
+  "shortcuts.jumpNext": string;
+  // History dialog (M4.3 slice 5b).
+  "history.close": string;
+  "history.title": string;
+  "history.subtitle": string;
+  "history.tabFavorites": string;
+  "history.tabRecent": string;
+  "history.clearAll": string;
+  "history.emptyFavorites": string;
+  "history.emptyRecent": string;
+  "history.favorite": string;
+  "history.unfavorite": string;
+  "history.remove": string;
+  "history.toastCleared": string;
 }
 
 /**

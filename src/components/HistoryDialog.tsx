@@ -11,6 +11,7 @@ import {
 } from "../lib/history/historyStore";
 import { formatRelative } from "../lib/utils/formatDate";
 import { pushToast } from "../lib/ui/toastStore";
+import { useTranslation } from "../lib/i18n";
 
 interface HistoryDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function HistoryDialog({
   onPick,
   tick,
 }: HistoryDialogProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabKey>("recent");
   const [reloadTick, setReloadTick] = useState(0);
 
@@ -70,11 +72,7 @@ export function HistoryDialog({
     clearAll();
     setReloadTick((t) => t + 1);
     if (total > 0) {
-      pushToast({
-        tone: "success",
-        message: "Audit history cleared",
-        detail: `${total} entr${total === 1 ? "y" : "ies"} removed from this browser.`,
-      });
+      pushToast({ tone: "success", message: t("history.toastCleared") });
     }
   };
 
@@ -96,7 +94,7 @@ export function HistoryDialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("history.close")}
           className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -108,11 +106,9 @@ export function HistoryDialog({
           </div>
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-white">
-              Audit history
+              {t("history.title")}
             </h2>
-            <p className="text-xs text-slate-500">
-              Stored locally · clearing your browser data wipes it.
-            </p>
+            <p className="text-xs text-slate-500">{t("history.subtitle")}</p>
           </div>
         </div>
 
@@ -122,13 +118,13 @@ export function HistoryDialog({
               active={tab === "favorites"}
               onClick={() => setTab("favorites")}
               icon={<Star className="h-3 w-3" />}
-              label={`Favorites (${favorites.length})`}
+              label={`${t("history.tabFavorites")} (${favorites.length})`}
             />
             <TabButton
               active={tab === "recent"}
               onClick={() => setTab("recent")}
               icon={<Clock className="h-3 w-3" />}
-              label={`Recent (${recent.length})`}
+              label={`${t("history.tabRecent")} (${recent.length})`}
             />
           </div>
           {recent.length > 0 ? (
@@ -138,7 +134,7 @@ export function HistoryDialog({
               className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[11px] text-slate-400 hover:border-risk-critical/40 hover:text-risk-critical"
             >
               <Trash2 className="h-3 w-3" />
-              Clear all
+              {t("history.clearAll")}
             </button>
           ) : null}
         </div>
@@ -147,8 +143,8 @@ export function HistoryDialog({
           {items.length === 0 ? (
             <p className="px-1 py-3 text-sm text-slate-500">
               {tab === "favorites"
-                ? "No favorites yet. Star any audit from this list to keep it pinned at the top."
-                : "No audits yet — your run history will appear here."}
+                ? t("history.emptyFavorites")
+                : t("history.emptyRecent")}
             </p>
           ) : (
             items.map((entry) => (
@@ -158,6 +154,9 @@ export function HistoryDialog({
                 onPick={() => handlePick(entry)}
                 onStar={() => handleStar(entry)}
                 onRemove={() => handleRemove(entry)}
+                favoriteLabel={t("history.favorite")}
+                unfavoriteLabel={t("history.unfavorite")}
+                removeLabel={t("history.remove")}
               />
             ))
           )}
@@ -208,19 +207,25 @@ function Row({
   onPick,
   onStar,
   onRemove,
+  favoriteLabel,
+  unfavoriteLabel,
+  removeLabel,
 }: {
   entry: HistoryEntry;
   onPick: () => void;
   onStar: () => void;
   onRemove: () => void;
+  favoriteLabel: string;
+  unfavoriteLabel: string;
+  removeLabel: string;
 }) {
   return (
     <div className="group flex items-center gap-2 overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-2 transition hover:border-white/10 hover:bg-white/[0.04]">
       <button
         type="button"
         onClick={onStar}
-        aria-label={entry.favorite ? "Unfavorite" : "Favorite"}
-        title={entry.favorite ? "Unfavorite" : "Favorite"}
+        aria-label={entry.favorite ? unfavoriteLabel : favoriteLabel}
+        title={entry.favorite ? unfavoriteLabel : favoriteLabel}
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition ${
           entry.favorite
             ? "border-aurora-mint/40 bg-aurora-mint/10 text-aurora-mint hover:bg-aurora-mint/20"
@@ -266,7 +271,7 @@ function Row({
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Remove from history"
+        aria-label={removeLabel}
         // Phase 5.2:
         //   - p-1 + h-3.5 was 22×22 px hit area (under WCAG 2.5.8's
         //     24×24 floor). Bumped to p-1.5 + h-4 = 28×28.
