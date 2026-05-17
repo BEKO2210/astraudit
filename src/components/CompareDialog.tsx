@@ -1,6 +1,7 @@
 import { ArrowLeftRight, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useDialog } from "../lib/ui/useDialog";
+import { useTranslation } from "../lib/i18n";
 import { EXAMPLE_REPOS } from "../data/exampleRepos";
 
 interface CompareDialogProps {
@@ -17,6 +18,7 @@ export function CompareDialog({
   onSubmit,
   leftLabel,
 }: CompareDialogProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +62,7 @@ export function CompareDialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("compare.close")}
           className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -72,12 +74,12 @@ export function CompareDialog({
           </div>
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-white">
-              Compare
+              {t("compare.title")}
             </h2>
             {leftLabel ? (
               <p className="text-xs text-slate-500">
                 <span className="font-mono text-slate-300">{leftLabel}</span>{" "}
-                will be the left-hand side.
+                {t("compare.leftLabelSuffix")}
               </p>
             ) : null}
           </div>
@@ -85,14 +87,14 @@ export function CompareDialog({
 
         <form onSubmit={handleSubmit} className="mt-4">
           <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Right-hand repository
+            {t("compare.formLabel")}
           </label>
           <input
             ref={inputRef}
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="owner/repo or full GitHub URL"
+            placeholder={t("compare.placeholder")}
             spellCheck={false}
             autoComplete="off"
             className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora-cyan/60"
@@ -101,14 +103,14 @@ export function CompareDialog({
             type="submit"
             className="mt-3 inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-aurora-violet to-aurora-blue px-4 py-2 text-sm font-semibold text-white shadow-glow"
           >
-            Run compare
+            {t("compare.submit")}
           </button>
         </form>
 
         {examples.length > 0 ? (
           <div className="mt-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Or pick an example
+              {t("compare.examplesLabel")}
             </p>
             <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
               {examples.map((r) => (
@@ -126,10 +128,7 @@ export function CompareDialog({
           </div>
         ) : null}
 
-        <p className="mt-4 text-[11px] text-slate-500">
-          Both audits run in parallel. Results from the cache are reused for
-          either side.
-        </p>
+        <p className="mt-4 text-[11px] text-slate-500">{t("compare.footnote")}</p>
       </div>
     </div>
   );

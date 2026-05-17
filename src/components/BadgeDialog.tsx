@@ -9,6 +9,7 @@ import {
 import { formatShareUrl } from "../lib/share/urlState";
 import { pushToast } from "../lib/ui/toastStore";
 import { CopyButton } from "./CopyButton";
+import { useTranslation, type TranslationKey } from "../lib/i18n";
 
 interface BadgeDialogProps {
   open: boolean;
@@ -20,13 +21,22 @@ interface BadgeDialogProps {
   grade: string;
 }
 
-const STYLES: Array<{ id: BadgeStyle; label: string; hint: string }> = [
-  { id: "flat", label: "Flat", hint: "shields.io look" },
-  { id: "aurora", label: "Aurora", hint: "Astraudit brand" },
-  { id: "minimal", label: "Minimal", hint: "score-only chip" },
+// Roadmap M4.3 slice 5c — labels + hints come from the catalog.
+const STYLES: Array<{
+  id: BadgeStyle;
+  labelKey: TranslationKey;
+  hintKey: TranslationKey;
+}> = [
+  { id: "flat", labelKey: "badge.styleFlat", hintKey: "badge.styleFlatHint" },
+  { id: "aurora", labelKey: "badge.styleAurora", hintKey: "badge.styleAuroraHint" },
+  { id: "minimal", labelKey: "badge.styleMinimal", hintKey: "badge.styleMinimalHint" },
 ];
 
-function downloadSvg(filename: string, svg: string): void {
+function downloadSvg(
+  filename: string,
+  svg: string,
+  toastMsgs: { saved: string; error: string },
+): void {
   if (typeof window === "undefined") return;
   try {
     const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
@@ -38,15 +48,11 @@ function downloadSvg(filename: string, svg: string): void {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    pushToast({
-      tone: "success",
-      message: "Badge saved",
-      detail: `Downloaded ${filename}. Commit it next to your README and embed it.`,
-    });
+    pushToast({ tone: "success", message: toastMsgs.saved });
   } catch (err) {
     pushToast({
       tone: "error",
-      message: "Could not save the badge",
+      message: toastMsgs.error,
       detail: (err as Error).message,
     });
   }
@@ -61,6 +67,7 @@ export function BadgeDialog({
   max,
   grade,
 }: BadgeDialogProps) {
+  const { t } = useTranslation();
   const [style, setStyle] = useState<BadgeStyle>("flat");
 
   // Phase 5.3 — focus trap + restore + body lock + Esc.
@@ -98,7 +105,7 @@ export function BadgeDialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("badge.close")}
           className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -110,13 +117,9 @@ export function BadgeDialog({
           </div>
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-white">
-              Astraudit badge
+              {t("badge.title")}
             </h2>
-            <p className="text-xs text-slate-500">
-              Download the SVG, commit it next to your README, embed it.
-              Astraudit has no backend — the values are baked into the file
-              you save.
-            </p>
+            <p className="text-xs text-slate-500">{t("badge.subtitle")}</p>
           </div>
         </div>
 
@@ -132,9 +135,9 @@ export function BadgeDialog({
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              <span className="font-medium">{s.label}</span>
+              <span className="font-medium">{t(s.labelKey)}</span>
               <span className="hidden text-slate-500 sm:inline">·</span>
-              <span className="hidden text-slate-500 sm:inline">{s.hint}</span>
+              <span className="hidden text-slate-500 sm:inline">{t(s.hintKey)}</span>
             </button>
           ))}
         </div>
@@ -153,22 +156,26 @@ export function BadgeDialog({
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => downloadSvg(filename, svg)}
+            onClick={() =>
+              downloadSvg(filename, svg, {
+                saved: t("badge.toastSaved"),
+                error: t("badge.toastError"),
+              })
+            }
             className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-aurora-violet to-aurora-blue px-3 py-1.5 text-sm font-semibold text-white shadow-glow"
           >
             <Download className="h-3.5 w-3.5" />
-            Download {filename}
+            {t("badge.download")} {filename}
           </button>
-          <CopyButton value={svg} label="Copy SVG source" withText />
+          <CopyButton value={svg} label={t("badge.copySvg")} withText />
         </div>
 
         <div className="mt-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Markdown snippet
+            {t("badge.markdownHeading")}
           </p>
           <p className="mt-1 text-[11px] text-slate-500">
-            Drop this into your README — it links the badge back to a fresh
-            Astraudit run for this repo.
+            {t("badge.markdownHint")}
           </p>
           <div className="relative mt-2">
             <pre className="max-w-full overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 pr-10 text-[12px] text-slate-200 scrollbar-thin">
@@ -178,16 +185,13 @@ export function BadgeDialog({
             </pre>
             <CopyButton
               value={markdown}
-              label="Copy markdown"
+              label={t("badge.copyMarkdown")}
               className="absolute right-1.5 top-1.5"
             />
           </div>
         </div>
 
-        <p className="mt-4 text-[11px] text-slate-500">
-          The badge values are baked in at the time of download. Re-export
-          whenever you want to publish a new score.
-        </p>
+        <p className="mt-4 text-[11px] text-slate-500">{t("badge.footnote")}</p>
       </div>
     </div>
   );

@@ -212,6 +212,51 @@ export const EN: Catalog = {
   "history.unfavorite": "Unfavorite",
   "history.remove": "Remove from history",
   "history.toastCleared": "Audit history cleared",
+  // M4.3 slice 5c — Compare dialog
+  "compare.close": "Close",
+  "compare.title": "Compare",
+  "compare.leftLabelSuffix": "will be the left‑hand side.",
+  "compare.formLabel": "Right‑hand repository",
+  "compare.placeholder": "owner/repo or full GitHub URL",
+  "compare.submit": "Run compare",
+  "compare.examplesLabel": "Or pick an example",
+  "compare.footnote":
+    "Both audits run in parallel. Results from the cache are reused for either side.",
+  // M4.3 slice 5c — Badge dialog
+  "badge.close": "Close",
+  "badge.title": "Astraudit badge",
+  "badge.subtitle":
+    "Download the SVG, commit it next to your README, embed it. Astraudit has no backend — the values are baked into the file you save.",
+  "badge.styleFlat": "Flat",
+  "badge.styleFlatHint": "shields.io look",
+  "badge.styleAurora": "Aurora",
+  "badge.styleAuroraHint": "Astraudit brand",
+  "badge.styleMinimal": "Minimal",
+  "badge.styleMinimalHint": "score‑only chip",
+  "badge.download": "Download",
+  "badge.copySvg": "Copy SVG source",
+  "badge.markdownHeading": "Markdown snippet",
+  "badge.markdownHint":
+    "Drop this into your README — it links the badge back to a fresh Astraudit run for this repo.",
+  "badge.copyMarkdown": "Copy markdown",
+  "badge.footnote":
+    "The badge values are baked in at the time of download. Re‑export whenever you want to publish a new score.",
+  "badge.toastSaved": "Badge saved",
+  "badge.toastError": "Could not save the badge",
+  // M4.3 slice 5c — Command palette
+  "palette.regionLabel": "Command palette",
+  "palette.searchAria": "Command palette search",
+  "palette.placeholder":
+    "Type a command, jump to a section, run an example…",
+  "palette.emptyPrefix": "No commands match",
+  "palette.navigateHint": "navigate",
+  "palette.selectHint": "select",
+  "palette.shortcutsHint": "shortcuts",
+  "palette.groupNavigate": "Jump to section",
+  "palette.groupActions": "Actions",
+  "palette.groupTheme": "Theme",
+  "palette.groupHistory": "From your history",
+  "palette.groupExamples": "Audit an example",
 };
 
 export default EN;

@@ -7,6 +7,7 @@ import {
   type Command,
   type CommandGroup,
 } from "../lib/commands/types";
+import { useTranslation } from "../lib/i18n";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, commands }: CommandPaletteProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +113,7 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={t("palette.regionLabel")}
     >
       <div
         className="glass-strong w-full max-w-xl overflow-hidden rounded-2xl"
@@ -124,11 +126,11 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, jump to a section, run an example…"
+            placeholder={t("palette.placeholder")}
             spellCheck={false}
             autoComplete="off"
             className="flex-1 rounded-md bg-transparent py-1 text-sm text-white placeholder:text-slate-500"
-            aria-label="Command palette search"
+            aria-label={t("palette.searchAria")}
           />
           <kbd className="hidden shrink-0 rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[10px] text-slate-500 sm:inline">
             Esc
@@ -141,13 +143,13 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
         >
           {filtered.length === 0 ? (
             <p className="px-3 py-4 text-sm text-slate-500">
-              No commands match “{query}”.
+              {t("palette.emptyPrefix")} “{query}”.
             </p>
           ) : (
             grouped.map(([group, items]) => (
               <div key={group} className="px-1 py-1">
                 <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  {GROUP_LABELS[group]}
+                  {t(GROUP_LABELS[group])}
                 </p>
                 <div>
                   {items.map((cmd) => {
@@ -205,13 +207,13 @@ export function CommandPalette({ open, onClose, commands }: CommandPaletteProps)
         <div className="flex items-center justify-between gap-3 border-t border-white/5 px-3 py-1.5 text-[10px] text-slate-500">
           <span className="flex items-center gap-2">
             <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 font-mono">↑↓</kbd>
-            navigate
+            {t("palette.navigateHint")}
             <kbd className="ml-2 rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 font-mono">↵</kbd>
-            select
+            {t("palette.selectHint")}
           </span>
           <span className="hidden sm:inline">
             <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 font-mono">?</kbd>
-            shortcuts
+            {t("palette.shortcutsHint")}
           </span>
         </div>
       </div>
