@@ -1,0 +1,155 @@
+name: Bundle size diff (Roadmap M1.1)
+
+# Per-PR bundle-size delta report. Builds both base and head, then
+# posts a sticky comment with a per-chunk diff against `main`. This
+# is purely informational — the hard budget gate still lives in
+# `quality.yml` (which runs `npm run check:bundle-size` without
+# `--json` and exits non-zero on a budget breach).
+#
+# The split keeps the lighthouse job fast (no double build there)
+# and lets reviewers see size impact at a glance on every PR.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bundle-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout head
+        uses: actions/checkout@v6
+        with:
+          # Need the base ref locally too so we can build it without
+          # re-fetching the full git history.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies (head)
+        run: npm ci
+
+      - name: Build head
+        run: npm run build
+
+      - name: Capture head sizes
+        run: npx tsx scripts/check-bundle-size.ts --json > bundle-head.json
+
+      - name: Build base
+        # Build the PR's merge target in an isolated working tree so
+        # head's source stays untouched. `worktree add` is cheaper
+        # than a second clone and we already have origin/main locally
+        # via fetch-depth: 0 above.
+        run: |
+          set -e
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git worktree add ../astraudit-base "origin/${{ github.base_ref }}"
+          cd ../astraudit-base
+          npm ci
+          npm run build
+          # Use the head copy of the script so a script-only change
+          # on this PR is reflected on both sides of the diff.
+          cp "$GITHUB_WORKSPACE/scripts/check-bundle-size.ts" scripts/check-bundle-size.ts
+          npx tsx scripts/check-bundle-size.ts --json > "$GITHUB_WORKSPACE/bundle-base.json"
+
+      - name: Build PR comment
+        run: |
+          node <<'JS' > comment.md
+          const fs = require("fs");
+
+          const head = JSON.parse(fs.readFileSync("bundle-head.json", "utf8"));
+          let base = null;
+          try { base = JSON.parse(fs.readFileSync("bundle-base.json", "utf8")); } catch (_) {}
+
+          const fmtKB = (b) => `${(b / 1024).toFixed(2)} KB`;
+          const fmtPct = (pct) => {
+            if (!isFinite(pct)) return "—";
+            const sign = pct > 0 ? "+" : "";
+            return `${sign}${pct.toFixed(1)}%`;
+          };
+          const fmtDeltaBytes = (b) => {
+            if (b === 0) return "±0 B";
+            const sign = b > 0 ? "+" : "−";
+            const abs = Math.abs(b);
+            if (abs < 1024) return `${sign}${abs} B`;
+            return `${sign}${(abs / 1024).toFixed(2)} KB`;
+          };
+          const verdict = (delta, headBytes, maxBytes) => {
+            if (headBytes != null && maxBytes != null && headBytes > maxBytes)
+              return "🚨 over budget";
+            if (delta == null) return "🆕 new";
+            if (Math.abs(delta) < 256) return "✅ no change";
+            if (delta > 1024 * 8) return "⚠️ growth";
+            if (delta < -1024 * 8) return "🟢 shrink";
+            return delta > 0 ? "↗️ small growth" : "↘️ small shrink";
+          };
+
+          let out = `## Bundle size diff — Roadmap M1.1\n\n`;
+
+          if (!head.found) {
+            out += `❌ **Head build missing** — \`${head.assetsDir}\` not found. The build step likely failed earlier in this run; see the workflow log.\n`;
+            fs.writeFileSync("comment.md", out);
+            process.exit(0);
+          }
+
+          const baseByLabel = new Map(
+            (base?.budgets ?? []).map((b) => [b.label, b]),
+          );
+
+          let totalHead = 0;
+          let totalBase = 0;
+          let anyOver = false;
+
+          out += `| Chunk | Base | Head | Δ bytes | Δ % | Budget | Status |\n`;
+          out += `|---|---:|---:|---:|---:|---:|:---|\n`;
+          for (const h of head.budgets) {
+            const b = baseByLabel.get(h.label);
+            const baseBytes = b?.actualBytes ?? null;
+            const headBytes = h.actualBytes ?? null;
+            const delta = baseBytes != null && headBytes != null ? headBytes - baseBytes : null;
+            const pct = baseBytes != null && baseBytes > 0 && delta != null ? (delta / baseBytes) * 100 : NaN;
+            if (headBytes != null) totalHead += headBytes;
+            if (baseBytes != null) totalBase += baseBytes;
+            if (headBytes != null && headBytes > h.maxBytes) anyOver = true;
+            out += `| ${h.label} | ${baseBytes != null ? fmtKB(baseBytes) : "—"} | ${headBytes != null ? fmtKB(headBytes) : "missing"} | ${delta != null ? fmtDeltaBytes(delta) : "—"} | ${fmtPct(pct)} | ${fmtKB(h.maxBytes)} | ${verdict(delta, headBytes, h.maxBytes)} |\n`;
+          }
+
+          const totalDelta = totalHead - totalBase;
+          const totalPct = totalBase > 0 ? (totalDelta / totalBase) * 100 : NaN;
+          out += `| **Total (tracked)** | **${fmtKB(totalBase)}** | **${fmtKB(totalHead)}** | **${fmtDeltaBytes(totalDelta)}** | **${fmtPct(totalPct)}** | — | ${anyOver ? "🚨 budget breach in row above" : "✅"} |\n\n`;
+
+          if (!base) {
+            out += `> Base build payload missing — diff is approximate. This usually means base \`${{ github.base_ref }}\` failed to build; see the workflow log.\n\n`;
+          }
+
+          out += `<sub>Sizes are post-build, pre-gzip. Budget gate still lives in \`quality.yml\` → \`npm run check:bundle-size\`. This comment is informational.</sub>\n`;
+
+          fs.writeFileSync("comment.md", out);
+          JS
+
+      - name: Post / update PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: bundle-size
+          path: comment.md
+
+      - name: Upload bundle-size artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundle-size
+          path: |
+            bundle-head.json
+            bundle-base.json
+            comment.md
+          retention-days: 14
+          if-no-files-found: ignore
