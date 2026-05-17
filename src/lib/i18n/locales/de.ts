@@ -217,6 +217,51 @@ const DE: Catalog = {
   "history.unfavorite": "Aus Favoriten entfernen",
   "history.remove": "Aus Verlauf entfernen",
   "history.toastCleared": "Audit‑Verlauf geleert",
+  // M4.3 slice 5c — Compare dialog
+  "compare.close": "Schließen",
+  "compare.title": "Vergleichen",
+  "compare.leftLabelSuffix": "wird die linke Seite sein.",
+  "compare.formLabel": "Rechtsseitige Repository",
+  "compare.placeholder": "owner/repo oder vollständige GitHub‑URL",
+  "compare.submit": "Vergleich starten",
+  "compare.examplesLabel": "Oder ein Beispiel auswählen",
+  "compare.footnote":
+    "Beide Audits laufen parallel. Cache‑Ergebnisse werden für beide Seiten wiederverwendet.",
+  // M4.3 slice 5c — Badge dialog
+  "badge.close": "Schließen",
+  "badge.title": "Astraudit‑Badge",
+  "badge.subtitle":
+    "SVG herunterladen, neben deinem README committen, einbetten. Astraudit hat kein Backend — die Werte sind in die heruntergeladene Datei eingebrannt.",
+  "badge.styleFlat": "Flat",
+  "badge.styleFlatHint": "shields.io‑Look",
+  "badge.styleAurora": "Aurora",
+  "badge.styleAuroraHint": "Astraudit‑Brand",
+  "badge.styleMinimal": "Minimal",
+  "badge.styleMinimalHint": "Score‑only Chip",
+  "badge.download": "Herunterladen",
+  "badge.copySvg": "SVG‑Quelltext kopieren",
+  "badge.markdownHeading": "Markdown‑Snippet",
+  "badge.markdownHint":
+    "Füge das in dein README ein — das Badge verlinkt zurück auf einen frischen Astraudit‑Lauf für dieses Repo.",
+  "badge.copyMarkdown": "Markdown kopieren",
+  "badge.footnote":
+    "Die Badge‑Werte sind zum Download‑Zeitpunkt eingebrannt. Re‑exportiere, wenn du einen neuen Score veröffentlichen willst.",
+  "badge.toastSaved": "Badge gespeichert",
+  "badge.toastError": "Badge konnte nicht gespeichert werden",
+  // M4.3 slice 5c — Command palette
+  "palette.regionLabel": "Command Palette",
+  "palette.searchAria": "Command‑Palette‑Suche",
+  "palette.placeholder":
+    "Befehl eintippen, Sektion anspringen, Beispiel auditieren…",
+  "palette.emptyPrefix": "Keine Befehle passen zu",
+  "palette.navigateHint": "navigieren",
+  "palette.selectHint": "auswählen",
+  "palette.shortcutsHint": "Kürzel",
+  "palette.groupNavigate": "Sektion anspringen",
+  "palette.groupActions": "Aktionen",
+  "palette.groupTheme": "Theme",
+  "palette.groupHistory": "Aus deinem Verlauf",
+  "palette.groupExamples": "Beispiel auditieren",
 };
 
 export default DE;

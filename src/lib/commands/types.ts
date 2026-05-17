@@ -48,10 +48,17 @@ export function filterCommands(commands: Command[], query: string): Command[] {
     .map((x) => x.c);
 }
 
-export const GROUP_LABELS: Record<CommandGroup, string> = {
-  navigate: "Jump to section",
-  actions: "Actions",
-  theme: "Theme",
-  history: "From your history",
-  examples: "Audit an example",
+// Roadmap M4.3 slice 5c — group labels are translation keys; the
+// palette resolves them via `t()` at render time. Keeping them as
+// keys (rather than rendered strings) means a runtime locale switch
+// re-renders correctly without invalidating any memoised palette
+// state.
+import type { TranslationKey } from "../i18n/types";
+
+export const GROUP_LABELS: Record<CommandGroup, TranslationKey> = {
+  navigate: "palette.groupNavigate",
+  actions: "palette.groupActions",
+  theme: "palette.groupTheme",
+  history: "palette.groupHistory",
+  examples: "palette.groupExamples",
 };

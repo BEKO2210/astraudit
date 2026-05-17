@@ -225,6 +225,46 @@ export interface Catalog {
   "history.unfavorite": string;
   "history.remove": string;
   "history.toastCleared": string;
+  // Compare dialog (M4.3 slice 5c).
+  "compare.close": string;
+  "compare.title": string;
+  "compare.leftLabelSuffix": string;
+  "compare.formLabel": string;
+  "compare.placeholder": string;
+  "compare.submit": string;
+  "compare.examplesLabel": string;
+  "compare.footnote": string;
+  // Badge dialog (M4.3 slice 5c).
+  "badge.close": string;
+  "badge.title": string;
+  "badge.subtitle": string;
+  "badge.styleFlat": string;
+  "badge.styleFlatHint": string;
+  "badge.styleAurora": string;
+  "badge.styleAuroraHint": string;
+  "badge.styleMinimal": string;
+  "badge.styleMinimalHint": string;
+  "badge.download": string;
+  "badge.copySvg": string;
+  "badge.markdownHeading": string;
+  "badge.markdownHint": string;
+  "badge.copyMarkdown": string;
+  "badge.footnote": string;
+  "badge.toastSaved": string;
+  "badge.toastError": string;
+  // Command palette (M4.3 slice 5c).
+  "palette.regionLabel": string;
+  "palette.searchAria": string;
+  "palette.placeholder": string;
+  "palette.emptyPrefix": string;
+  "palette.navigateHint": string;
+  "palette.selectHint": string;
+  "palette.shortcutsHint": string;
+  "palette.groupNavigate": string;
+  "palette.groupActions": string;
+  "palette.groupTheme": string;
+  "palette.groupHistory": string;
+  "palette.groupExamples": string;
 }
 
 /**

@@ -222,6 +222,51 @@ const JA: Catalog = {
   "history.unfavorite": "お気に入り解除",
   "history.remove": "履歴から削除",
   "history.toastCleared": "監査履歴をクリアしました",
+  // M4.3 slice 5c — Compare dialog
+  "compare.close": "閉じる",
+  "compare.title": "比較",
+  "compare.leftLabelSuffix": "が左側になります。",
+  "compare.formLabel": "右側のリポジトリ",
+  "compare.placeholder": "owner/repo または完全な GitHub URL",
+  "compare.submit": "比較を実行",
+  "compare.examplesLabel": "または例を選択",
+  "compare.footnote":
+    "両方の監査が並行して実行されます。キャッシュの結果はどちらの側にも再利用されます。",
+  // M4.3 slice 5c — Badge dialog
+  "badge.close": "閉じる",
+  "badge.title": "Astraudit バッジ",
+  "badge.subtitle":
+    "SVG をダウンロードし、README の横にコミットして埋め込みます。Astraudit にはバックエンドがありません — 値は保存するファイルに焼き込まれます。",
+  "badge.styleFlat": "フラット",
+  "badge.styleFlatHint": "shields.io 風",
+  "badge.styleAurora": "オーロラ",
+  "badge.styleAuroraHint": "Astraudit ブランド",
+  "badge.styleMinimal": "ミニマル",
+  "badge.styleMinimalHint": "スコアのみのチップ",
+  "badge.download": "ダウンロード",
+  "badge.copySvg": "SVG ソースをコピー",
+  "badge.markdownHeading": "Markdown スニペット",
+  "badge.markdownHint":
+    "README に貼り付けると、このリポジトリの最新 Astraudit 実行へのリンクが付きます。",
+  "badge.copyMarkdown": "Markdown をコピー",
+  "badge.footnote":
+    "バッジの値はダウンロード時点で焼き込まれます。新しいスコアを公開したいときは再エクスポートしてください。",
+  "badge.toastSaved": "バッジを保存しました",
+  "badge.toastError": "バッジを保存できませんでした",
+  // M4.3 slice 5c — Command palette
+  "palette.regionLabel": "コマンドパレット",
+  "palette.searchAria": "コマンドパレット検索",
+  "palette.placeholder":
+    "コマンドを入力、セクションへジャンプ、例を実行…",
+  "palette.emptyPrefix": "該当するコマンドはありません",
+  "palette.navigateHint": "移動",
+  "palette.selectHint": "選択",
+  "palette.shortcutsHint": "ショートカット",
+  "palette.groupNavigate": "セクションへジャンプ",
+  "palette.groupActions": "アクション",
+  "palette.groupTheme": "テーマ",
+  "palette.groupHistory": "履歴から",
+  "palette.groupExamples": "例を監査",
 };
 
 export default JA;
