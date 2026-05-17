@@ -142,6 +142,55 @@ export interface Catalog {
   "finding.copyAllPaths": string;
   "toast.regionLabel": string;
   "toast.dismiss": string;
+  // Settings dialog (M4.3 slice 5a).
+  "settings.close": string;
+  "settings.title": string;
+  "settings.subtitle": string;
+  "settings.tokenActive": string;
+  "settings.tokenStoredAs": string;
+  "settings.tokenSavedAt": string;
+  "settings.tokenNone": string;
+  "settings.tokenBenefit": string;
+  "settings.rateLimitTitle": string;
+  "settings.checking": string;
+  "settings.recheck": string;
+  "settings.modeLabel": string;
+  "settings.modeAuth": string;
+  "settings.modePublic": string;
+  "settings.remainingLabel": string;
+  "settings.resetsLabel": string;
+  "settings.resetsValueMin": string;
+  "settings.probing": string;
+  "settings.probeError": string;
+  "settings.formLabel": string;
+  "settings.formPlaceholder": string;
+  "settings.tokenHide": string;
+  "settings.tokenReveal": string;
+  "settings.save": string;
+  "settings.errorEmpty": string;
+  "settings.toastSaved": string;
+  "settings.toastRemoved": string;
+  "settings.toastCacheCleared": string;
+  "settings.scopeHint": string;
+  "settings.createToken": string;
+  "settings.privacyNote": string;
+  "settings.removeToken": string;
+  "settings.densityHeading": string;
+  "settings.densityHint": string;
+  "settings.densityComfortable": string;
+  "settings.densityComfortableHint": string;
+  "settings.densityCompact": string;
+  "settings.densityCompactHint": string;
+  "settings.cacheHeading": string;
+  "settings.cacheClear": string;
+  "settings.cacheCount": string;
+  "settings.cacheTtl": string;
+  "settings.cacheMore": string;
+  "settings.cacheEmpty": string;
+  "settings.timeJustNow": string;
+  "settings.timeMinAgo": string;
+  "settings.timeHourAgo": string;
+  "settings.timeDayAgo": string;
 }
 
 /**
