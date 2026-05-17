@@ -19,8 +19,20 @@ import {
   NO_PACKS,
   type EnabledPacks,
   type RulePackId,
+  type RulePackRunner,
 } from "./rulePacks/types";
 import { serialiseEnabledPacks } from "./rulePacks/parseRules";
+import { runI18nPack } from "./rulePacks/packs/i18n";
+
+/**
+ * Roadmap M5.x — opt‑in pack registry. Each entry's `run`
+ * appends additional findings when the pack is enabled. Default
+ * audits skip every pack so the canonical scoring stays stable.
+ * Future slices land more entries here as the packs grow.
+ */
+const PACK_RUNNERS: Partial<Record<RulePackId, RulePackRunner>> = {
+  i18n: runI18nPack,
+};
 
 const STEP_LABELS: Record<AuditProgressStep, string> = {
   metadata: "Reading repository metadata",
@@ -111,7 +123,7 @@ export function runAudit(
     stack,
   });
 
-  const findings = buildFindings({
+  const baseFindings = buildFindings({
     classified,
     readme,
     deps,
@@ -120,7 +132,28 @@ export function runAudit(
     ci,
     dx,
     stack,
-  }).sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  });
+
+  // Roadmap M5.x — append findings from each enabled rule pack.
+  // Packs are pure functions of (bundle, classified, deps) and
+  // cannot influence the category scores; their findings flow
+  // through the same severity ordering as the core ones so they
+  // sit naturally in the dashboard list.
+  const packFindings = [];
+  for (const packId of enabledPacks) {
+    const runner = PACK_RUNNERS[packId];
+    if (!runner) continue;
+    try {
+      packFindings.push(...runner({ bundle, classified, deps }));
+    } catch {
+      // A pack must never crash the audit. Swallow + carry on so
+      // the default surface is always rendered.
+    }
+  }
+
+  const findings = [...baseFindings, ...packFindings].sort(
+    (a, b) => severityRank(b.severity) - severityRank(a.severity),
+  );
 
   const score = totalScore(categories);
   const grade = gradeFromScore(score);
