@@ -49,6 +49,13 @@ const RuleBook = lazy(() =>
 const ScopePage = lazy(() =>
   import("./components/legal/ScopePage").then((m) => ({ default: m.ScopePage })),
 );
+// Roadmap M3.6 — bookmarklet page at `#/bookmarklet`. Fallback for
+// browsers without the M3.2–M3.4 extension installed.
+const BookmarkletPage = lazy(() =>
+  import("./components/legal/BookmarkletPage").then((m) => ({
+    default: m.BookmarkletPage,
+  })),
+);
 import { readBundle, removeBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -80,7 +87,7 @@ type CompareSide = "left" | "right";
 /** Map a hash fragment to one of the doc-page slugs (or null). */
 function routeFromHash(
   hash: string,
-): "impressum" | "datenschutz" | "rules" | "scope" | null {
+): "impressum" | "datenschutz" | "rules" | "scope" | "bookmarklet" | null {
   // Strip leading `#/` AND any trailing slash so `#/scope`,
   // `#/scope/`, and `#scope/` all resolve identically. Codex flagged
   // that the documented `/scope/` shape was not handled (#78 review).
@@ -112,6 +119,12 @@ function routeFromHash(
     normalized === "whats-not-checked"
   ) {
     return "scope";
+  }
+  // Roadmap M3.6 — public bookmarklet page. Accept `bookmarklet`
+  // and the shorthand `pin` so links from the extension store
+  // listing or social posts both resolve here.
+  if (normalized === "bookmarklet" || normalized === "pin") {
+    return "bookmarklet";
   }
   return null;
 }
@@ -160,7 +173,7 @@ export default function App() {
   // hash-based router rather than touching the existing audit/compare
   // hash logic — the legal hashes are independent and never overlap.
   const [legalRoute, setLegalRoute] = useState<
-    "impressum" | "datenschutz" | "rules" | "scope" | null
+    "impressum" | "datenschutz" | "rules" | "scope" | "bookmarklet" | null
   >(() => routeFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
@@ -656,6 +669,15 @@ export default function App() {
     return (
       <Suspense fallback={<PanelSkeleton label="Loading scope page" rows={8} />}>
         <ScopePage />
+      </Suspense>
+    );
+  }
+  if (legalRoute === "bookmarklet") {
+    return (
+      <Suspense
+        fallback={<PanelSkeleton label="Loading bookmarklet page" rows={6} />}
+      >
+        <BookmarkletPage />
       </Suspense>
     );
   }
