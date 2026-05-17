@@ -1,0 +1,7 @@
+# Roadmap M1.5 — pre-commit hook delegates to lint-staged, which
+# only runs the typecheck + vitest suite when TypeScript files are
+# staged. Other commits (docs, YAML, JSON) pass through instantly.
+#
+# Bypass with `git commit --no-verify` only when the underlying
+# check is broken, never to skip a real failure.
+npx lint-staged
