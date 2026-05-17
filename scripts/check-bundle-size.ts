@@ -59,7 +59,10 @@ const BUDGETS: Budget[] = [
   // it doesn't load until the user enters the dashboard.
   { label: "AuditGraph chunk (React Flow)", prefix: "AuditGraph-", suffix: ".js", maxBytes: 175 * 1024 },
   // Audit worker — the rule engine, runs off the main thread.
-  { label: "audit worker", prefix: "audit.worker-", suffix: ".js", maxBytes: 110 * 1024 },
+  // Monat 5 rule packs (i18n / ts / a11y / monorepo) live inside the
+  // worker bundle. Each adds ~5 KB; ceiling raised to 130 KB so the
+  // four packs land without per-slice budget bumps.
+  { label: "audit worker", prefix: "audit.worker-", suffix: ".js", maxBytes: 130 * 1024 },
 ];
 
 function findAsset(prefix: string, suffix: string): string | null {
