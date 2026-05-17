@@ -51,6 +51,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Pages API + REST API share the installation rate-limit pool.
+      # An 8-PR burst in 20 minutes is enough to exhaust it; the
+      # deploy step then fails with a 403 + "API rate limit exceeded
+      # for installation". Wait up to ~2.5 min for budget to recover
+      # before invoking the action — see scripts/wait-for-rate-limit.sh.
+      - name: Checkout (for wait-for-rate-limit.sh)
+        uses: actions/checkout@v6
+      - name: Wait for installation rate-limit budget
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/wait-for-rate-limit.sh
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5

@@ -59,6 +59,16 @@ jobs:
           node-version: 20
           cache: npm
 
+      # CodeQL's init + autobuild + analyze each call the installation
+      # API. A PR-burst can exhaust the shared installation budget
+      # ("API rate limit exceeded for installation"). Wait up to ~2.5
+      # min for budget to recover before continuing — see
+      # scripts/wait-for-rate-limit.sh.
+      - name: Wait for installation rate-limit budget
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/wait-for-rate-limit.sh
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
