@@ -478,6 +478,10 @@ const JA: Catalog = {
     "上のフィルタを設定し「リーダーボードを実行」を押してください。",
   "leaderboard.errorRow": "監査に失敗しました",
   "leaderboard.snapshotLabel": "キャッシュされたスナップショットを表示中（",
+  // M6.5 — トレンドピル
+  "leaderboard.tableTrend": "推移",
+  "leaderboard.trendNew": "新規",
+  "leaderboard.trendDropped": "離脱",
 };
 
 export default JA;

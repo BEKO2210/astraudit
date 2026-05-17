@@ -467,6 +467,10 @@ export const EN: Catalog = {
     "Configure the filter above and press Run leaderboard to start.",
   "leaderboard.errorRow": "Audit failed",
   "leaderboard.snapshotLabel": "Showing cached snapshot from",
+  // M6.5 — trend pills
+  "leaderboard.tableTrend": "Trend",
+  "leaderboard.trendNew": "New",
+  "leaderboard.trendDropped": "Dropped",
 };
 
 export default EN;
