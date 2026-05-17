@@ -243,6 +243,109 @@ Classifies the repo's own license + every dependency license
 
 ---
 
+## Opt-in rule packs (Roadmap Monat 5)
+
+Rule packs are **off by default**. The canonical audit at
+`https://beko2210.github.io/astraudit/#/audit/owner/repo` runs the
+core ruleset above and nothing else, so the score / verdict stay
+comparable across visitors and across snapshots.
+
+Visitors who want extra coverage opt in via the `?rules=` URL
+flag (comma-separated, in any order):
+
+```
+https://beko2210.github.io/astraudit/?rules=a11y,i18n,ts,monorepo#/audit/owner/repo
+```
+
+The Settings dialog (M5.5) exposes the same toggles as
+convenience checkboxes. The URL flag remains the source of truth
+so a shared link always reproduces the same findings.
+
+Pack findings flow through the same severity ordering as the core
+ones, sit naturally in the dashboard's Findings panel, and never
+influence the category score (which stays comparable across
+configurations).
+
+### `?rules=a11y` — Accessibility
+
+Surfaces signals about whether a repository takes accessibility
+seriously. Useful when reviewing a UI library or a hosted web
+app you're considering depending on.
+
+| Rule ID | Triggers when… | Severity |
+|---|---|:--:|
+| `a11y-readme-img-no-alt` | The README ships markdown images `![](url)` or inline `<img>` tags without an `alt=` attribute. `alt=""` is treated as a deliberate decorative declaration and **not** flagged. | `low` (1–3 images) / `medium` (4+) |
+| `a11y-tooling-detected` | `package.json` declares any of: axe-core, `@axe-core/react`, `@axe-core/playwright`, `@axe-core/webdriverjs`, `@axe-core/cli`, `jest-axe`, `vitest-axe`, `react-axe`, `cypress-axe`, `@cypress/axe`, `pa11y`, `pa11y-ci`, `wave-evaluator`, `eslint-plugin-jsx-a11y`, `eslint-plugin-vuejs-accessibility`, `react-aria`, `react-aria-components`, `@react-aria/*`, `@react-stately/*`, `@headlessui/react`, `@headlessui/vue`, `@radix-ui/*` (primitive / dialog / dropdown-menu / popover / tooltip / tabs), `reakit`, `ariakit`, `@ariakit/react`. | `info` |
+| `a11y-no-tooling` | The repo depends on a UI framework (React, Vue, Svelte, Solid, Preact, Angular, Lit, Qwik, Marko, Mithril, HTMX) but ships none of the libraries above. | `low` |
+| `a11y-docs-found` | An `ACCESSIBILITY.md` or `A11Y.md` is present at the repo root (case-insensitive). | `info` |
+| `a11y-no-docs` | UI project (see above) with **no** a11y doc **and** no `accessibility` / `a11y` / `aria` / `screen reader` / `wcag` mention in `CONTRIBUTING.md`. | `low` |
+
+Trigger example: `?rules=a11y#/audit/facebook/react` surfaces the
+tooling + docs findings. `?rules=a11y#/audit/some/cli-only-repo`
+is a no-op because the UI-framework gate isn't satisfied.
+
+### `?rules=i18n` — Internationalisation
+
+Surfaces signals about whether a repository is set up for
+international audiences.
+
+| Rule ID | Triggers when… | Severity |
+|---|---|:--:|
+| `i18n-libraries` | `package.json` (any dep scope) declares one of: `i18next`, `react-i18next`, `next-i18next`, `i18next-browser-languagedetector`, `next-intl`, `react-intl`, `@formatjs/intl`, `formatjs`, `@lingui/core`, `@lingui/react`, `@lingui/macro`, `lingui`, `vue-i18n`, `@nuxtjs/i18n`, `nuxt-i18n`, `svelte-i18n`, `polyglot`, `node-polyglot`, `node-gettext`, `gettext-parser`, `i18n`, `rosetta`. | `info` |
+| `i18n-locale-coverage` | Locale codes are extracted from files in conventional locale folders (`locales/`, `locale/`, `i18n/`, `messages/`, `translations/`, `lang/`, `langs/`, `translation/`). Recognises `.po`, `.pot`, `.mo`, `.xliff`, `.xlf`, `.arb`, `.properties`, plus JSON / YAML when the basename is an ISO 639-1 code. | `info` |
+| `i18n-readme-translations` | Alternate README files exist at the repo root: `README.de.md`, `README_ja.md`, `README-zh.md`, etc. Nested READMEs (`packages/foo/README.de.md`) are skipped because they're usually package docs, not translations. | `info` |
+| `i18n-no-setup` | The repo ships a `package.json` but no i18n library, no locale folder, and no translated README. | `low` |
+| `i18n-readme-english-only` | The repo HAS an i18n library or non-English locales but ships an English-only README. | `low` |
+
+Trigger example: `?rules=i18n#/audit/i18next/i18next` surfaces
+library + locale-coverage findings. `?rules=i18n#/audit/some/empty-repo`
+is a no-op.
+
+### `?rules=ts` — TypeScript strictness
+
+Reads `tsconfig.json` (JSONC tolerant — comments + trailing commas
+stripped before parsing) and reports on the project's effective
+strictness posture.
+
+| Rule ID | Triggers when… | Severity |
+|---|---|:--:|
+| `ts-no-tsconfig` | The repo contains `.ts` files or has `typescript` in deps, but no `tsconfig.json` at the root. | `low` |
+| `ts-strict-on` | `compilerOptions.strict` is `true`. Lists any explicit per-family disables (e.g. `"strict": true, "strictNullChecks": false`). | `info` |
+| `ts-strict-off` | `strict` is missing **and** no individual strict-family flag is set. TypeScript runs in its loosest mode. | `medium` |
+| `ts-strict-partial` | Some strict-family flags are enabled individually but not `"strict": true`. Lists which. | `low` |
+| `ts-extra-strict-on` | Any of the modern recommended extras is enabled: `noUncheckedIndexedAccess`, `noImplicitOverride`, `exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noImplicitReturns`. | `info` |
+| `ts-extra-strict-suggest` | `strict: true` is on but none of the extras above are. Soft nudge. | `low` |
+
+Note: `extends` chains are **not** resolved. A tsconfig that
+defers strictness to `@tsconfig/strictest` reads here as
+"strict not explicit" — surfaced honestly rather than guessed.
+
+Trigger example: `?rules=ts#/audit/microsoft/typescript` shows
+strict-on + extras-suggest. `?rules=ts#/audit/some/python-repo`
+is a no-op because there are no TS files and no tsconfig.
+
+### `?rules=monorepo` — Monorepo health
+
+Surfaces monorepo structure + orchestrator signals.
+
+| Rule ID | Triggers when… | Severity |
+|---|---|:--:|
+| `monorepo-detected` | Any unambiguous monorepo signal: a `workspaces` field in `package.json` (array or `{packages: […]}` form), a `pnpm-workspace.yaml`, an orchestrator config file, or multiple inner `package.json` files under `packages/` / `apps/`. | `info` |
+| `monorepo-no-orchestrator` | Workspaces declared but no `turbo.json`, `nx.json`, `lerna.json`, `rush.json`, or `moon.yml`. Without one, cross-package builds run sequentially with no caching. | `low` |
+| `monorepo-packages-not-declared` | Inner `package.json` files under `packages/` or `apps/` exist but the root has no `workspaces` field **and** no `pnpm-workspace.yaml`. The package manager isn't linking them. | `low` |
+| `monorepo-multiple-orchestrators` | Two or more orchestrator config files (e.g. `turbo.json` + `nx.json`). Usually an unfinished migration. | `low` |
+| `monorepo-changesets-detected` | The `.changeset/` folder is present at the repo root. | `info` |
+
+Inner-package walk matches `packages/*/package.json` and
+`apps/*/package.json` **one level deep only** — nested
+`packages/foo/sub/package.json` is correctly skipped.
+
+Trigger example: `?rules=monorepo#/audit/vercel/turbo` surfaces
+detected + changesets findings. `?rules=monorepo#/audit/some/single-package-repo`
+is a no-op.
+
+---
+
 ## Operating constraints (also baked into every rule)
 
 Every rule above conforms to the four constraints that define the
