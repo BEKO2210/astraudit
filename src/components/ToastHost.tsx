@@ -36,6 +36,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useTranslation } from "../lib/i18n";
 import {
   dismissAll,
   dismissToast,
@@ -66,6 +67,7 @@ const TONE_CLASS: Record<ToastTone, string> = {
 };
 
 export function ToastHost() {
+  const { t } = useTranslation();
   // Force-update once any toast list change arrives. We keep the latest
   // snapshot in a ref so the global keyboard / visibility handlers can
   // read it without stale-closure surprises.
@@ -128,7 +130,7 @@ export function ToastHost() {
   return (
     <div
       role="region"
-      aria-label="Notifications"
+      aria-label={t("toast.regionLabel")}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onFocus={onFocus}
@@ -143,6 +145,7 @@ export function ToastHost() {
 }
 
 function ToastItem({ toast }: { toast: Toast }) {
+  const { t } = useTranslation();
   const Icon = TONE_ICON[toast.tone];
   const isAssertive = toast.tone === "warn" || toast.tone === "error";
 
@@ -181,7 +184,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       <button
         type="button"
         onClick={() => dismissToast(toast.id)}
-        aria-label="Dismiss notification"
+        aria-label={t("toast.dismiss")}
         // Phase 5.2 — was p-1 + h-3 = 20×20 px (under WCAG 2.5.8's
         // 24×24 floor). Bumped to p-1.5 + h-3.5 = 26×26.
         className="shrink-0 rounded-md p-1.5 text-slate-500 transition hover:bg-white/5 hover:text-white"

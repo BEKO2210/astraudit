@@ -116,6 +116,32 @@ export interface Catalog {
   "toast.share.copied": string;
   "toast.share.error": string;
   "toast.share.errorDetail": string;
+  // Findings panel + card + Toast region (M4.3 slice 4).
+  "panel.findings.title": string;
+  "panel.findings.empty": string;
+  "severity.all": string;
+  "severity.critical": string;
+  "severity.high": string;
+  "severity.medium": string;
+  "severity.low": string;
+  "severity.info": string;
+  "category.all": string;
+  "category.security": string;
+  "category.documentation": string;
+  "category.quality": string;
+  "category.ci": string;
+  "category.structure": string;
+  "category.ecosystem": string;
+  "category.maintenance": string;
+  "category.dx": string;
+  "finding.confidenceLabel": string;
+  "finding.evidenceLabel": string;
+  "finding.recommendationLabel": string;
+  "finding.copyDeepLink": string;
+  "finding.copyPath": string;
+  "finding.copyAllPaths": string;
+  "toast.regionLabel": string;
+  "toast.dismiss": string;
 }
 
 /**
