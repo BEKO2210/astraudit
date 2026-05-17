@@ -39,6 +39,18 @@ export type {
 // --- Input parsing ---------------------------------------------------------
 export { parseRepoInput } from "./lib/github/parseRepoInput";
 
+// --- Stack-mate discovery (M4.1) ------------------------------------------
+export {
+  discoverStackMates,
+  buildSearchQuery as buildStackMateQuery,
+  rankCandidate as rankStackMate,
+} from "./lib/github/discoverStackMates";
+export type {
+  StackMateBase,
+  StackMate,
+  DiscoverOptions as StackMateDiscoverOptions,
+} from "./lib/github/discoverStackMates";
+
 // --- Error classes (consumers branch on these for UX wiring) --------------
 export {
   GithubError,
