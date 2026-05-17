@@ -79,6 +79,29 @@ const JA: Catalog = {
   "onboarding.pillOptional": "任意",
   "onboarding.pillRecommended": "推奨",
   "onboarding.copyCommand": "コマンドをコピー",
+  // M4.3 slice 3 — ReviewDashboard verdict header
+  "dashboard.verdictBadge": "Astraudit の判定",
+  "dashboard.actions.similar": "類似リポジトリ",
+  "dashboard.actions.compare": "比較する…",
+  "dashboard.actions.compareDisabledTip":
+    "比較を有効にするには別の監査を実行してください",
+  "dashboard.actions.reaudit": "再監査",
+  "dashboard.actions.reauditTitle":
+    "キャッシュされたバンドルを破棄して GitHub から再取得します。デプロイ後やダッシュボードが古いスコアを表示している場合に便利です。",
+  "dashboard.actions.simpleMode": "シンプルモード",
+  "dashboard.actions.simpleModeTitle":
+    "簡略化された表示: スコア、平易な言葉での判定、上位3つの強みと弱点。",
+  "dashboard.actions.badge": "バッジ",
+  "dashboard.actions.copyVerdict": "判定をコピー",
+  "dashboard.meta.generated": "生成日時",
+  "dashboard.meta.findingsLabel": "検出",
+  "dashboard.meta.recommendationsLabel": "推奨される次のステップ",
+  "dashboard.fab.share": "共有",
+  "dashboard.fab.print": "PDF として保存",
+  "dashboard.fab.compare": "比較",
+  "toast.share.copied": "リンクをクリップボードにコピーしました",
+  "toast.share.error": "共有リンクをコピーできませんでした",
+  "toast.share.errorDetail": "完全な URL はアドレスバーに表示されています。",
 };
 
 export default JA;

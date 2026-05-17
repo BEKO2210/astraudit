@@ -75,6 +75,29 @@ const DE: Catalog = {
   "onboarding.pillOptional": "optional",
   "onboarding.pillRecommended": "empfohlen",
   "onboarding.copyCommand": "Befehl kopieren",
+  // M4.3 slice 3 — ReviewDashboard verdict header
+  "dashboard.verdictBadge": "Astraudit‑Urteil",
+  "dashboard.actions.similar": "Ähnliche Repos",
+  "dashboard.actions.compare": "Vergleichen mit…",
+  "dashboard.actions.compareDisabledTip":
+    "Weiteres Audit ausführen, um Vergleich zu aktivieren",
+  "dashboard.actions.reaudit": "Neu auditieren",
+  "dashboard.actions.reauditTitle":
+    "Cache‑Bundle verwerfen und neu von GitHub laden. Nützlich nach einem Deploy oder wenn das Dashboard einen veralteten Score zeigt.",
+  "dashboard.actions.simpleMode": "Einfacher Modus",
+  "dashboard.actions.simpleModeTitle":
+    "Reduzierte Ansicht zeigen: Score, Klartext‑Urteil, Top‑3 Stärken + Schwächen.",
+  "dashboard.actions.badge": "Badge",
+  "dashboard.actions.copyVerdict": "Urteil kopieren",
+  "dashboard.meta.generated": "Erstellt",
+  "dashboard.meta.findingsLabel": "Funde",
+  "dashboard.meta.recommendationsLabel": "Empfohlene nächste Schritte",
+  "dashboard.fab.share": "Teilen",
+  "dashboard.fab.print": "Als PDF speichern",
+  "dashboard.fab.compare": "Vergleichen",
+  "toast.share.copied": "Link in die Zwischenablage kopiert",
+  "toast.share.error": "Share‑Link konnte nicht kopiert werden",
+  "toast.share.errorDetail": "Die vollständige URL steht in deiner Adressleiste.",
 };
 
 export default DE;

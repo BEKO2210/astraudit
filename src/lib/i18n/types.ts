@@ -96,6 +96,26 @@ export interface Catalog {
   "onboarding.pillOptional": string;
   "onboarding.pillRecommended": string;
   "onboarding.copyCommand": string;
+  // ReviewDashboard verdict header + action buttons (M4.3 slice 3).
+  "dashboard.verdictBadge": string;
+  "dashboard.actions.similar": string;
+  "dashboard.actions.compare": string;
+  "dashboard.actions.compareDisabledTip": string;
+  "dashboard.actions.reaudit": string;
+  "dashboard.actions.reauditTitle": string;
+  "dashboard.actions.simpleMode": string;
+  "dashboard.actions.simpleModeTitle": string;
+  "dashboard.actions.badge": string;
+  "dashboard.actions.copyVerdict": string;
+  "dashboard.meta.generated": string;
+  "dashboard.meta.findingsLabel": string;
+  "dashboard.meta.recommendationsLabel": string;
+  "dashboard.fab.share": string;
+  "dashboard.fab.print": string;
+  "dashboard.fab.compare": string;
+  "toast.share.copied": string;
+  "toast.share.error": string;
+  "toast.share.errorDetail": string;
 }
 
 /**

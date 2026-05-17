@@ -74,6 +74,29 @@ export const EN: Catalog = {
   "onboarding.pillOptional": "optional",
   "onboarding.pillRecommended": "recommended",
   "onboarding.copyCommand": "Copy command",
+  // M4.3 slice 3 — ReviewDashboard verdict header
+  "dashboard.verdictBadge": "Astraudit verdict",
+  "dashboard.actions.similar": "Similar repos",
+  "dashboard.actions.compare": "Compare with…",
+  "dashboard.actions.compareDisabledTip":
+    "Run another audit to enable comparison",
+  "dashboard.actions.reaudit": "Re‑audit",
+  "dashboard.actions.reauditTitle":
+    "Drop the cached bundle and re‑fetch from GitHub. Useful after a deploy or when the dashboard shows a stale score.",
+  "dashboard.actions.simpleMode": "Simple mode",
+  "dashboard.actions.simpleModeTitle":
+    "Show a stripped‑down view: score, plain‑language verdict, top three strengths and gaps.",
+  "dashboard.actions.badge": "Badge",
+  "dashboard.actions.copyVerdict": "Copy verdict",
+  "dashboard.meta.generated": "Generated",
+  "dashboard.meta.findingsLabel": "Findings",
+  "dashboard.meta.recommendationsLabel": "Recommended next steps",
+  "dashboard.fab.share": "Share",
+  "dashboard.fab.print": "Save as PDF",
+  "dashboard.fab.compare": "Compare",
+  "toast.share.copied": "Link copied to clipboard",
+  "toast.share.error": "Could not copy the share link",
+  "toast.share.errorDetail": "The full URL is in your address bar.",
 };
 
 export default EN;
