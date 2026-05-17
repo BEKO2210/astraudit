@@ -25,17 +25,18 @@ import { serialiseEnabledPacks } from "./rulePacks/parseRules";
 import { runI18nPack } from "./rulePacks/packs/i18n";
 import { runTsPack } from "./rulePacks/packs/ts";
 import { runA11yPack } from "./rulePacks/packs/a11y";
+import { runMonorepoPack } from "./rulePacks/packs/monorepo";
 
 /**
  * Roadmap M5.x — opt‑in pack registry. Each entry's `run`
  * appends additional findings when the pack is enabled. Default
  * audits skip every pack so the canonical scoring stays stable.
- * Future slices land more entries here as the packs grow.
  */
-const PACK_RUNNERS: Partial<Record<RulePackId, RulePackRunner>> = {
+const PACK_RUNNERS: Record<RulePackId, RulePackRunner> = {
   i18n: runI18nPack,
   ts: runTsPack,
   a11y: runA11yPack,
+  monorepo: runMonorepoPack,
 };
 
 const STEP_LABELS: Record<AuditProgressStep, string> = {
