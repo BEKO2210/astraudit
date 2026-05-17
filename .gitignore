@@ -36,3 +36,7 @@ test-results
 # document how to regenerate.
 public/press/screenshots/
 
+# Roadmap M2.1 (3/3) — one-pager PDF regenerated via
+# `npm run press:pdf`. Binary output, no value in git history.
+public/press/one-pager.pdf
+
