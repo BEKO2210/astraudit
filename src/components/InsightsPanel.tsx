@@ -98,7 +98,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <Card
           icon={Calendar}
-          label="Project age"
+          label={t("insights.projectAge")}
           value={insights.formattedAge}
           accent={
             insights.ageBucket === "veteran" || insights.ageBucket === "mature"
@@ -111,7 +111,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Star}
-          label="Star momentum"
+          label={t("insights.starMomentum")}
           value={
             insights.starsPerMonth !== null
               ? `${insights.starsPerMonth.toLocaleString("en-US")} / month`
@@ -121,7 +121,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Activity}
-          label="Push freshness"
+          label={t("insights.pushFreshness")}
           value={
             insights.daysSincePush !== null
               ? formatRelative(new Date(Date.now() - insights.daysSincePush * 86400000).toISOString())
@@ -132,7 +132,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={GitCommitVertical}
-          label="Commit cadence"
+          label={t("insights.commitCadence")}
           value={
             insights.commits.cadenceDays !== null
               ? `${insights.commits.cadenceDays} d apart`
@@ -142,7 +142,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Users}
-          label="Recent authors"
+          label={t("insights.recentAuthors")}
           value={
             insights.commits.uniqueAuthors > 0
               ? formatNumber(insights.commits.uniqueAuthors)
@@ -159,7 +159,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Tag}
-          label="Release rhythm"
+          label={t("insights.releaseRhythm")}
           value={
             insights.releases.count > 0
               ? `${insights.releases.count} tagged · ${insights.releases.rhythm}`
@@ -175,7 +175,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={CircleDot}
-          label="Open queue"
+          label={t("insights.openQueue")}
           value={`${formatNumber(insights.commits.uniqueAuthors)}`}
           customValue={
             <div>
@@ -191,7 +191,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Languages}
-          label="Language mix"
+          label={t("insights.languageMix")}
           value={`${insights.primaryLanguageShare}% primary`}
           sub={
             insights.diversityBucket === "polyglot"
@@ -203,13 +203,13 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={Layers3}
-          label="File tree shape"
+          label={t("insights.fileTreeShape")}
           value={`${formatNumber(insights.tree.totalFiles)} files`}
           sub={`Depth ~${insights.tree.averageDepth} avg, max ${insights.tree.maxDepth} · ${insights.tree.rootDensity} root`}
         />
         <Card
           icon={Rocket}
-          label="CI/CD profile"
+          label={t("insights.ciProfile")}
           value={
             insights.workflows.providers.length > 0
               ? insights.workflows.providers
@@ -236,7 +236,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.dependabot && insights.dependabot.updates.length > 0 ? (
           <Card
             icon={Bot}
-            label="Dependabot coverage"
+            label={t("insights.dependabotCoverage")}
             value={buildDependabotValue(insights.dependabot.updates)}
             sub={buildDependabotSub(insights.dependabot)}
           />
@@ -244,7 +244,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.codeowners && insights.codeowners.rules.length > 0 ? (
           <Card
             icon={Users}
-            label="Code ownership"
+            label={t("insights.codeOwnership")}
             value={buildCodeownersValue(insights.codeowners)}
             sub={buildCodeownersSub(insights.codeowners)}
           />
@@ -252,7 +252,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.securityPolicy ? (
           <Card
             icon={ShieldCheck}
-            label="Security policy"
+            label={t("insights.securityPolicy")}
             value={buildSecurityPolicyValue(insights.securityPolicy)}
             sub={buildSecurityPolicySub(insights.securityPolicy)}
           />
@@ -260,7 +260,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.manifest ? (
           <Card
             icon={Layers3}
-            label="Runtime contract"
+            label={t("insights.runtimeContract")}
             value={buildManifestValue(insights.manifest)}
             sub={buildManifestSub(insights.manifest)}
             accent={
@@ -276,7 +276,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.changelog ? (
           <Card
             icon={Calendar}
-            label="CHANGELOG cadence"
+            label={t("insights.changelogCadence")}
             value={buildChangelogValue(insights.changelog)}
             sub={buildChangelogSub(insights.changelog)}
             accent={
@@ -291,7 +291,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         ) : null}
         <Card
           icon={ShieldCheck}
-          label="Trust signal score"
+          label={t("insights.trustSignalScore")}
           value={`${insights.trustScore}/100`}
           accent={
             insights.trustScore >= 75
@@ -310,7 +310,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         />
         <Card
           icon={FileText}
-          label="README footprint"
+          label={t("insights.readmeFootprint")}
           value={
             insights.readme.exists
               ? `${insights.readme.words.toLocaleString("en-US")} words`
@@ -325,7 +325,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.releases.daysSinceLatest !== null ? (
           <Card
             icon={Clock4}
-            label="Last release"
+            label={t("insights.lastRelease")}
             value={`${insights.releases.daysSinceLatest} days ago`}
             sub={insights.releases.latestTag ? `Tag: ${insights.releases.latestTag}` : "—"}
           />
@@ -333,7 +333,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.tree.topExtensions.length > 0 ? (
           <Card
             icon={Library}
-            label="Top file types"
+            label={t("insights.topFileTypes")}
             value={`${insights.tree.topExtensions[0].ext.toUpperCase()} dominant`}
             sub={insights.tree.topExtensions
               .slice(0, 4)
@@ -344,7 +344,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {insights.topicSignals.length > 0 ? (
           <Card
             icon={Sparkles}
-            label="Topic signals"
+            label={t("insights.topicSignals")}
             value={insights.topicSignals.join(", ")}
             sub="Inferred from repository topics"
           />
@@ -352,7 +352,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {stack.aiDevTools.length > 0 ? (
           <Card
             icon={Bot}
-            label="AI / agent tooling"
+            label={t("insights.aiAgentTooling")}
             value={stack.aiDevTools.slice(0, 3).join(", ") +
               (stack.aiDevTools.length > 3 ? ` + ${stack.aiDevTools.length - 3}` : "")}
             sub="Detected from config files committed to the repository."
@@ -362,7 +362,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {stack.envManagers.length > 0 ? (
           <Card
             icon={Wrench}
-            label="Toolchain pinning"
+            label={t("insights.toolchainPinning")}
             value={stack.envManagers.slice(0, 3).join(", ") +
               (stack.envManagers.length > 3 ? ` + ${stack.envManagers.length - 3}` : "")}
             sub="Reproducible local environment via mise / asdf / Nix / Dev Containers etc."
@@ -371,7 +371,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
         {stack.sboms.length > 0 ? (
           <Card
             icon={ClipboardCheck}
-            label="Supply chain transparency"
+            label={t("insights.supplyChainTransparency")}
             value={`${stack.sboms.length} SBOM file${stack.sboms.length === 1 ? "" : "s"}`}
             sub={stack.sboms.slice(0, 3).join(", ")}
             accent="text-aurora-mint"

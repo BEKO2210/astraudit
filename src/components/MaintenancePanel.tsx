@@ -19,9 +19,9 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <Card title="Last push" value={formatRelative(bundle.metadata.pushedAt)} sub={formatDate(bundle.metadata.pushedAt)} />
+        <Card title={t("maintenance.cardLastPush")} value={formatRelative(bundle.metadata.pushedAt)} sub={formatDate(bundle.metadata.pushedAt)} />
         <Card
-          title="Releases"
+          title={t("maintenance.cardReleases")}
           value={String(bundle.releases.length)}
           sub={
             bundle.releases[0]?.tagName
@@ -30,7 +30,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
           }
         />
         <Card
-          title="Open issues"
+          title={t("maintenance.cardOpenIssues")}
           value={String(bundle.issues.openIssueCount)}
           sub={
             bundle.issues.openPRCount !== null
@@ -46,7 +46,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
 
       {bundle.recentCommits.length > 0 ? (
         <div className="mt-5">
-          <h4 className="card-title">Recent commits</h4>
+          <h4 className="card-title">{t("maintenance.headingRecentCommits")}</h4>
           <ul className="mt-2 space-y-1.5">
             {bundle.recentCommits.slice(0, 6).map((c) => (
               <li
@@ -61,7 +61,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
                     {c.authorName ?? "Unknown"} · {formatRelative(c.authorDate)}
                   </p>
                 </div>
-                <CopyButton value={c.sha} label="Copy commit SHA" />
+                <CopyButton value={c.sha} label={t("maintenance.copyCommitSha")} />
               </li>
             ))}
           </ul>
@@ -70,7 +70,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
 
       {bundle.releases.length > 0 ? (
         <div className="mt-5">
-          <h4 className="card-title">Releases</h4>
+          <h4 className="card-title">{t("maintenance.cardReleases")}</h4>
           <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
             {bundle.releases.slice(0, 6).map((r) => (
               <li
@@ -84,7 +84,7 @@ export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
                 <span className="shrink-0 text-[11px] text-slate-500">
                   {formatRelative(r.publishedAt)}
                 </span>
-                <CopyButton value={r.tagName} label="Copy tag" />
+                <CopyButton value={r.tagName} label={t("maintenance.copyTag")} />
               </li>
             ))}
           </ul>

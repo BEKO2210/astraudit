@@ -165,7 +165,7 @@ export function StickyScoreBar({
               </button>
             ) : (
               <Tooltip
-                label="Run another audit to enable comparison"
+                label={t("dashboard.actions.compareDisabledTip")}
                 placement="bottom"
                 describe
               >
@@ -195,7 +195,7 @@ export function StickyScoreBar({
               Badge
             </button>
           ) : null}
-          <CopyButton value={verdictPlain} label="Copy verdict" />
+          <CopyButton value={verdictPlain} label={t("dashboard.actions.copyVerdict")} />
           <PrintButton />
         </div>
       </div>

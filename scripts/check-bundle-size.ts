@@ -50,8 +50,11 @@ const BUDGETS: Budget[] = [
   // BadgeDialog / CompareDashboard / CommandPalette / legal pages.
   // 2026-05 dep bump (React 19.2 + reactflow 11.11 + markdown-it 14.1 +
   // friends) raised the post-build size to ~549 KB; ceiling lifted to
-  // 570 KB to absorb the new baseline plus ~4% normal drift.
-  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 570 * 1024 },
+  // 570 KB to absorb the new baseline plus ~4% normal drift. M4.3
+  // slice 6b finished the SPA‑shell i18n sweep (EN/DE/JA catalogs +
+  // ~30 extra translated panel strings landed in App.tsx/components),
+  // pushing the main chunk to ~571 KB. Ceiling raised to 580 KB.
+  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 580 * 1024 },
   // AuditGraph is React Flow's lazy chunk — Phase 4.4 split it out so
   // it doesn't load until the user enters the dashboard.
   { label: "AuditGraph chunk (React Flow)", prefix: "AuditGraph-", suffix: ".js", maxBytes: 175 * 1024 },

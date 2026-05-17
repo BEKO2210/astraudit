@@ -28,10 +28,11 @@ export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputP
             type="text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Paste a GitHub repository URL or owner/repo..."
+            placeholder={t("input.repoPlaceholder")}
             spellCheck={false}
             autoComplete="off"
             inputMode="url"
+            data-astraudit-repo-input=""
             className="w-full rounded-md bg-transparent py-3 text-base text-white placeholder:text-slate-500"
             aria-label={t("input.repoAria")}
             aria-invalid={error ? true : undefined}
