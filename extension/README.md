@@ -30,23 +30,55 @@ via `npm run build:ext`).
 
 ```bash
 npm run build:ext
-# → dist-extension/manifest.json
-# → dist-extension/service-worker.js   (ESM, ~1 KB)
-# → dist-extension/content-script.js   (IIFE, ~2 KB)
-# → dist-extension/icons/{16,48,128}.png
-# → dist-extension/astraudit-extension.zip  (store upload)
+# → dist-extension/chrome/         + chrome.zip
+# → dist-extension/firefox/        + firefox.zip
+# → dist-extension/safari-source/  (input for the macOS converter)
 ```
 
-## Load unpacked (Chrome / Edge / Brave / Arc)
+One source tree, three per‑browser fan‑outs. Bundles + icons are
+byte‑identical across the three; only `manifest.json` differs
+(Firefox adds `browser_specific_settings.gecko`; Chrome strips
+it; Safari uses the Chrome shape because the converter ingests
+that layout).
+
+## Load unpacked
+
+### Chrome / Edge / Brave / Arc (M3.4)
 
 1. `chrome://extensions` → toggle *Developer mode* on.
-2. *Load unpacked* → select `dist-extension/`.
+2. *Load unpacked* → select `dist-extension/chrome/`.
 3. Open any GitHub repo page (e.g. `github.com/facebook/react`).
 4. Open the page's DevTools console — you should see
    `[Astraudit] content script ready on facebook/react`.
 5. Open the extension's *Inspect views: service worker* link to
    verify the SW logs `service worker installed: install` (first
    load) or `update` (subsequent reloads).
+
+### Firefox 128+ (M3.4)
+
+1. `about:debugging` → *This Firefox* → *Load Temporary Add‑on*.
+2. Select `dist-extension/firefox/manifest.json`.
+3. Same DevTools verification as Chrome above. Temporary add‑ons
+   reload on every Firefox restart; signed `.xpi` (AMO upload) is
+   the long‑term path.
+
+### Safari 17+ (M3.4 source / M3.5 store submission)
+
+The Safari toolchain is **macOS‑only** and requires Xcode 16+.
+The repo's build script only prepares the *source* directory; the
+actual conversion is a maintainer step:
+
+```bash
+xcrun safari-web-extension-converter \
+  dist-extension/safari-source \
+  --bundle-identifier io.github.beko2210.astraudit \
+  --no-prompt --force
+```
+
+The converter spits out an Xcode project; building it produces a
+Safari App Extension wrapper that can be sideloaded via the
+*Develop* menu or submitted to the App Store via App Store
+Connect.
 
 ## What this version does
 
