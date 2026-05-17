@@ -1,5 +1,6 @@
 import { ArrowRight, Loader2, Search } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "../lib/i18n";
 
 interface RepoInputProps {
   onSubmit: (input: string) => void;
@@ -9,6 +10,7 @@ interface RepoInputProps {
 }
 
 export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(initialValue ?? "");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -31,7 +33,7 @@ export function RepoInput({ onSubmit, loading, initialValue, error }: RepoInputP
             autoComplete="off"
             inputMode="url"
             className="w-full rounded-md bg-transparent py-3 text-base text-white placeholder:text-slate-500"
-            aria-label="GitHub repository URL"
+            aria-label={t("input.repoAria")}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "repo-input-error" : undefined}
           />

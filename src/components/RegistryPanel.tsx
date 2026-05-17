@@ -50,6 +50,7 @@ import {
   type LicenseFindingTone,
 } from "../lib/audit/licenseClassifier";
 import type { ImportantFile } from "../types/github";
+import { useTranslation } from "../lib/i18n";
 
 interface Props {
   manifest: ParsedManifest | null;
@@ -142,6 +143,7 @@ function buildRequests(
 /* -------------------------------------------------------------------------- */
 
 export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) {
+  const { t } = useTranslation();
   const requests = useMemo(
     () => buildRequests(manifest, importantFiles),
     [manifest, importantFiles],
@@ -213,14 +215,14 @@ export function RegistryPanel({ manifest, importantFiles, repoLicense }: Props) 
   return (
     <section
       id="registry"
-      aria-label="Public registry lookups"
+      aria-label={t("registry.aria")}
       className="glass mt-6 p-5 sm:p-6"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-aurora-cyan" />
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
-            Registry signals
+            {t("panel.registry")}
           </h2>
         </div>
         <span className="ml-auto text-[11px] text-slate-400">

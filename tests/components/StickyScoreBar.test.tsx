@@ -11,6 +11,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { __test, StickyScoreBar } from "../../src/components/StickyScoreBar";
+import { I18nProvider } from "../../src/lib/i18n";
 import { runAudit } from "../../src/lib/audit/auditEngine";
 import { makeBundle } from "../fixtures/builders";
 
@@ -39,7 +40,11 @@ describe("StickyScoreBar render", () => {
         readmeContent: "# Demo\n## Installation\nnpm install",
       }),
     );
-    const html = renderToStaticMarkup(<StickyScoreBar result={result} />);
+    const html = renderToStaticMarkup(
+      <I18nProvider initialLocale="en">
+        <StickyScoreBar result={result} />
+      </I18nProvider>,
+    );
     expect(html.startsWith("<div")).toBe(true);
     expect(html).toContain('role="region"');
     expect(html).toContain('aria-label="Audit summary"');

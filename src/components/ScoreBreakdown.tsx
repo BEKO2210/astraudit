@@ -1,5 +1,6 @@
 import { ChevronRight, Info } from "lucide-react";
 import type { CategoryScore } from "../types/audit";
+import { useTranslation } from "../lib/i18n";
 
 interface ScoreBreakdownProps {
   categories: CategoryScore[];
@@ -147,10 +148,11 @@ const RULES_BY_CATEGORY: Record<string, RuleEntry[]> = {
 };
 
 export function ScoreBreakdown({ categories }: ScoreBreakdownProps) {
+  const { t } = useTranslation();
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Score breakdown</h3>
+        <h3 className="text-sm font-semibold text-white">{t("panel.scoreBreakdown")}</h3>
         <p className="text-xs text-slate-500">
           Eight categories · 100 max points
         </p>

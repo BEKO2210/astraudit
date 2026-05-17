@@ -265,6 +265,39 @@ export interface Catalog {
   "palette.groupTheme": string;
   "palette.groupHistory": string;
   "palette.groupExamples": string;
+  // Panel headings + small components (M4.3 slice 6a).
+  "panel.auditGraph": string;
+  "panel.signals": string;
+  "panel.signalsSubtitle": string;
+  "panel.repoStory": string;
+  "panel.repoStorySubtitle": string;
+  "panel.insights": string;
+  "panel.scoreBreakdown": string;
+  "panel.registry": string;
+  "panel.maintenance": string;
+  "panel.dependencies": string;
+  "footer.builtWith": string;
+  "examples.tryKnown": string;
+  "input.repoAria": string;
+  "graph.filterAria": string;
+  "graph.loadingAria": string;
+  "registry.aria": string;
+  "export.formatAria": string;
+  "sticky.summaryAria": string;
+  "sticky.badgeAria": string;
+  "heatmap.less": string;
+  "heatmap.more": string;
+  "recommendations.emptyTitle": string;
+  "recommendations.emptyBody": string;
+  "recommendations.copyAll": string;
+  "recommendations.subtitle": string;
+  "overview.archivedPill": string;
+  "overview.forkPill": string;
+  "overview.templatePill": string;
+  "overview.copyUrl": string;
+  "stackmates.close": string;
+  "compareDashboard.copySummary": string;
+  "compareDashboard.shared": string;
 }
 
 /**

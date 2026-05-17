@@ -42,6 +42,7 @@ import {
   type DayCell,
 } from "../lib/audit/activityHeatmap";
 import type { CommitInfo } from "../types/github";
+import { useTranslation } from "../lib/i18n";
 
 interface ActivityHeatmapProps {
   commits: CommitInfo[];
@@ -100,6 +101,7 @@ function formatDateLabel(iso: string): string {
 /* -------------------------------------------------------------------------- */
 
 export function ActivityHeatmap({ commits }: ActivityHeatmapProps) {
+  const { t } = useTranslation();
   const grid = useMemo(() => buildHeatmapGrid(commits), [commits]);
   const columns = useMemo(() => groupByColumn(grid.cells), [grid.cells]);
 
@@ -293,7 +295,7 @@ export function ActivityHeatmap({ commits }: ActivityHeatmapProps) {
           Tab into the grid, then use arrow keys to inspect any day.
         </p>
         <div className="flex items-center gap-1.5">
-          <span>Less</span>
+          <span>{t("heatmap.less")}</span>
           {([0, 1, 2, 3, 4] as const).map((i) => (
             <span
               key={i}
@@ -302,7 +304,7 @@ export function ActivityHeatmap({ commits }: ActivityHeatmapProps) {
               className={`h-2.5 w-2.5 rounded-[2px] ${INTENSITY_CLASS[i]}`}
             />
           ))}
-          <span>More</span>
+          <span>{t("heatmap.more")}</span>
         </div>
       </div>
     </div>

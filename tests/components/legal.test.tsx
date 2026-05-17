@@ -14,16 +14,25 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Footer } from "../../src/components/Footer";
 import { Impressum } from "../../src/components/legal/Impressum";
 import { Datenschutzerklaerung } from "../../src/components/legal/Datenschutzerklaerung";
+import { I18nProvider } from "../../src/lib/i18n";
 
 describe("Footer", () => {
+  // Roadmap M4.3 slice 6a — Footer now consumes useTranslation().
+  const renderFooter = () =>
+    renderToStaticMarkup(
+      <I18nProvider initialLocale="en">
+        <Footer />
+      </I18nProvider>,
+    );
+
   it("renders the Impressum link", () => {
-    const html = renderToStaticMarkup(<Footer />);
+    const html = renderFooter();
     expect(html).toMatch(/href="[^"]*#\/impressum"/);
     expect(html).toContain(">Impressum<");
   });
 
   it("renders the Datenschutz link", () => {
-    const html = renderToStaticMarkup(<Footer />);
+    const html = renderFooter();
     expect(html).toMatch(/href="[^"]*#\/datenschutz"/);
     expect(html).toContain(">Datenschutz<");
   });

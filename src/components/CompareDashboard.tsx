@@ -13,6 +13,7 @@ import type { CompareResult } from "../lib/compare/diff";
 import { performShare } from "../lib/share/shareAction";
 import { pushToast } from "../lib/ui/toastStore";
 import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
+import { useTranslation } from "../lib/i18n";
 import { CopyButton } from "./CopyButton";
 import { ShareButton } from "./ShareButton";
 import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
@@ -111,6 +112,7 @@ function CompareHeader({
   onReset: () => void;
   onOpenCompare: () => void;
 }) {
+  const { t } = useTranslation();
   const { left, right } = compare;
   const summaryText = `Compare · ${left.bundle.metadata.fullName} (${left.totalScore}) vs ${right.bundle.metadata.fullName} (${right.totalScore})`;
   return (
@@ -138,7 +140,7 @@ function CompareHeader({
               repo: left.bundle.metadata.name,
             }}
           />
-          <CopyButton value={summaryText} label="Copy summary" withText />
+          <CopyButton value={summaryText} label={t("compareDashboard.copySummary")} withText />
           <button
             type="button"
             onClick={onOpenCompare}

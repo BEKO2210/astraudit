@@ -46,6 +46,7 @@ import {
 import type { StackSignals } from "../types/audit";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { formatRelative } from "../lib/utils/formatDate";
+import { useTranslation } from "../lib/i18n";
 
 interface InsightsPanelProps {
   insights: DerivedInsights;
@@ -78,6 +79,7 @@ const CADENCE_TONE: Record<DerivedInsights["commits"]["bucket"], string> = {
 };
 
 export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
+  const { t } = useTranslation();
   const fresh = FRESHNESS_TONE[insights.freshnessBucket];
   const triage = TRIAGE_TONE[insights.triageHealth];
 
@@ -86,7 +88,7 @@ export function InsightsPanel({ insights, stack }: InsightsPanelProps) {
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Telescope className="h-4 w-4 text-aurora-cyan" />
-          <h3 className="text-sm font-semibold text-white">Repository insights</h3>
+          <h3 className="text-sm font-semibold text-white">{t("panel.insights")}</h3>
         </div>
         <span className="hidden text-xs text-slate-500 sm:block">
           Derived signals · {insights.audienceLabel}

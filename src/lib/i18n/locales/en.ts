@@ -257,6 +257,42 @@ export const EN: Catalog = {
   "palette.groupTheme": "Theme",
   "palette.groupHistory": "From your history",
   "palette.groupExamples": "Audit an example",
+  // M4.3 slice 6a — Panel headings + small components
+  "panel.auditGraph": "Audit graph",
+  "panel.signals": "Signal Details",
+  "panel.signalsSubtitle": "The eight signals that matter",
+  "panel.repoStory": "Repository story",
+  "panel.repoStorySubtitle":
+    "Generated from public metadata, files, and structure. No AI inference.",
+  "panel.insights": "Repository insights",
+  "panel.scoreBreakdown": "Score breakdown",
+  "panel.registry": "Registry signals",
+  "panel.maintenance": "Maintenance",
+  "panel.dependencies": "Dependencies & stack",
+  "footer.builtWith": "Built with Vite, React, and GitHub's public API.",
+  "examples.tryKnown": "Try a known public repository",
+  "input.repoAria": "GitHub repository URL",
+  "graph.filterAria": "Filter audit graph by status",
+  "graph.loadingAria": "Loading audit graph",
+  "registry.aria": "Public registry lookups",
+  "export.formatAria": "Export format",
+  "sticky.summaryAria": "Audit summary",
+  "sticky.badgeAria": "Generate badge",
+  "heatmap.less": "Less",
+  "heatmap.more": "More",
+  "recommendations.emptyTitle": "No recommended next steps",
+  "recommendations.emptyBody":
+    "Astraudit's rule‑based detectors didn't surface any prioritised improvements. That's the rare case where the audit thinks every tracked signal is already strong — keep an eye on the Findings panel for finer‑grained issues.",
+  "recommendations.copyAll": "Copy all steps",
+  "recommendations.subtitle":
+    "Seven prioritized improvements ordered by likely impact.",
+  "overview.archivedPill": "Archived",
+  "overview.forkPill": "Fork",
+  "overview.templatePill": "Template",
+  "overview.copyUrl": "Copy GitHub URL",
+  "stackmates.close": "Close",
+  "compareDashboard.copySummary": "Copy summary",
+  "compareDashboard.shared": "Shared",
 };
 
 export default EN;

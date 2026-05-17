@@ -35,6 +35,7 @@ import { CopyButton } from "./CopyButton";
 import { PrintButton } from "./PrintButton";
 import { ShareButton } from "./ShareButton";
 import { Tooltip } from "./ui/Tooltip";
+import { useTranslation } from "../lib/i18n";
 
 const STICKY_OFFSET_VAR = "--sticky-offset";
 const BAR_HEIGHT_PX = 48;
@@ -64,6 +65,7 @@ export function StickyScoreBar({
   onOpenBadge,
   observeId = "score",
 }: StickyScoreBarProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   // Observe the Score section. When it leaves the viewport upwards
@@ -111,7 +113,7 @@ export function StickyScoreBar({
   return (
     <div
       role="region"
-      aria-label="Audit summary"
+      aria-label={t("sticky.summaryAria")}
       data-visible={visible || undefined}
       aria-hidden={visible ? undefined : true}
       style={{ height: BAR_HEIGHT_PX }}
@@ -185,7 +187,7 @@ export function StickyScoreBar({
             <button
               type="button"
               onClick={onOpenBadge}
-              aria-label="Generate badge"
+              aria-label={t("sticky.badgeAria")}
               className="inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border border-aurora-mint/40 bg-aurora-mint/10 px-2.5 py-1 text-[11px] font-medium text-aurora-mint transition hover:bg-aurora-mint/20"
               tabIndex={visible ? 0 : -1}
             >
