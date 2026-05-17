@@ -1,0 +1,4 @@
+Real icons (icon-16.png, icon-48.png, icon-128.png) land here from
+the maintainer before M3.5 store submission. Until then,
+scripts/build-extension.ts drops 1×1 transparent placeholders into
+dist-extension/icons/ so the build doesn't fail on missing assets.

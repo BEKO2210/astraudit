@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Astraudit",
+  "short_name": "Astraudit",
+  "version": "0.1.0",
+  "description": "Map, score and explain any public GitHub repository — directly on the page. No backend, no signup, no AI inference.",
+  "homepage_url": "https://beko2210.github.io/astraudit/",
+  "author": "BEKO2210",
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "action": {
+    "default_title": "Open Astraudit",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "host_permissions": ["https://github.com/*", "https://api.github.com/*"]
+}
