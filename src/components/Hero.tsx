@@ -2,6 +2,8 @@ import { Bot, History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
 import { getStats as getHistoryStats } from "../lib/history/historyStore";
+import { useTranslation } from "../lib/i18n";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface HeroProps {
@@ -19,6 +21,7 @@ export function Hero({
   authTick,
   historyTick,
 }: HeroProps) {
+  const { t } = useTranslation();
   const [hasToken, setHasToken] = useState(false);
   const [prefix, setPrefix] = useState<string | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
@@ -47,7 +50,7 @@ export function Hero({
         <div className="flex min-w-0 items-center gap-2">
           <a
             href={`${import.meta.env.BASE_URL}#`}
-            aria-label="Astraudit home"
+            aria-label={t("header.homeAria")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-white/10 transition hover:ring-aurora-violet/40"
           >
             {/* WebP first, PNG fallback. Both files are 256×256 —
@@ -76,17 +79,18 @@ export function Hero({
               Astraudit
             </p>
             <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-              Repository intelligence
+              {t("header.brandSubtitle")}
             </p>
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
+          <LocaleSwitcher />
           {historyCount > 0 ? (
             <button
               type="button"
               onClick={onOpenHistory}
-              aria-label="Open audit history"
+              aria-label={t("header.openHistory")}
               title={`History: ${historyCount}${
                 favoritesCount > 0 ? ` · favorites: ${favoritesCount}` : ""
               }`}
@@ -114,15 +118,15 @@ export function Hero({
           // Phase 4.2.
           title={
             hasToken
-              ? `Authenticated GitHub PAT active${prefix ? ` — prefix ${prefix}` : ""}`
-              : "Using public GitHub rate limit (60 requests per hour)"
+              ? `${t("header.authTitle")}${prefix ? ` — prefix ${prefix}` : ""}`
+              : t("header.publicRateTitle")
           }
         >
           {hasToken ? (
             <>
               <Zap className="h-3 w-3 shrink-0" />
-              <span className="hidden sm:inline">Auth · 5k/h</span>
-              <span className="sm:hidden">Auth</span>
+              <span className="hidden sm:inline">{t("header.auth")}</span>
+              <span className="sm:hidden">{t("header.authShort")}</span>
               {prefix ? (
                 <span className="hidden font-mono md:inline">{prefix}…</span>
               ) : null}
@@ -130,8 +134,8 @@ export function Hero({
           ) : (
             <>
               <Settings className="h-3 w-3 shrink-0" />
-              <span className="hidden sm:inline">Settings · public 60/h</span>
-              <span className="sm:hidden">Settings</span>
+              <span className="hidden sm:inline">{t("header.settings")}</span>
+              <span className="sm:hidden">{t("header.settingsShort")}</span>
             </>
           )}
         </button>
@@ -141,7 +145,7 @@ export function Hero({
       <div className="mt-10 max-w-3xl">
         <span className="pill">
           <ShieldCheck className="h-3.5 w-3.5 text-aurora-mint" />
-          Browser-only · No code execution
+          {t("header.pillBrowserOnly")}
         </span>
         {/* Phase 5.x — hero copy refocused on the user's decision
             moment ("should I trust this repo?") rather than the
@@ -172,24 +176,26 @@ export function Hero({
       <div className="mt-8 flex flex-wrap gap-3 text-xs text-slate-400">
         <span className="pill">
           <Workflow className="h-3.5 w-3.5 text-aurora-cyan" />
-          Static analysis only
+          {t("header.pillStatic")}
         </span>
         <span className="pill">
           <ShieldCheck className="h-3.5 w-3.5 text-aurora-mint" />
-          Public repos only
+          {t("header.pillPublic")}
         </span>
         <span className="pill">
-          {hasToken ? "Local PAT · stays in your browser" : "Optional PAT · stored only locally"}
+          {hasToken
+            ? t("header.pillPatActive")
+            : t("header.pillPatOptional")}
         </span>
         <a
           href="https://github.com/BEKO2210/astraudit/blob/main/docs/mcp.md"
           target="_blank"
           rel="noreferrer"
           className="pill !py-1 transition hover:border-aurora-violet/40 hover:bg-aurora-violet/10 hover:text-aurora-violet"
-          title="Astraudit ships an MCP server so AI clients (Claude Desktop, Cursor, Zed, VS Code) can run audits as a native tool. Click for the walkthrough."
+          title={t("header.pillAiMcpTitle")}
         >
           <Bot className="h-3.5 w-3.5 text-aurora-violet" />
-          AI-ready · MCP
+          {t("header.pillAiMcp")}
         </a>
       </div>
     </header>

@@ -1,6 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+// Roadmap M4.3 — i18n provider lives above the app so every
+// component can call useTranslation(). EN is the synchronous
+// fallback during the first paint; the persisted locale's catalog
+// streams in via lazy import.
+import { I18nProvider } from "./lib/i18n";
 // Phase 6.33 — self-hosted fonts. Inter (400/500/600/700) and
 // JetBrains Mono (400/500) ship as woff2 files via @fontsource so we
 // can drop the Google Fonts CSS link, tighten the CSP (no third-party
@@ -27,6 +32,8 @@ import "./styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <App />
+    <I18nProvider>
+      <App />
+    </I18nProvider>
   </React.StrictMode>,
 );
