@@ -179,6 +179,44 @@ const DE: Catalog = {
   "settings.timeMinAgo": "Min. her",
   "settings.timeHourAgo": "Std. her",
   "settings.timeDayAgo": "Tg. her",
+  // M4.3 slice 5b — Shortcuts dialog
+  "shortcuts.close": "Schließen",
+  "shortcuts.title": "Tastaturkürzel",
+  "shortcuts.subtitle":
+    "Zwei‑Tasten‑Akkorde (\"g s\") erwarten beide Tasten innerhalb von ~1 Sekunde.",
+  "shortcuts.openPalette": "Command Palette öffnen",
+  "shortcuts.openPaletteWinLinux":
+    "Command Palette öffnen (Windows / Linux)",
+  "shortcuts.focusInput": "Fokus auf Repository‑Eingabe",
+  "shortcuts.showSheet": "Diese Übersicht anzeigen",
+  "shortcuts.closeDialog": "Aktiven Dialog schließen",
+  "shortcuts.jumpOverview": "Zur Übersicht springen",
+  "shortcuts.jumpScore": "Zum Score springen",
+  "shortcuts.jumpStory": "Zur Story springen",
+  "shortcuts.jumpReadme": "Zur README springen",
+  "shortcuts.jumpInsights": "Zu den Insights springen",
+  "shortcuts.jumpGraph": "Zum Graph springen",
+  "shortcuts.jumpFindings": "Zu den Funden springen",
+  "shortcuts.jumpStructure": "Zur Struktur springen (Code)",
+  "shortcuts.jumpStack": "Zum Stack springen",
+  "shortcuts.jumpMaintenance": "Zur Wartung springen",
+  "shortcuts.jumpOnboarding": "Zum Onboarding springen (Build)",
+  "shortcuts.jumpNext": "Zu den nächsten Schritten springen",
+  // M4.3 slice 5b — History dialog
+  "history.close": "Schließen",
+  "history.title": "Audit‑Verlauf",
+  "history.subtitle":
+    "Lokal gespeichert · Browser‑Daten löschen entfernt ihn.",
+  "history.tabFavorites": "Favoriten",
+  "history.tabRecent": "Zuletzt",
+  "history.clearAll": "Alle löschen",
+  "history.emptyFavorites":
+    "Noch keine Favoriten. Stern‑Symbol an einem Audit klicken, um es oben anzupinnen.",
+  "history.emptyRecent": "Noch keine Audits — dein Verlauf erscheint hier.",
+  "history.favorite": "Favorit",
+  "history.unfavorite": "Aus Favoriten entfernen",
+  "history.remove": "Aus Verlauf entfernen",
+  "history.toastCleared": "Audit‑Verlauf geleert",
 };
 
 export default DE;

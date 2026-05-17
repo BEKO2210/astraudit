@@ -1,33 +1,37 @@
 import { Keyboard, X } from "lucide-react";
 import { useId, useRef } from "react";
 import { useDialog } from "../lib/ui/useDialog";
+import { useTranslation, type TranslationKey } from "../lib/i18n";
 
 interface ShortcutsDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-const ROWS: Array<{ keys: string[]; label: string }> = [
-  { keys: ["⌘", "K"], label: "Open the command palette" },
-  { keys: ["Ctrl", "K"], label: "Open the command palette (Windows / Linux)" },
-  { keys: ["/"], label: "Focus the repository input" },
-  { keys: ["?"], label: "Show this cheat sheet" },
-  { keys: ["Esc"], label: "Close the active dialog" },
-  { keys: ["g", "o"], label: "Jump to Overview" },
-  { keys: ["g", "s"], label: "Jump to Score" },
-  { keys: ["g", "t"], label: "Jump to Story" },
-  { keys: ["g", "r"], label: "Jump to README" },
-  { keys: ["g", "i"], label: "Jump to Insights" },
-  { keys: ["g", "g"], label: "Jump to Graph" },
-  { keys: ["g", "f"], label: "Jump to Findings" },
-  { keys: ["g", "c"], label: "Jump to Structure (code)" },
-  { keys: ["g", "k"], label: "Jump to Stack" },
-  { keys: ["g", "m"], label: "Jump to Maintenance" },
-  { keys: ["g", "b"], label: "Jump to Onboarding (build)" },
-  { keys: ["g", "n"], label: "Jump to Next steps" },
+// Roadmap M4.3 slice 5b — keys stay literal (they ARE the keys
+// the user presses); only the explanatory label is translated.
+const ROWS: Array<{ keys: string[]; labelKey: TranslationKey }> = [
+  { keys: ["⌘", "K"], labelKey: "shortcuts.openPalette" },
+  { keys: ["Ctrl", "K"], labelKey: "shortcuts.openPaletteWinLinux" },
+  { keys: ["/"], labelKey: "shortcuts.focusInput" },
+  { keys: ["?"], labelKey: "shortcuts.showSheet" },
+  { keys: ["Esc"], labelKey: "shortcuts.closeDialog" },
+  { keys: ["g", "o"], labelKey: "shortcuts.jumpOverview" },
+  { keys: ["g", "s"], labelKey: "shortcuts.jumpScore" },
+  { keys: ["g", "t"], labelKey: "shortcuts.jumpStory" },
+  { keys: ["g", "r"], labelKey: "shortcuts.jumpReadme" },
+  { keys: ["g", "i"], labelKey: "shortcuts.jumpInsights" },
+  { keys: ["g", "g"], labelKey: "shortcuts.jumpGraph" },
+  { keys: ["g", "f"], labelKey: "shortcuts.jumpFindings" },
+  { keys: ["g", "c"], labelKey: "shortcuts.jumpStructure" },
+  { keys: ["g", "k"], labelKey: "shortcuts.jumpStack" },
+  { keys: ["g", "m"], labelKey: "shortcuts.jumpMaintenance" },
+  { keys: ["g", "b"], labelKey: "shortcuts.jumpOnboarding" },
+  { keys: ["g", "n"], labelKey: "shortcuts.jumpNext" },
 ];
 
 export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
+  const { t } = useTranslation();
   // Phase 5.3 — focus trap + restore + body lock + Esc.
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialog({ open, onClose, containerRef: dialogRef });
@@ -50,7 +54,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("shortcuts.close")}
           className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -62,11 +66,9 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
           </div>
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-white">
-              Keyboard shortcuts
+              {t("shortcuts.title")}
             </h2>
-            <p className="text-xs text-slate-500">
-              Two-key chords ("g s") expect both keys within ~1 second.
-            </p>
+            <p className="text-xs text-slate-500">{t("shortcuts.subtitle")}</p>
           </div>
         </div>
 
@@ -76,7 +78,9 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
               key={idx}
               className="flex items-center justify-between gap-3 rounded-md px-1 py-1.5 text-sm text-slate-300"
             >
-              <span className="min-w-0 flex-1 break-words">{row.label}</span>
+              <span className="min-w-0 flex-1 break-words">
+                {t(row.labelKey)}
+              </span>
               <span className="flex shrink-0 items-center gap-1">
                 {row.keys.map((k, i) => (
                   <kbd

@@ -183,6 +183,45 @@ const JA: Catalog = {
   "settings.timeMinAgo": "分前",
   "settings.timeHourAgo": "時間前",
   "settings.timeDayAgo": "日前",
+  // M4.3 slice 5b — Shortcuts dialog
+  "shortcuts.close": "閉じる",
+  "shortcuts.title": "キーボードショートカット",
+  "shortcuts.subtitle":
+    "2キーの連続入力 (\"g s\") は約1秒以内に両方押してください。",
+  "shortcuts.openPalette": "コマンドパレットを開く",
+  "shortcuts.openPaletteWinLinux":
+    "コマンドパレットを開く (Windows / Linux)",
+  "shortcuts.focusInput": "リポジトリ入力欄にフォーカス",
+  "shortcuts.showSheet": "このチートシートを表示",
+  "shortcuts.closeDialog": "アクティブなダイアログを閉じる",
+  "shortcuts.jumpOverview": "概要へジャンプ",
+  "shortcuts.jumpScore": "スコアへジャンプ",
+  "shortcuts.jumpStory": "ストーリーへジャンプ",
+  "shortcuts.jumpReadme": "README へジャンプ",
+  "shortcuts.jumpInsights": "インサイトへジャンプ",
+  "shortcuts.jumpGraph": "グラフへジャンプ",
+  "shortcuts.jumpFindings": "検出へジャンプ",
+  "shortcuts.jumpStructure": "構造へジャンプ (コード)",
+  "shortcuts.jumpStack": "スタックへジャンプ",
+  "shortcuts.jumpMaintenance": "メンテナンスへジャンプ",
+  "shortcuts.jumpOnboarding": "オンボーディングへジャンプ (ビルド)",
+  "shortcuts.jumpNext": "次のステップへジャンプ",
+  // M4.3 slice 5b — History dialog
+  "history.close": "閉じる",
+  "history.title": "監査履歴",
+  "history.subtitle":
+    "ローカルに保存 · ブラウザデータを消去すると削除されます。",
+  "history.tabFavorites": "お気に入り",
+  "history.tabRecent": "最近",
+  "history.clearAll": "すべてクリア",
+  "history.emptyFavorites":
+    "まだお気に入りはありません。このリストから監査にスターを付けると上部に固定されます。",
+  "history.emptyRecent":
+    "まだ監査はありません — 実行履歴はここに表示されます。",
+  "history.favorite": "お気に入り",
+  "history.unfavorite": "お気に入り解除",
+  "history.remove": "履歴から削除",
+  "history.toastCleared": "監査履歴をクリアしました",
 };
 
 export default JA;
