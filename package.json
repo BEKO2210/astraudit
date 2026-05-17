@@ -54,7 +54,7 @@
     "test:visual:update": "playwright test --update-snapshots",
     "mcp": "tsx bin/mcp-server.ts",
     "prepack": "tsx scripts/build-bin.ts",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
