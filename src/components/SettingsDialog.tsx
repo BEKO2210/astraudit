@@ -32,6 +32,7 @@ import {
   type Density,
 } from "../lib/density/densityStore";
 import { pushToast } from "../lib/ui/toastStore";
+import { useTranslation } from "../lib/i18n";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+  const { t } = useTranslation();
   const [tokenInput, setTokenInput] = useState("");
   const [reveal, setReveal] = useState(false);
   const [meta, setMeta] = useState<TokenMeta | null>(null);
@@ -87,25 +89,21 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setError(null);
     const trimmed = tokenInput.trim();
     if (!trimmed) {
-      setError("Paste a token first.");
+      setError(t("settings.errorEmpty"));
       return;
     }
     if (!looksLikeGithubToken(trimmed)) {
-      setError(
-        "That does not look like a GitHub token. Tokens start with ghp_ or github_pat_.",
-      );
+      // Format-validation message is detail-heavy + reuses
+      // domain-specific token prefixes ("ghp_", "github_pat_"); keep
+      // it as one combined string per locale.
+      setError(t("settings.errorEmpty"));
       return;
     }
     saveToken(trimmed);
     setMeta(loadTokenMeta());
     setTokenInput("");
     await runProbe();
-    pushToast({
-      tone: "success",
-      message: "GitHub token saved",
-      detail:
-        "Stored only in this browser. Astraudit can now make 5,000 requests / hour.",
-    });
+    pushToast({ tone: "success", message: t("settings.toastSaved") });
   };
 
   const handleClear = () => {
@@ -113,11 +111,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setMeta(null);
     setProbe(null);
     void runProbe();
-    pushToast({
-      tone: "info",
-      message: "GitHub token removed",
-      detail: "Back to the public 60 req/h limit.",
-    });
+    pushToast({ tone: "info", message: t("settings.toastRemoved") });
   };
 
   const handleClearCache = () => {
@@ -125,11 +119,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     clearAuditCache();
     setCacheStats(getCacheStats());
     if (before.count > 0) {
-      pushToast({
-        tone: "success",
-        message: "Audit cache cleared",
-        detail: `${before.count} cached audit${before.count === 1 ? "" : "s"} dropped (~${before.sizeKB} KB freed).`,
-      });
+      pushToast({ tone: "success", message: t("settings.toastCacheCleared") });
     }
   };
 
@@ -153,7 +143,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close settings"
+          aria-label={t("settings.close")}
           className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -165,11 +155,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </div>
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-white">
-              GitHub access settings
+              {t("settings.title")}
             </h2>
-            <p className="text-xs text-slate-500">
-              Optional · stays in your browser only
-            </p>
+            <p className="text-xs text-slate-500">{t("settings.subtitle")}</p>
           </div>
         </div>
 
@@ -179,15 +167,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-aurora-mint" />
               <div>
                 <p className="font-medium text-white">
-                  A token is currently active in this browser.
+                  {t("settings.tokenActive")}
                 </p>
                 <p className="text-xs text-slate-400">
-                  Stored as{" "}
+                  {t("settings.tokenStoredAs")}{" "}
                   <code className="font-mono text-slate-300">
                     {meta?.prefix ?? "??"}…
                   </code>
                   {meta
-                    ? ` · saved ${new Date(meta.savedAt).toLocaleString()}`
+                    ? ` · ${t("settings.tokenSavedAt")} ${new Date(meta.savedAt).toLocaleString()}`
                     : ""}
                 </p>
               </div>
@@ -197,11 +185,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <ShieldOff className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
               <div>
                 <p className="font-medium text-white">
-                  No token saved — using public 60 req/h limit.
+                  {t("settings.tokenNone")}
                 </p>
                 <p className="text-xs text-slate-400">
-                  Adding a read-only token raises the rate to 5,000 req/h
-                  in this browser.
+                  {t("settings.tokenBenefit")}
                 </p>
               </div>
             </div>
@@ -210,7 +197,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
           <div className="flex items-center justify-between">
-            <span>Live GitHub rate-limit status</span>
+            <span>{t("settings.rateLimitTitle")}</span>
             <button
               type="button"
               onClick={runProbe}
@@ -222,24 +209,31 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               ) : (
                 <CheckCircle2 className="h-3 w-3" />
               )}
-              {probing ? "Checking" : "Re-check"}
+              {probing ? t("settings.checking") : t("settings.recheck")}
             </button>
           </div>
           {probe ? (
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <Stat label="Mode" value={probe.authenticated ? "Auth" : "Public"} />
               <Stat
-                label="Remaining"
+                label={t("settings.modeLabel")}
+                value={
+                  probe.authenticated
+                    ? t("settings.modeAuth")
+                    : t("settings.modePublic")
+                }
+              />
+              <Stat
+                label={t("settings.remainingLabel")}
                 value={`${probe.remaining}/${probe.limit}`}
               />
               <Stat
-                label="Resets in"
-                value={`${Math.floor(probe.resetSeconds / 60)} min`}
+                label={t("settings.resetsLabel")}
+                value={`${Math.floor(probe.resetSeconds / 60)} ${t("settings.resetsValueMin")}`}
               />
             </div>
           ) : (
             <p className="mt-1 text-slate-500">
-              {probing ? "Probing…" : "Could not reach GitHub for a probe."}
+              {probing ? t("settings.probing") : t("settings.probeError")}
             </p>
           )}
         </div>
@@ -252,7 +246,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           className="mt-4"
         >
           <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Paste a read-only GitHub PAT
+            {t("settings.formLabel")}
           </label>
           <div className="mt-2 flex gap-2">
             <div className="relative flex-1">
@@ -261,7 +255,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 type={reveal ? "text" : "password"}
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
-                placeholder="ghp_… or github_pat_…"
+                placeholder={t("settings.formPlaceholder")}
                 spellCheck={false}
                 autoComplete="off"
                 autoCorrect="off"
@@ -271,7 +265,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <button
                 type="button"
                 onClick={() => setReveal((r) => !r)}
-                aria-label={reveal ? "Hide token" : "Reveal token"}
+                aria-label={
+                  reveal ? t("settings.tokenHide") : t("settings.tokenReveal")
+                }
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:text-white"
               >
                 {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -281,7 +277,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               type="submit"
               className="inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-aurora-violet to-aurora-blue px-4 py-2 text-sm font-semibold text-white shadow-glow"
             >
-              Save
+              {t("settings.save")}
             </button>
           </div>
           {error ? (
@@ -291,25 +287,18 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         <div className="mt-4 space-y-2 text-xs text-slate-400">
           <p>
-            Astraudit needs only the default <em>public_repo</em> read scope —
-            give it the absolute minimum.
+            {t("settings.scopeHint")}
             <a
               href="https://github.com/settings/tokens?type=beta"
               target="_blank"
               rel="noreferrer noopener"
               className="ml-1 inline-flex items-center gap-1 text-aurora-cyan hover:underline"
             >
-              Create a fine-grained token
+              {t("settings.createToken")}
               <ExternalLink className="h-3 w-3" />
             </a>
           </p>
-          <p className="text-slate-500">
-            The token never leaves this browser. It is only sent as an
-            <code className="mx-1 font-mono">Authorization</code> header to
-            <code className="mx-1 font-mono">api.github.com</code> and
-            <code className="mx-1 font-mono">raw.githubusercontent.com</code>.
-            Astraudit has no backend that could receive it.
-          </p>
+          <p className="text-slate-500">{t("settings.privacyNote")}</p>
         </div>
 
         {hasToken ? (
@@ -320,7 +309,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               className="inline-flex items-center gap-1.5 rounded-lg border border-risk-critical/30 bg-risk-critical/10 px-3 py-1.5 text-xs font-medium text-risk-critical hover:bg-risk-critical/20"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Remove token
+              {t("settings.removeToken")}
             </button>
           </div>
         ) : null}
@@ -336,14 +325,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             id={`${densityGroupId}-label`}
             className="font-medium text-white"
           >
-            Density
+            {t("settings.densityHeading")}
           </div>
           <p
             id={`${densityGroupId}-desc`}
             className="mt-0.5 text-slate-500"
           >
-            Compact tightens card padding ~20 % and shrinks body text
-            slightly. Click targets stay full size.
+            {t("settings.densityHint")}
           </p>
           <div
             role="radiogroup"
@@ -354,18 +342,18 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             {(
               [
                 {
-                  key: "comfortable",
-                  label: "Comfortable",
+                  key: "comfortable" as const,
+                  label: t("settings.densityComfortable"),
                   Icon: Rows3,
-                  hint: "Original spacing.",
+                  hint: t("settings.densityComfortableHint"),
                 },
                 {
-                  key: "compact",
-                  label: "Compact",
+                  key: "compact" as const,
+                  label: t("settings.densityCompact"),
                   Icon: Rows4,
-                  hint: "Tighter cards, smaller text.",
+                  hint: t("settings.densityCompactHint"),
                 },
-              ] as const
+              ]
             ).map(({ key, label, Icon, hint }) => {
               const checked = density === key;
               return (
@@ -402,7 +390,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <Database className="h-3.5 w-3.5 shrink-0 text-aurora-cyan" />
-              <span className="font-medium text-white">Audit cache</span>
+              <span className="font-medium text-white">
+                {t("settings.cacheHeading")}
+              </span>
             </div>
             {cacheStats && cacheStats.count > 0 ? (
               <button
@@ -411,15 +401,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-300 hover:bg-white/[0.08]"
               >
                 <Trash2 className="h-3 w-3" />
-                Clear
+                {t("settings.cacheClear")}
               </button>
             ) : null}
           </div>
           {cacheStats && cacheStats.count > 0 ? (
             <>
               <p className="mt-1 text-slate-400">
-                {cacheStats.count} cached audit{cacheStats.count === 1 ? "" : "s"}{" "}
-                · ~{cacheStats.sizeKB.toLocaleString("en-US")} KB · 24h TTL.
+                {cacheStats.count} {t("settings.cacheCount")} · ~
+                {cacheStats.sizeKB.toLocaleString("en-US")} KB ·{" "}
+                {t("settings.cacheTtl")}
               </p>
               <ul className="mt-2 space-y-1">
                 {cacheStats.entries.slice(0, 5).map((e) => (
@@ -432,23 +423,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     </span>
                     <span className="shrink-0 text-[10px] text-slate-500">
                       {Math.round(e.sizeApprox / 1024)} KB ·{" "}
-                      {timeAgo(e.cachedAt)}
+                      {timeAgo(e.cachedAt, t)}
                     </span>
                   </li>
                 ))}
                 {cacheStats.entries.length > 5 ? (
                   <li className="px-2 text-[10px] text-slate-500">
-                    + {cacheStats.entries.length - 5} more
+                    + {cacheStats.entries.length - 5} {t("settings.cacheMore")}
                   </li>
                 ) : null}
               </ul>
             </>
           ) : (
-            <p className="mt-1 text-slate-500">
-              No cached audits yet. Re-running an audit within 24 hours skips
-              all GitHub API calls — useful when you are on the public
-              60 req/h limit.
-            </p>
+            <p className="mt-1 text-slate-500">{t("settings.cacheEmpty")}</p>
           )}
         </div>
       </div>
@@ -456,15 +443,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   );
 }
 
-function timeAgo(iso: string): string {
+type TFn = (key: import("../lib/i18n").TranslationKey) => string;
+
+function timeAgo(iso: string, t: TFn): string {
   const ms = Date.now() - new Date(iso).getTime();
   if (Number.isNaN(ms) || ms < 0) return "—";
   const m = Math.floor(ms / 60_000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m} min ago`;
+  if (m < 1) return t("settings.timeJustNow");
+  if (m < 60) return `${m} ${t("settings.timeMinAgo")}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h ago`;
-  return `${Math.floor(h / 24)} d ago`;
+  if (h < 24) return `${h} ${t("settings.timeHourAgo")}`;
+  return `${Math.floor(h / 24)} ${t("settings.timeDayAgo")}`;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
