@@ -412,6 +412,7 @@ export interface Catalog {
   "skeleton.loadingScope": string;
   "skeleton.loadingBookmarklet": string;
   "skeleton.loadingCompare": string;
+  "skeleton.loadingLeaderboard": string;
   // M5.1 — rule pack metadata.
   "rulePacks.activeLabel": string;
   "rulePacks.a11y.label": string;
@@ -426,6 +427,32 @@ export interface Catalog {
   "settings.rulePacksHeading": string;
   "settings.rulePacksHint": string;
   "settings.rulePacksReauditToast": string;
+  // M6.3 — Leaderboard page.
+  "leaderboard.heading": string;
+  "leaderboard.intro": string;
+  "leaderboard.filterLanguage": string;
+  "leaderboard.filterLanguagePlaceholder": string;
+  "leaderboard.filterTopic": string;
+  "leaderboard.filterTopicPlaceholder": string;
+  "leaderboard.filterMinStars": string;
+  "leaderboard.filterLimit": string;
+  "leaderboard.start": string;
+  "leaderboard.cancel": string;
+  "leaderboard.reset": string;
+  "leaderboard.preflightLow": string;
+  "leaderboard.rateLimitHit": string;
+  "leaderboard.tableRank": string;
+  "leaderboard.tableRepo": string;
+  "leaderboard.tableScore": string;
+  "leaderboard.tableGrade": string;
+  "leaderboard.tableStars": string;
+  "leaderboard.tableLastPushed": string;
+  "leaderboard.tableActions": string;
+  "leaderboard.openAudit": string;
+  "leaderboard.progressLabel": string;
+  "leaderboard.progressDone": string;
+  "leaderboard.emptyHint": string;
+  "leaderboard.errorRow": string;
 }
 
 /**

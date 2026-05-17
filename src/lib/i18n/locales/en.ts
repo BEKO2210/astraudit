@@ -415,6 +415,7 @@ export const EN: Catalog = {
   "skeleton.loadingScope": "Loading scope page",
   "skeleton.loadingBookmarklet": "Loading bookmarklet page",
   "skeleton.loadingCompare": "Loading compare dashboard",
+  "skeleton.loadingLeaderboard": "Loading leaderboard",
   // M5.1 — opt‑in rule packs
   "rulePacks.activeLabel": "Active rule packs",
   "rulePacks.a11y.label": "Accessibility",
@@ -435,6 +436,36 @@ export const EN: Catalog = {
     "Opt‑in detector families. The URL flag (?rules=…) stays the source of truth so audits are shareable.",
   "settings.rulePacksReauditToast":
     "Rule packs updated. Re‑run the audit to apply.",
+  // M6.3 — Leaderboard page
+  "leaderboard.heading": "Top repositories leaderboard",
+  "leaderboard.intro":
+    "Pick a language + topic filter, then queue a batch audit. Results are sorted by Astraudit score. Single‑flight + rate‑limit‑aware — safe to run with a public GitHub PAT.",
+  "leaderboard.filterLanguage": "Language",
+  "leaderboard.filterLanguagePlaceholder": "e.g. typescript",
+  "leaderboard.filterTopic": "Topic",
+  "leaderboard.filterTopicPlaceholder": "e.g. cli",
+  "leaderboard.filterMinStars": "Min stars",
+  "leaderboard.filterLimit": "Limit",
+  "leaderboard.start": "Run leaderboard",
+  "leaderboard.cancel": "Cancel",
+  "leaderboard.reset": "Reset",
+  "leaderboard.preflightLow":
+    "Rate limit is too low for this batch. Add a GitHub PAT in Settings or lower the Limit.",
+  "leaderboard.rateLimitHit":
+    "GitHub rate limit hit mid‑batch. Showing partial results; resume after the reset window.",
+  "leaderboard.tableRank": "Rank",
+  "leaderboard.tableRepo": "Repository",
+  "leaderboard.tableScore": "Score",
+  "leaderboard.tableGrade": "Grade",
+  "leaderboard.tableStars": "Stars",
+  "leaderboard.tableLastPushed": "Last pushed",
+  "leaderboard.tableActions": "Actions",
+  "leaderboard.openAudit": "Open audit",
+  "leaderboard.progressLabel": "Auditing",
+  "leaderboard.progressDone": "Audited",
+  "leaderboard.emptyHint":
+    "Configure the filter above and press Run leaderboard to start.",
+  "leaderboard.errorRow": "Audit failed",
 };
 
 export default EN;

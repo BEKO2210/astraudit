@@ -420,6 +420,7 @@ const DE: Catalog = {
   "skeleton.loadingScope": "Lade Scope‑Seite",
   "skeleton.loadingBookmarklet": "Lade Bookmarklet‑Seite",
   "skeleton.loadingCompare": "Lade Compare‑Dashboard",
+  "skeleton.loadingLeaderboard": "Lade Leaderboard",
   // M5.1 — opt‑in Rule‑Packs
   "rulePacks.activeLabel": "Aktive Rule‑Packs",
   "rulePacks.a11y.label": "Barrierefreiheit",
@@ -440,6 +441,36 @@ const DE: Catalog = {
     "Opt‑in Detektor‑Familien. Das URL‑Flag (?rules=…) bleibt führend, damit Audits teilbar bleiben.",
   "settings.rulePacksReauditToast":
     "Rule‑Packs aktualisiert. Audit erneut ausführen, um die Änderung anzuwenden.",
+  // M6.3 — Leaderboard‑Seite
+  "leaderboard.heading": "Top‑Repository‑Leaderboard",
+  "leaderboard.intro":
+    "Sprache + Topic filtern, dann Batch‑Audit starten. Ergebnisse nach Astraudit‑Score sortiert. Single‑Flight + Rate‑Limit‑bewusst — sicher mit einem öffentlichen GitHub‑PAT nutzbar.",
+  "leaderboard.filterLanguage": "Sprache",
+  "leaderboard.filterLanguagePlaceholder": "z. B. typescript",
+  "leaderboard.filterTopic": "Topic",
+  "leaderboard.filterTopicPlaceholder": "z. B. cli",
+  "leaderboard.filterMinStars": "Min. Sterne",
+  "leaderboard.filterLimit": "Anzahl",
+  "leaderboard.start": "Leaderboard starten",
+  "leaderboard.cancel": "Abbrechen",
+  "leaderboard.reset": "Zurücksetzen",
+  "leaderboard.preflightLow":
+    "Rate‑Limit reicht für diesen Batch nicht. PAT in den Einstellungen hinzufügen oder Anzahl reduzieren.",
+  "leaderboard.rateLimitHit":
+    "GitHub‑Rate‑Limit mitten im Batch erreicht. Teilergebnisse werden angezeigt; nach Reset fortsetzbar.",
+  "leaderboard.tableRank": "Rang",
+  "leaderboard.tableRepo": "Repository",
+  "leaderboard.tableScore": "Score",
+  "leaderboard.tableGrade": "Note",
+  "leaderboard.tableStars": "Sterne",
+  "leaderboard.tableLastPushed": "Letzter Push",
+  "leaderboard.tableActions": "Aktionen",
+  "leaderboard.openAudit": "Audit öffnen",
+  "leaderboard.progressLabel": "Audit läuft",
+  "leaderboard.progressDone": "Audited",
+  "leaderboard.emptyHint":
+    "Filter oben konfigurieren und „Leaderboard starten“ drücken.",
+  "leaderboard.errorRow": "Audit fehlgeschlagen",
 };
 
 export default DE;
