@@ -372,9 +372,10 @@ astraudit/
 
 ## Roadmap & contributions
 
-- The full roadmap (with a strict **anti‑roadmap** of things Astraudit will never do) lives in [`ROADMAP.md`](./ROADMAP.md).
+- The full roadmap (with a strict **anti‑roadmap** of things Astraudit will never do) lives in [`ROADMAP.md`](./ROADMAP.md). A separate 12‑month execution plan lives in [`docs/ROADMAP_2026_2027.md`](./docs/ROADMAP_2026_2027.md).
 - Every detector and exactly what triggers it is documented in [`docs/RULES.md`](./docs/RULES.md) and rendered in‑app at `#/rules`.
 - Setup, "how to add a new audit rule", fixture conventions, and the CI gates a PR must clear are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+- Press, podcasts and newsletters — see the [press kit](./public/press/README.md): one‑pager, press release, screenshots, logos, brand notes.
 
 PRs that respect the four constraints (browser‑only, free, public‑only, rule‑based) are very welcome. Issues and bug reports — especially screenshots of broken layout — are equally welcome.
 
