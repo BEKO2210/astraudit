@@ -15,8 +15,37 @@ const AUDIT_PREFIX = "#/audit/";
 const COMPARE_PREFIX = "#/compare/";
 
 export type ParsedHash =
-  | { kind: "audit"; coords: RepoCoordinates }
+  | {
+      kind: "audit";
+      coords: RepoCoordinates;
+      /**
+       * Roadmap M4.4 — optional finding ID to scroll/focus on
+       * page load. Comes from `?focus=<id>` after the repo
+       * coordinates, e.g. `#/audit/owner/repo?focus=sec-no-license`.
+       */
+      focus?: string;
+    }
   | { kind: "compare"; left: RepoCoordinates; right: RepoCoordinates };
+
+/**
+ * Split the part of the hash AFTER the prefix into the repo coords
+ * portion and the query-style suffix that may contain `?focus=…`.
+ * Hash payloads use `?` as a URLSearchParams delimiter even though
+ * the whole thing lives inside the fragment.
+ */
+function splitCoordsAndQuery(rest: string): {
+  coordsRaw: string;
+  query: URLSearchParams;
+} {
+  const qIdx = rest.indexOf("?");
+  if (qIdx === -1) {
+    return { coordsRaw: rest, query: new URLSearchParams() };
+  }
+  return {
+    coordsRaw: rest.slice(0, qIdx),
+    query: new URLSearchParams(rest.slice(qIdx + 1)),
+  };
+}
 
 /** Parse `#/audit/...` or `#/compare/...+.../...` into a structured route. */
 export function parseShareHash(hash: string | null | undefined): ParsedHash | null {
@@ -37,17 +66,28 @@ export function parseShareHash(hash: string | null | undefined): ParsedHash | nu
   if (hash.startsWith(AUDIT_PREFIX)) {
     const rest = hash.slice(AUDIT_PREFIX.length);
     if (!rest) return null;
-    const parsed = parseRepoInput(rest);
+    const { coordsRaw, query } = splitCoordsAndQuery(rest);
+    const parsed = parseRepoInput(coordsRaw);
     if (!parsed.ok || !parsed.coords) return null;
-    return { kind: "audit", coords: parsed.coords };
+    const focus = query.get("focus");
+    return focus
+      ? { kind: "audit", coords: parsed.coords, focus }
+      : { kind: "audit", coords: parsed.coords };
   }
 
   return null;
 }
 
-/** Build the hash fragment for a given audit. */
-export function formatShareHash(coords: RepoCoordinates): string {
-  return `${AUDIT_PREFIX}${coords.owner}/${coords.repo}`;
+/** Build the hash fragment for a given audit, optionally with a focus target. */
+export function formatShareHash(
+  coords: RepoCoordinates,
+  options: { focus?: string | null } = {},
+): string {
+  const base = `${AUDIT_PREFIX}${coords.owner}/${coords.repo}`;
+  if (options.focus) {
+    return `${base}?focus=${encodeURIComponent(options.focus)}`;
+  }
+  return base;
 }
 
 /** Build the hash fragment for a side-by-side comparison. */
@@ -61,10 +101,13 @@ export function formatCompareHash(
 /**
  * Build a fully-qualified URL the user can paste anywhere. Falls back
  * to a placeholder origin when called server-side (e.g. in unit tests).
+ * Roadmap M4.4 — accepts an optional `focus` to mint a deep link
+ * straight to a single finding.
  */
 export function formatShareUrl(
   coords: RepoCoordinates,
   base?: string,
+  options: { focus?: string | null } = {},
 ): string {
   const origin =
     base ??
@@ -72,8 +115,18 @@ export function formatShareUrl(
       ? `${window.location.origin}${window.location.pathname}${window.location.search}`
       : "https://astraudit.example/");
   const url = new URL(origin);
-  url.hash = formatShareHash(coords);
+  url.hash = formatShareHash(coords, { focus: options.focus });
   return url.toString();
+}
+
+/**
+ * Roadmap M4.4 — canonical DOM id format for a finding card. Used
+ * by the deep-link consumer (App.tsx scrollIntoView) and the deep-
+ * link producer (FindingCard's "copy link" affordance) so the
+ * format never drifts between writer and reader.
+ */
+export function findingElementId(findingId: string): string {
+  return `finding-${findingId}`;
 }
 
 /**
@@ -84,10 +137,10 @@ export function formatShareUrl(
  */
 export function applyAuditHash(
   coords: RepoCoordinates,
-  options: { push?: boolean } = {},
+  options: { push?: boolean; focus?: string | null } = {},
 ): void {
   if (typeof window === "undefined") return;
-  const hash = formatShareHash(coords);
+  const hash = formatShareHash(coords, { focus: options.focus });
   if (window.location.hash === hash) return;
   const target = `${window.location.pathname}${window.location.search}${hash}`;
   if (options.push) {

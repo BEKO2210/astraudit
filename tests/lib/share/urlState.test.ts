@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  findingElementId,
   formatCompareHash,
   formatShareHash,
   formatShareUrl,
@@ -110,6 +111,93 @@ describe("formatShareUrl", () => {
     );
     expect(url).toBe(
       "https://beko2210.github.io/astraudit/#/audit/lodash/lodash",
+    );
+  });
+});
+
+describe("M4.4 deep-link focus state", () => {
+  it("parses `?focus=<id>` from an audit hash", () => {
+    const res = parseShareHash("#/audit/facebook/react?focus=sec-no-license");
+    expect(res).toEqual({
+      kind: "audit",
+      coords: { owner: "facebook", repo: "react" },
+      focus: "sec-no-license",
+    });
+  });
+
+  it("omits the focus field when not present", () => {
+    const res = parseShareHash("#/audit/facebook/react");
+    expect(res).toEqual({
+      kind: "audit",
+      coords: { owner: "facebook", repo: "react" },
+    });
+  });
+
+  it("URL-decodes the focus token (so colons / spaces survive)", () => {
+    const res = parseShareHash(
+      "#/audit/facebook/react?focus=dep%3Aoutdated%20react",
+    );
+    expect(res && res.kind === "audit" ? res.focus : null).toBe(
+      "dep:outdated react",
+    );
+  });
+
+  it("ignores unrelated query keys after the focus", () => {
+    const res = parseShareHash(
+      "#/audit/facebook/react?focus=sec-x&utm_source=tweet",
+    );
+    expect(res && res.kind === "audit" ? res.focus : null).toBe("sec-x");
+  });
+
+  it("formats an audit hash with focus when provided", () => {
+    const hash = formatShareHash(
+      { owner: "facebook", repo: "react" },
+      { focus: "sec-no-license" },
+    );
+    expect(hash).toBe("#/audit/facebook/react?focus=sec-no-license");
+  });
+
+  it("URL-encodes the focus token when formatting", () => {
+    const hash = formatShareHash(
+      { owner: "facebook", repo: "react" },
+      { focus: "dep:outdated react" },
+    );
+    expect(hash).toBe(
+      "#/audit/facebook/react?focus=dep%3Aoutdated%20react",
+    );
+  });
+
+  it("falls back to no-focus form when focus is null/empty", () => {
+    expect(
+      formatShareHash({ owner: "f", repo: "r" }, { focus: null }),
+    ).toBe("#/audit/f/r");
+    expect(
+      formatShareHash({ owner: "f", repo: "r" }, { focus: "" }),
+    ).toBe("#/audit/f/r");
+  });
+
+  it("round-trips through format → parse", () => {
+    const coords = { owner: "facebook", repo: "react" };
+    const focus = "sec-no-license";
+    const hash = formatShareHash(coords, { focus });
+    const parsed = parseShareHash(hash);
+    expect(parsed).toEqual({ kind: "audit", coords, focus });
+  });
+
+  it("formatShareUrl honours focus", () => {
+    const url = formatShareUrl(
+      { owner: "lodash", repo: "lodash" },
+      "https://beko2210.github.io/astraudit/",
+      { focus: "doc-no-readme" },
+    );
+    expect(url).toBe(
+      "https://beko2210.github.io/astraudit/#/audit/lodash/lodash?focus=doc-no-readme",
+    );
+  });
+
+  it("findingElementId is stable and predictable", () => {
+    expect(findingElementId("sec-no-license")).toBe(
+      "finding-sec-no-license",
     );
   });
 });
