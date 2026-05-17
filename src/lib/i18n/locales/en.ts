@@ -466,6 +466,7 @@ export const EN: Catalog = {
   "leaderboard.emptyHint":
     "Configure the filter above and press Run leaderboard to start.",
   "leaderboard.errorRow": "Audit failed",
+  "leaderboard.snapshotLabel": "Showing cached snapshot from",
 };
 
 export default EN;
