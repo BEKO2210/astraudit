@@ -16,6 +16,13 @@
  * matched by its glob. Gzip is not the gate because the gzip ratio
  * varies with content shape (already-compressed images vs minified
  * code), so we keep the policy explicit on raw bytes.
+ *
+ * Roadmap M1.1 — pass `--json` to emit a machine-readable report on
+ * stdout instead of the human table. Used by the bundle-size workflow
+ * to compute base-vs-head deltas for the sticky PR comment. The
+ * `--json` mode also suppresses the non-zero exit on a budget breach:
+ * the workflow surfaces the comment first, then the existing
+ * non-JSON invocation in `quality.yml` is what actually blocks merge.
  */
 
 import fs from "node:fs";
@@ -64,35 +71,80 @@ function fmt(bytes: number): string {
   return `${(bytes / 1024).toFixed(2)} KB`;
 }
 
+interface BudgetReport {
+  label: string;
+  prefix: string;
+  suffix: string;
+  maxBytes: number;
+  /** File found in dist/assets — null when the glob didn't match. */
+  file: string | null;
+  /** Actual size in bytes, null when no file was found. */
+  actualBytes: number | null;
+}
+
+function collect(): BudgetReport[] {
+  return BUDGETS.map((budget) => {
+    const file = findAsset(budget.prefix, budget.suffix);
+    return {
+      label: budget.label,
+      prefix: budget.prefix,
+      suffix: budget.suffix,
+      maxBytes: budget.maxBytes,
+      file: file ? path.basename(file) : null,
+      actualBytes: file ? fs.statSync(file).size : null,
+    };
+  });
+}
+
 function main(): void {
+  const jsonMode = process.argv.includes("--json");
+
   if (!fs.existsSync(ASSETS_DIR)) {
+    if (jsonMode) {
+      // Emit a structured "no build" payload so the downstream diff
+      // step can render a graceful "head build failed" comment
+      // instead of crashing.
+      process.stdout.write(
+        JSON.stringify({ assetsDir: ASSETS_DIR, found: false, budgets: [] }) +
+          "\n",
+      );
+      return;
+    }
     console.error(
       `× ${ASSETS_DIR} not found — run \`npm run build\` first.`,
     );
     process.exit(2);
   }
 
+  const reports = collect();
+
+  if (jsonMode) {
+    process.stdout.write(
+      JSON.stringify({ assetsDir: ASSETS_DIR, found: true, budgets: reports }) +
+        "\n",
+    );
+    return;
+  }
+
   let failed = false;
-  for (const budget of BUDGETS) {
-    const file = findAsset(budget.prefix, budget.suffix);
-    if (!file) {
+  for (const r of reports) {
+    if (r.file === null || r.actualBytes === null) {
       console.error(
-        `× ${budget.label}: no file matched ${budget.prefix}*${budget.suffix} in dist/assets/`,
+        `× ${r.label}: no file matched ${r.prefix}*${r.suffix} in dist/assets/`,
       );
       failed = true;
       continue;
     }
-    const size = fs.statSync(file).size;
-    const status = size <= budget.maxBytes ? "✓" : "×";
-    const headroom = budget.maxBytes - size;
+    const status = r.actualBytes <= r.maxBytes ? "✓" : "×";
+    const headroom = r.maxBytes - r.actualBytes;
     const headroomLabel =
       headroom >= 0
         ? `${fmt(headroom)} under budget`
         : `${fmt(-headroom)} OVER budget`;
     console.log(
-      `${status} ${budget.label.padEnd(32)}  ${fmt(size).padStart(10)}  / ${fmt(budget.maxBytes)}  (${headroomLabel})`,
+      `${status} ${r.label.padEnd(32)}  ${fmt(r.actualBytes).padStart(10)}  / ${fmt(r.maxBytes)}  (${headroomLabel})`,
     );
-    if (size > budget.maxBytes) failed = true;
+    if (r.actualBytes > r.maxBytes) failed = true;
   }
 
   if (failed) {
