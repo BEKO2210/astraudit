@@ -1,16 +1,30 @@
 import { ShieldAlert } from "lucide-react";
 import type { Finding } from "../types/finding";
+import type { RepoCoordinates } from "../types/github";
 import { severityClass, severityLabel } from "../lib/utils/severity";
 import { CopyButton } from "./CopyButton";
+import { findingElementId, formatShareUrl } from "../lib/share/urlState";
 
 interface FindingCardProps {
   finding: Finding;
+  /**
+   * Roadmap M4.4 — present once the audit dashboard knows the
+   * coords, so the per-finding "copy deep link" button can mint
+   * `#/audit/owner/repo?focus=<id>` URLs. Omitted in print-only
+   * embeds + storybook fixtures, in which case the deep-link
+   * button stays hidden.
+   */
+  coords?: RepoCoordinates;
 }
 
-export function FindingCard({ finding }: FindingCardProps) {
+export function FindingCard({ finding, coords }: FindingCardProps) {
+  const deepLinkUrl = coords
+    ? formatShareUrl(coords, undefined, { focus: finding.id })
+    : null;
   return (
     <article
-      className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4"
+      id={findingElementId(finding.id)}
+      className="overflow-hidden scroll-mt-24 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-shadow data-[astraudit-focus=true]:border-aurora-violet/60 data-[astraudit-focus=true]:shadow-[0_0_0_2px_rgba(122,92,255,0.45)]"
       data-print-card
     >
       <header className="flex flex-wrap items-start justify-between gap-2">
@@ -35,6 +49,13 @@ export function FindingCard({ finding }: FindingCardProps) {
             </div>
           </div>
         </div>
+        {deepLinkUrl ? (
+          <CopyButton
+            value={deepLinkUrl}
+            label="Copy link to this finding"
+            className="!h-7 !w-7 border-white/10 text-slate-500 hover:!text-white print:hidden"
+          />
+        ) : null}
       </header>
       <p className="mt-3 text-sm text-slate-300/85">{finding.description}</p>
       <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">

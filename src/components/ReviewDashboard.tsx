@@ -408,6 +408,10 @@ export function ReviewDashboard({
           score={result.totalScore}
           maxScore={result.maxScore}
           onOpenCompare={onOpenCompare}
+          coords={{
+            owner: result.bundle.metadata.owner.login,
+            repo: result.bundle.metadata.name,
+          }}
         />
         <div id="structure">
           <FileStructurePanel structure={result.fileStructure} />

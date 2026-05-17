@@ -1,6 +1,7 @@
 import { Filter } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Finding, FindingCategory, Severity } from "../types/finding";
+import type { RepoCoordinates } from "../types/github";
 import { FindingCard } from "./FindingCard";
 import { severityRank } from "../lib/utils/severity";
 import { EmptyFindingsCelebration } from "./EmptyFindingsCelebration";
@@ -15,6 +16,12 @@ interface FindingsPanelProps {
   /** Optional CTA — when provided the celebration shows "Compare against
    *  another repo". */
   onOpenCompare?: () => void;
+  /**
+   * Roadmap M4.4 — passed through to each FindingCard so the
+   * per-finding "Copy link" button can mint a deep link. Optional
+   * because print/storybook embeds don't need it.
+   */
+  coords?: RepoCoordinates;
 }
 
 const SEVERITY_OPTIONS: Array<{ key: Severity | "all"; label: string }> = [
@@ -44,6 +51,7 @@ export function FindingsPanel({
   score,
   maxScore,
   onOpenCompare,
+  coords,
 }: FindingsPanelProps) {
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [category, setCategory] = useState<FindingCategory | "all">("all");
@@ -120,7 +128,9 @@ export function FindingsPanel({
             No findings match the current filters.
           </p>
         ) : (
-          filtered.map((f) => <FindingCard key={f.id} finding={f} />)
+          filtered.map((f) => (
+            <FindingCard key={f.id} finding={f} coords={coords} />
+          ))
         )}
       </div>
     </section>

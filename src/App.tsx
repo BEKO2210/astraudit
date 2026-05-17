@@ -608,6 +608,32 @@ export default function App() {
     }
   }, [state]);
 
+  // Roadmap M4.4 — deep-link to a specific finding via
+  // `#/audit/owner/repo?focus=<id>`. Fires when the audit becomes
+  // ready and the URL hash carries a focus token; scrolls the
+  // matching FindingCard into view and toggles a 2.5s highlight
+  // ring so the user sees what was linked. The data-attribute
+  // hook stays out of React state to avoid extra renders.
+  useEffect(() => {
+    if (state.kind !== "ready") return;
+    if (typeof window === "undefined") return;
+    const parsed = parseShareHash(window.location.hash);
+    if (!parsed || parsed.kind !== "audit" || !parsed.focus) return;
+    // Wait one frame so the finding cards are mounted before we
+    // querySelector for them.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`finding-${parsed.focus}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.dataset.astrauditFocus = "true";
+      const t = window.setTimeout(() => {
+        delete el.dataset.astrauditFocus;
+      }, 2500);
+      return () => window.clearTimeout(t);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [state.kind]);
+
   // Smooth-scroll to a section by its anchor id, identical to the
   // SectionNav click handler — re-implemented here so global keyboard
   // shortcuts work even when the SectionNav is unmounted.
