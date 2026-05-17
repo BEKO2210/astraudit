@@ -1,6 +1,20 @@
 /// <reference lib="webworker" />
 import { progressFor, runAudit } from "../lib/audit/auditEngine";
+import { RULE_PACK_IDS, type RulePackId } from "../lib/audit/rulePacks/types";
 import type { WorkerInputMessage, WorkerOutputMessage } from "../types/audit";
+
+const KNOWN_PACKS: ReadonlySet<string> = new Set(RULE_PACK_IDS);
+
+function sanitizePacks(raw: string[] | undefined): Set<RulePackId> {
+  if (!raw || raw.length === 0) return new Set();
+  const out = new Set<RulePackId>();
+  for (const id of raw) {
+    if (typeof id === "string" && KNOWN_PACKS.has(id)) {
+      out.add(id as RulePackId);
+    }
+  }
+  return out;
+}
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -33,14 +47,19 @@ ctx.addEventListener("message", (event: MessageEvent<WorkerInputMessage>) => {
   if (!message || message.type !== "audit") return;
   const id = message.id;
   try {
-    const result = runAudit(message.bundle, (step) => {
-      const out: WorkerOutputMessage = {
-        type: "progress",
-        progress: progressFor(step),
-        id,
-      };
-      ctx.postMessage(out);
-    });
+    const enabledPacks = sanitizePacks(message.enabledPacks);
+    const result = runAudit(
+      message.bundle,
+      (step) => {
+        const out: WorkerOutputMessage = {
+          type: "progress",
+          progress: progressFor(step),
+          id,
+        };
+        ctx.postMessage(out);
+      },
+      { enabledPacks },
+    );
     const out: WorkerOutputMessage = { type: "result", result, id };
     ctx.postMessage(out);
   } catch (error) {

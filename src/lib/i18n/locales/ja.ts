@@ -426,6 +426,20 @@ const JA: Catalog = {
   "skeleton.loadingScope": "スコープページを読み込み中",
   "skeleton.loadingBookmarklet": "ブックマークレットページを読み込み中",
   "skeleton.loadingCompare": "比較ダッシュボードを読み込み中",
+  // M5.1 — オプトイン Rule Pack
+  "rulePacks.activeLabel": "有効な Rule Pack",
+  "rulePacks.a11y.label": "アクセシビリティ",
+  "rulePacks.a11y.description":
+    "README の alt テキスト、axe で検査可能な例、ドキュメント済みスニペット内の ARIA ヒント。",
+  "rulePacks.i18n.label": "国際化",
+  "rulePacks.i18n.description":
+    "ロケールファイルの存在、英語のみではない README、翻訳ツーリングのシグナル。",
+  "rulePacks.ts.label": "TypeScript 厳格度",
+  "rulePacks.ts.description":
+    "strict: true、noImplicitAny、noUncheckedIndexedAccess — tsconfig を基に測定。",
+  "rulePacks.monorepo.label": "モノレポの健全性",
+  "rulePacks.monorepo.description":
+    "ワークスペース宣言、依存バージョンの一貫性、Turborepo / nx のシグナル。",
 };
 
 export default JA;

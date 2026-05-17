@@ -420,6 +420,20 @@ const DE: Catalog = {
   "skeleton.loadingScope": "Lade Scope‑Seite",
   "skeleton.loadingBookmarklet": "Lade Bookmarklet‑Seite",
   "skeleton.loadingCompare": "Lade Compare‑Dashboard",
+  // M5.1 — opt‑in Rule‑Packs
+  "rulePacks.activeLabel": "Aktive Rule‑Packs",
+  "rulePacks.a11y.label": "Barrierefreiheit",
+  "rulePacks.a11y.description":
+    "Alt‑Texte in README, axe‑prüfbare Beispiele, ARIA‑Hinweise in dokumentierten Snippets.",
+  "rulePacks.i18n.label": "Internationalisierung",
+  "rulePacks.i18n.description":
+    "Vorhandensein von Locale‑Dateien, README jenseits von Englisch, Signale für Übersetzungs‑Tooling.",
+  "rulePacks.ts.label": "TypeScript‑Strenge",
+  "rulePacks.ts.description":
+    "strict: true, noImplicitAny, noUncheckedIndexedAccess — anhand der tsconfig gemessen.",
+  "rulePacks.monorepo.label": "Monorepo‑Gesundheit",
+  "rulePacks.monorepo.description":
+    "Workspaces deklariert, konsistente Dependency‑Versionen, Turborepo‑/nx‑Signale.",
 };
 
 export default DE;

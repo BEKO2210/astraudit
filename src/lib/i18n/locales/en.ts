@@ -415,6 +415,20 @@ export const EN: Catalog = {
   "skeleton.loadingScope": "Loading scope page",
   "skeleton.loadingBookmarklet": "Loading bookmarklet page",
   "skeleton.loadingCompare": "Loading compare dashboard",
+  // M5.1 — opt‑in rule packs
+  "rulePacks.activeLabel": "Active rule packs",
+  "rulePacks.a11y.label": "Accessibility",
+  "rulePacks.a11y.description":
+    "README alt‑text, axe‑checkable examples, ARIA hints in documented snippets.",
+  "rulePacks.i18n.label": "Internationalisation",
+  "rulePacks.i18n.description":
+    "Locale files presence, README beyond English only, translation tooling signals.",
+  "rulePacks.ts.label": "TypeScript strictness",
+  "rulePacks.ts.description":
+    "strict: true, noImplicitAny, noUncheckedIndexedAccess — measured against tsconfig.",
+  "rulePacks.monorepo.label": "Monorepo health",
+  "rulePacks.monorepo.description":
+    "Workspaces declared, consistent dependency versions, Turborepo / nx signals.",
 };
 
 export default EN;

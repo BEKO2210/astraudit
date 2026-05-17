@@ -412,6 +412,16 @@ export interface Catalog {
   "skeleton.loadingScope": string;
   "skeleton.loadingBookmarklet": string;
   "skeleton.loadingCompare": string;
+  // M5.1 — rule pack metadata.
+  "rulePacks.activeLabel": string;
+  "rulePacks.a11y.label": string;
+  "rulePacks.a11y.description": string;
+  "rulePacks.i18n.label": string;
+  "rulePacks.i18n.description": string;
+  "rulePacks.ts.label": string;
+  "rulePacks.ts.description": string;
+  "rulePacks.monorepo.label": string;
+  "rulePacks.monorepo.description": string;
 }
 
 /**

@@ -15,6 +15,12 @@ import { buildFindings } from "./riskEngine";
 import { severityRank } from "../utils/severity";
 import { deriveInsights } from "./insightEngine";
 import { buildHeadlineVerdict, buildOnboarding, buildRichStory } from "./copyEngine";
+import {
+  NO_PACKS,
+  type EnabledPacks,
+  type RulePackId,
+} from "./rulePacks/types";
+import { serialiseEnabledPacks } from "./rulePacks/parseRules";
 
 const STEP_LABELS: Record<AuditProgressStep, string> = {
   metadata: "Reading repository metadata",
@@ -50,10 +56,22 @@ export function progressFor(step: AuditProgressStep): AuditProgress {
 
 export type ProgressEmitter = (step: AuditProgressStep) => void;
 
+/**
+ * Roadmap M5.1 — optional audit configuration. Today the only
+ * knob is `enabledPacks`; later slices may extend this with
+ * pack‑specific tuning. Defaulted everywhere so existing callers
+ * stay source‑compatible.
+ */
+export interface AuditOptions {
+  enabledPacks?: EnabledPacks;
+}
+
 export function runAudit(
   bundle: RepoBundle,
   emit: ProgressEmitter = () => {},
+  options: AuditOptions = {},
 ): AuditResult {
+  const enabledPacks = options.enabledPacks ?? NO_PACKS;
   emit("metadata");
   emit("tree");
   const classified = classifyFiles(bundle.tree, bundle.importantFiles);
@@ -170,5 +188,14 @@ export function runAudit(
     insights,
     onboarding,
     generatedAt: new Date().toISOString(),
+    // Echo the active packs back into the result so the dashboard
+    // can show an "Active rule packs" chip and downstream consumers
+    // (export, history, compare) know which audit configuration
+    // produced this snapshot. Canonical comma‑split → array for
+    // serialisation friendliness.
+    enabledPacks: serialiseEnabledPacks(enabledPacks)?.split(",") ?? [],
   };
 }
+
+// Keep the import alive even when later slices don't use it.
+export type { RulePackId };
