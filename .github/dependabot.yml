@@ -1,11 +1,21 @@
 # Astraudit — Dependabot configuration
 #
 # Two ecosystems are watched:
-#   1. npm — the SPA's runtime + dev dependencies (~25 packages).
+#   1. npm — the SPA's runtime + dev dependencies (~30 packages).
 #   2. github-actions — the workflow files in `.github/workflows/`.
 #
-# Schedule is weekly (Monday 06:00 UTC) so PRs land before the
-# work week starts and don't drown the maintainer in dailies.
+# Schedule is weekly (Monday 06:00 Europe/Berlin) so PRs land before
+# the work week starts and don't drown the maintainer in dailies.
+#
+# Grouping policy (Roadmap M1.2):
+#   • Every package belongs to exactly ONE group. Dependabot resolves
+#     overlaps by first-match-wins, so the more specific groups go
+#     first and the broader catch-alls (types, runtime) go last.
+#   • Each group is `update-types: [minor, patch]` — major bumps
+#     deliberately arrive as solo PRs so the breaking-change blast
+#     radius stays inspectable.
+#   • `open-pull-requests-limit: 5` keeps the queue tractable; a busy
+#     week now opens at most 5 grouped PRs instead of 15+ singletons.
 #
 # Reference:
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
@@ -26,27 +36,34 @@ updates:
     labels:
       - "dependencies"
       - "npm"
-    # Keep large breaking-change bumps on a tighter leash so they
-    # arrive as a single combined PR instead of one-per-package.
     groups:
-      tooling:
-        patterns:
-          - "vite*"
-          - "vitest*"
-          - "@vitejs/*"
-          - "typescript"
-          - "tsx"
-        update-types:
-          - "minor"
-          - "patch"
+      # --- Specific groups (matched first) -------------------------
+      # React core + its types live together so a React minor and the
+      # matching @types/react minor don't open two separate PRs.
       react:
         patterns:
           - "react"
           - "react-dom"
-          - "@types/react*"
+          - "@types/react"
+          - "@types/react-dom"
         update-types:
           - "minor"
           - "patch"
+      # Build + test tooling that almost always needs to move together
+      # (a Vite minor often ships matching @vitejs/plugin-react bumps).
+      tooling:
+        patterns:
+          - "vite"
+          - "vitest"
+          - "@vitejs/*"
+          - "@vitest/*"
+          - "typescript"
+          - "tsx"
+          - "esbuild"
+        update-types:
+          - "minor"
+          - "patch"
+      # Styling stack — Tailwind + its PostCSS chain.
       tailwind:
         patterns:
           - "tailwindcss"
@@ -55,11 +72,47 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Quality gates — Playwright, axe, Lighthouse CI all live in
+      # the same `quality.yml` + `playwright.yml` lane.
       playwright:
         patterns:
           - "@playwright/test"
           - "@axe-core/playwright"
           - "@lhci/cli"
+        update-types:
+          - "minor"
+          - "patch"
+      # All web fonts ship from one ecosystem and bump in lockstep.
+      fonts:
+        patterns:
+          - "@fontsource/*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Markdown renderer + its types travel together.
+      markdown:
+        patterns:
+          - "markdown-it"
+          - "@types/markdown-it"
+        update-types:
+          - "minor"
+          - "patch"
+      # --- Catch-alls (matched last) -------------------------------
+      # All other @types/* packages — pure type updates that rarely
+      # conflict; bundling them keeps the queue short.
+      types:
+        patterns:
+          - "@types/*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Everything else that doesn't fit a specific group. Keeps the
+      # weekly minor/patch noise out of the queue while still letting
+      # majors arrive as solo PRs (they fall outside this group's
+      # update-types filter and open individually).
+      runtime:
+        patterns:
+          - "*"
         update-types:
           - "minor"
           - "patch"
@@ -78,3 +131,13 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    # All workflow actions in one PR per week — they're tiny version
+    # bumps (actions/checkout@v6.0.1 → v6.0.2) that never need to be
+    # reviewed individually.
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
