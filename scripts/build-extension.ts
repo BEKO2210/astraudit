@@ -1,21 +1,32 @@
 /**
- * Roadmap M3.2 — bundle the MV3 extension to dist-extension/.
+ * Roadmap M3.2 + M3.4 — bundle the MV3 extension for every browser
+ * that ships an MV3 runtime.
  *
- * What this does:
- *   1. esbuild bundles extension/src/{service-worker,content-script}.ts
- *      to dist-extension/{service-worker,content-script}.js. Plain
- *      ESM for the SW (matches manifest `"type": "module"`), IIFE
- *      for the content script (safest CSP profile).
- *   2. Copies manifest.json + icons/ verbatim.
- *   3. Generates placeholder icon PNGs at 16/48/128 if the maintainer
- *      hasn't replaced them yet (so a fresh clone can `npm run
- *      build:ext` and load the unpacked extension without missing-
- *      asset errors in Chrome's `chrome://extensions` page).
- *   4. Zips the output to dist-extension/astraudit-extension.zip for
- *      easy "load unpacked" / store upload.
+ * Layout produced (dist-extension/):
+ *   chrome/         ← load-unpacked or upload to Chrome Web Store
+ *     manifest.json
+ *     service-worker.js   (+ .map)
+ *     content-script.js   (+ .map)
+ *     icons/{16,48,128}.png
+ *   chrome.zip      ← Chrome Web Store / Edge Add-ons upload
  *
- * Cross-browser packaging (Firefox `web-ext` + Safari converter)
- * lands in M3.4.
+ *   firefox/        ← load-temporary or upload to AMO
+ *     manifest.json   (+ browser_specific_settings.gecko)
+ *     …same bundles + icons…
+ *   firefox.zip
+ *
+ *   safari-source/  ← input for xcrun safari-web-extension-converter
+ *                     (M3.5 maintainer runs the converter on macOS)
+ *     …chrome-shaped layout — Safari converter prefers it…
+ *
+ * Bundles + icons are byte-identical across browsers; only the
+ * manifest differs. The output dir is gitignored — regenerated via
+ * `npm run build:ext`.
+ *
+ * Why one script instead of three:
+ *   The detector + UI code is browser-agnostic. The only thing that
+ *   actually differs is `manifest.json`, and a single fan-out
+ *   keeps the per-browser drift visible in a single diff.
  */
 
 import { build } from "esbuild";
@@ -28,19 +39,33 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import { execSync } from "node:child_process";
 
 const ROOT = process.cwd();
 const SRC = resolve(ROOT, "extension");
 const OUT = resolve(ROOT, "dist-extension");
 
-// A tiny 1×1 transparent PNG used as a placeholder when the real
-// icon files don't exist yet. Base64-decoded into the right slot;
-// Chrome accepts it without complaint, and the placeholder makes
-// the missing-asset story obvious to anyone inspecting the build.
 const TRANSPARENT_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+/**
+ * Firefox-specific extension identity. Required by AMO for any
+ * persistent install. Bumping the strict_min_version moves the
+ * extension's compatibility floor — keep it pinned to the lowest
+ * Firefox we've verified the SW model works on.
+ */
+const GECKO_ID = "astraudit@beko2210.github.io";
+const GECKO_MIN_VERSION = "128.0";
+
+interface BaseManifest {
+  manifest_version: number;
+  name: string;
+  version: string;
+  // The rest is opaque to this script — we only mutate the bits
+  // each browser needs and leave everything else untouched.
+  [key: string]: unknown;
+}
 
 async function bundleEsm(entry: string, outfile: string): Promise<void> {
   await build({
@@ -72,15 +97,27 @@ async function bundleIife(entry: string, outfile: string): Promise<void> {
   });
 }
 
-function copyManifest(): void {
-  cpSync(resolve(SRC, "manifest.json"), resolve(OUT, "manifest.json"));
+function loadManifest(): BaseManifest {
+  return JSON.parse(
+    readFileSync(resolve(SRC, "manifest.json"), "utf8"),
+  ) as BaseManifest;
 }
 
-function copyOrPlaceholderIcons(): void {
-  const iconsDir = resolve(OUT, "icons");
+function writeManifest(targetDir: string, manifest: BaseManifest): void {
+  writeFileSync(
+    resolve(targetDir, "manifest.json"),
+    JSON.stringify(manifest, null, 2) + "\n",
+  );
+}
+
+function copyOrPlaceholderIcons(targetDir: string): {
+  warnings: string[];
+} {
+  const iconsDir = resolve(targetDir, "icons");
   mkdirSync(iconsDir, { recursive: true });
   const sizes = [16, 48, 128];
   const placeholder = Buffer.from(TRANSPARENT_PNG_BASE64, "base64");
+  const warnings: string[] = [];
   for (const size of sizes) {
     const srcIcon = resolve(SRC, "icons", `icon-${size}.png`);
     const outIcon = resolve(iconsDir, `icon-${size}.png`);
@@ -88,59 +125,125 @@ function copyOrPlaceholderIcons(): void {
       cpSync(srcIcon, outIcon);
     } else {
       writeFileSync(outIcon, placeholder);
-      console.warn(
-        `  ! extension/icons/icon-${size}.png missing — wrote 1×1 placeholder.`,
-      );
+      warnings.push(`icon-${size}.png missing — wrote 1×1 placeholder`);
     }
   }
+  return { warnings };
 }
 
-function zipForStore(): void {
-  const zipPath = resolve(OUT, "astraudit-extension.zip");
+function zip(dir: string, zipName: string): number {
+  const zipPath = resolve(OUT, zipName);
   if (existsSync(zipPath)) rmSync(zipPath);
-  // `cd` into OUT then zip to avoid the parent directory ending up
-  // inside the archive — Chrome / Edge stores reject zips where
-  // manifest.json isn't at the root.
+  // Always zip the contents of `dir` (so manifest.json lands at the
+  // archive root — every store rejects nested layouts).
   execSync(
-    `cd "${OUT}" && zip -qr astraudit-extension.zip . -x astraudit-extension.zip`,
+    `cd "${dir}" && zip -qr "${zipPath}" . -x "${zipName}"`,
     { stdio: "inherit" },
+  );
+  return statSync(zipPath).size;
+}
+
+async function buildSharedAssets(targetDir: string): Promise<void> {
+  mkdirSync(targetDir, { recursive: true });
+  await bundleEsm(
+    resolve(SRC, "src/service-worker.ts"),
+    resolve(targetDir, "service-worker.js"),
+  );
+  await bundleIife(
+    resolve(SRC, "src/content-script.ts"),
+    resolve(targetDir, "content-script.js"),
   );
 }
 
-function readManifestVersion(): string {
-  const raw = readFileSync(resolve(SRC, "manifest.json"), "utf8");
-  const parsed = JSON.parse(raw) as { version: string };
-  return parsed.version;
+function makeChromeManifest(base: BaseManifest): BaseManifest {
+  // Chrome's MV3 manifest matches the source verbatim. Stripping
+  // anything Firefox-specific keeps the Chrome store reviewer
+  // from raising warnings about unknown keys.
+  const copy = JSON.parse(JSON.stringify(base)) as BaseManifest;
+  delete copy.browser_specific_settings;
+  return copy;
+}
+
+function makeFirefoxManifest(base: BaseManifest): BaseManifest {
+  const copy = JSON.parse(JSON.stringify(base)) as BaseManifest;
+  // AMO requires a stable extension ID for any non-temporary
+  // install. Firefox 121+ supports the `service_worker` background
+  // field; older Firefoxes don't, so pin the min version.
+  copy.browser_specific_settings = {
+    gecko: {
+      id: GECKO_ID,
+      strict_min_version: GECKO_MIN_VERSION,
+    },
+  };
+  return copy;
+}
+
+function makeSafariManifest(base: BaseManifest): BaseManifest {
+  // Safari's converter ingests a Chrome-shaped extension directory
+  // (manifest, scripts, icons) and produces an Xcode project. The
+  // converter rewrites permissions + SW for Safari itself, so we
+  // hand it the Chrome-flavoured manifest unchanged.
+  return makeChromeManifest(base);
+}
+
+async function buildTarget(
+  label: string,
+  manifest: BaseManifest,
+  subdir: string,
+  zipName: string | null,
+): Promise<void> {
+  const dir = resolve(OUT, subdir);
+  await buildSharedAssets(dir);
+  writeManifest(dir, manifest);
+  const { warnings } = copyOrPlaceholderIcons(dir);
+
+  let zipBytes = 0;
+  if (zipName) zipBytes = zip(dir, zipName);
+
+  const swSize = statSync(resolve(dir, "service-worker.js")).size;
+  const csSize = statSync(resolve(dir, "content-script.js")).size;
+
+  console.log(`\n${label}:`);
+  console.log(`  ${subdir}/manifest.json     v${manifest.version}`);
+  console.log(`  ${subdir}/service-worker.js ${(swSize / 1024).toFixed(1)} KB`);
+  console.log(`  ${subdir}/content-script.js ${(csSize / 1024).toFixed(1)} KB`);
+  if (zipName) {
+    console.log(`  ${zipName}              ${(zipBytes / 1024).toFixed(1)} KB`);
+  }
+  for (const w of warnings) console.log(`  ! ${w}`);
 }
 
 async function main(): Promise<void> {
   if (existsSync(OUT)) rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
 
-  await bundleEsm(
-    resolve(SRC, "src/service-worker.ts"),
-    resolve(OUT, "service-worker.js"),
+  const base = loadManifest();
+
+  await buildTarget(
+    "Chrome / Edge / Brave / Arc",
+    makeChromeManifest(base),
+    "chrome",
+    "chrome.zip",
   );
-  await bundleIife(
-    resolve(SRC, "src/content-script.ts"),
-    resolve(OUT, "content-script.js"),
+  await buildTarget(
+    "Firefox (AMO)",
+    makeFirefoxManifest(base),
+    "firefox",
+    "firefox.zip",
+  );
+  await buildTarget(
+    "Safari source (input for xcrun safari-web-extension-converter)",
+    makeSafariManifest(base),
+    "safari-source",
+    // Safari doesn't take a zip — the converter ingests the dir
+    // and emits an Xcode project. Skip zipping.
+    null,
   );
 
-  copyManifest();
-  copyOrPlaceholderIcons();
-  zipForStore();
-
-  const version = readManifestVersion();
-  const swSize = statSync(resolve(OUT, "service-worker.js")).size;
-  const csSize = statSync(resolve(OUT, "content-script.js")).size;
-  const zipSize = statSync(resolve(OUT, "astraudit-extension.zip")).size;
-
-  console.log("\nExtension built:");
-  console.log(`  manifest version       ${version}`);
-  console.log(`  service-worker.js      ${(swSize / 1024).toFixed(1)} KB`);
-  console.log(`  content-script.js      ${(csSize / 1024).toFixed(1)} KB`);
-  console.log(`  astraudit-extension.zip ${(zipSize / 1024).toFixed(1)} KB`);
-  console.log(`\nLoad unpacked: chrome://extensions → "Load unpacked" → select ${OUT}`);
+  console.log("\nNext steps:");
+  console.log(`  Chrome:  chrome://extensions → "Load unpacked" → ${join(OUT, "chrome")}`);
+  console.log(`  Firefox: about:debugging#/runtime/this-firefox → "Load Temporary Add-on" → ${join(OUT, "firefox", "manifest.json")}`);
+  console.log(`  Safari:  (on macOS) xcrun safari-web-extension-converter ${join(OUT, "safari-source")} --bundle-identifier io.github.beko2210.astraudit`);
 }
 
 main().catch((err) => {
