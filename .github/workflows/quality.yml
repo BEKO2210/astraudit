@@ -17,6 +17,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Roadmap M1.4 — cancel stale PR runs when a contributor force-pushes
+# or pushes a follow-up commit. Push-to-main runs always go to a
+# unique SHA-based group so historical runs stay intact and the
+# required-check signal on `main` never gets cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lighthouse:
     runs-on: ubuntu-latest

@@ -27,6 +27,12 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+# Roadmap M1.4 — cancel stale PR runs. Scheduled cron runs always
+# go to a unique SHA group so the weekly scan can't get cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   analyze:
     name: Analyze (javascript-typescript)
@@ -42,6 +48,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      # Roadmap M1.4 — pre-cache npm so CodeQL's autobuild step
+      # (which runs `npm install` to materialise transitive types)
+      # downloads from the local cache instead of the registry.
+      # Shaves ~30s off a cold run.
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
