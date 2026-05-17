@@ -39,7 +39,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && tsx scripts/build-locale-shells.ts",
     "build:bin": "tsx scripts/build-bin.ts",
     "build:audit-lib": "tsx scripts/build-audit-lib.ts",
     "build:ext": "tsx scripts/build-extension.ts",

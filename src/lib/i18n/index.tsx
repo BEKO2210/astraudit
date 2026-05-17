@@ -36,6 +36,7 @@ import {
 } from "react";
 import type { Catalog, Locale, TranslationKey } from "./types";
 import { DEFAULT_LOCALE, LOCALES } from "./types";
+import { getLocaleFromPath, pathForLocale } from "./path";
 import EN from "./locales/en";
 
 const STORAGE_KEY = "astraudit:locale:v1";
@@ -61,6 +62,21 @@ export function getStoredLocale(): Locale {
     // never the right thing to crash the app over.
     return DEFAULT_LOCALE;
   }
+}
+
+/**
+ * Roadmap M4.5 — decide the initial locale on boot.
+ *
+ * Priority: URL prefix (`/de/`, `/ja/`, `/en/`) > localStorage > default.
+ * The URL wins so a shared link like `/astraudit/ja/#/audit/foo/bar`
+ * always shows the page in the language the linker intended,
+ * regardless of the visitor's stored preference.
+ */
+export function resolveInitialLocale(): Locale {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  const fromUrl = getLocaleFromPath(window.location.pathname);
+  if (fromUrl) return fromUrl;
+  return getStoredLocale();
 }
 
 function persistLocale(locale: Locale): void {
@@ -93,7 +109,7 @@ interface I18nProviderProps {
 
 export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(
-    () => initialLocale ?? getStoredLocale(),
+    () => initialLocale ?? resolveInitialLocale(),
   );
   // EN is the canonical safe default. While a non‑EN catalog is
   // loading the UI still renders sensible strings instead of `[empty]`.
@@ -124,6 +140,18 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
       // Keep `<html lang>` in sync so screen readers + browser
       // translate banners see the right value.
       document.documentElement.setAttribute("lang", next);
+    }
+    // Roadmap M4.5 — keep the URL in sync so the canonical share
+    // link for the chosen locale is what the visitor sees in the
+    // address bar. We replaceState (not pushState) so the back
+    // button still goes to the prior page rather than oscillating
+    // between locale URLs. The current hash + search are preserved.
+    if (typeof window !== "undefined") {
+      const target = pathForLocale(next, window.location.pathname);
+      if (target !== window.location.pathname) {
+        const newUrl = `${target}${window.location.search}${window.location.hash}`;
+        window.history.replaceState(window.history.state, "", newUrl);
+      }
     }
   }, []);
 
