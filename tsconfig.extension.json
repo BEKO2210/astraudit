@@ -23,5 +23,17 @@
     "src/audit-engine.ts",
     "src/lib/**/*",
     "src/types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-bin",
+    "dist-audit-lib",
+    "dist-extension",
+    "tests",
+    // M4.2 — i18n module is React-only and JSX-bearing; the
+    // extension doesn't import from it, so excluding it keeps the
+    // extension compile JSX-free (no need for a jsx setting here).
+    "src/lib/i18n/**"
   ]
 }
