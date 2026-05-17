@@ -24,6 +24,7 @@ import {
 import { serialiseEnabledPacks } from "./rulePacks/parseRules";
 import { runI18nPack } from "./rulePacks/packs/i18n";
 import { runTsPack } from "./rulePacks/packs/ts";
+import { runA11yPack } from "./rulePacks/packs/a11y";
 
 /**
  * Roadmap M5.x — opt‑in pack registry. Each entry's `run`
@@ -34,6 +35,7 @@ import { runTsPack } from "./rulePacks/packs/ts";
 const PACK_RUNNERS: Partial<Record<RulePackId, RulePackRunner>> = {
   i18n: runI18nPack,
   ts: runTsPack,
+  a11y: runA11yPack,
 };
 
 const STEP_LABELS: Record<AuditProgressStep, string> = {
