@@ -30,3 +30,9 @@ test-results
 # Phase 4.2 — Lighthouse CI dumps reports + manifest into this dir.
 .lighthouseci
 
+# Roadmap M2.1 (2/3) — press-kit screenshots are generated on demand
+# via `npm run press:shots`. Keeping them out of git avoids ~7 MB of
+# PNG churn on every fixture tweak; the README + on-disk presence
+# document how to regenerate.
+public/press/screenshots/
+
