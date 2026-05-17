@@ -37,14 +37,34 @@ or copy as needed.)
 | Mobile screenshot — light | [`docs/readme/mobile-light.png`](../../docs/readme/mobile-light.png) | iPhone 14 Pro viewport, light. |
 | Pipeline diagram (SVG) | [`docs/readme/pipeline.svg`](../../docs/readme/pipeline.svg) | The audit data‑flow, single image. |
 
-## Coming in a follow‑up press‑kit PR
+## Press‑specific screenshots (M2.1 — 2/3)
 
-- 1280×720 wide screenshots for each of the seven main panels.
-- 60‑second screencast (`.mp4` + transcript `.vtt`).
-- One‑page PDF rendered from `one-pager.md`.
+Seven 1280×720 panel shots, generated on demand by the maintainer
+via headless Chrome. Output lives in `public/press/screenshots/`
+(gitignored — see "Re‑run" below).
 
-The maintainer adds the screencast manually; the screenshots are
-automated via a Playwright capture script.
+| File | Panel |
+|---|---|
+| `01-overview.png` | Dashboard top + sticky score bar |
+| `02-story.png` | Repo Story narrative |
+| `03-signals.png` | Signal breakdown / category cards |
+| `04-findings.png` | Filterable findings list |
+| `05-graph.png` | Interactive audit graph (React Flow) |
+| `06-next-steps.png` | Prioritised next‑steps panel |
+| `07-export.png` | Markdown / JSON / AsciiDoc export menu open |
+
+**Re‑run:** `npm run press:shots` (requires `npx playwright install
+chromium` once on the local machine). The script seeds the same
+golden fixture as the README screenshots, so both image sets stay
+in sync.
+
+## Coming in a follow‑up press‑kit PR (M2.1 — 3/3)
+
+- 60‑second screencast (`.mp4` + transcript `.vtt`) — maintainer
+  records manually; no automation planned (a real human voice and
+  hand cursor read better than a synthesised walkthrough).
+- One‑page PDF rendered from `one-pager.md` — headless Chrome print
+  job, slice 3/3 of M2.1.
 
 ## Brand notes
 
