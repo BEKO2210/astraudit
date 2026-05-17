@@ -10,6 +10,14 @@ import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
+// Roadmap M4.1 UI slice — lazy so the discovery dialog doesn't
+// inflate the main chunk; it's only mounted after the user clicks
+// "Find similar repos" on a ready audit.
+const StackMatesDialog = lazy(() =>
+  import("./components/StackMatesDialog").then((m) => ({
+    default: m.StackMatesDialog,
+  })),
+);
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastHost } from "./components/ToastHost";
 import { PanelSkeleton } from "./components/ui/PanelSkeleton";
@@ -149,6 +157,7 @@ export default function App() {
   const [state, setState] = useState<AppState>({ kind: "idle" });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [stackMatesOpen, setStackMatesOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -470,6 +479,7 @@ export default function App() {
 
   /** Open the compare dialog from anywhere. */
   const openCompare = useCallback(() => setCompareOpen(true), []);
+  const openStackMates = useCallback(() => setStackMatesOpen(true), []);
 
   /** Submit handler from the dialog: kick off a compare given the right side. */
   const submitCompareWith = useCallback(
@@ -751,6 +761,7 @@ export default function App() {
         <ReviewDashboard
           result={state.result}
           onOpenCompare={openCompare}
+          onOpenStackMates={openStackMates}
           onReaudit={() => {
             const r = state.result;
             void startAudit(
@@ -822,6 +833,23 @@ export default function App() {
               : ""
         }
       />
+
+      <Suspense fallback={null}>
+        <StackMatesDialog
+          open={stackMatesOpen}
+          onClose={() => setStackMatesOpen(false)}
+          base={
+            state.kind === "ready"
+              ? {
+                  fullName: state.result.bundle.metadata.fullName,
+                  language: state.result.bundle.metadata.language,
+                  topics: state.result.bundle.metadata.topics,
+                  stars: state.result.bundle.metadata.stars,
+                }
+              : null
+          }
+        />
+      </Suspense>
     </div>
   );
 }

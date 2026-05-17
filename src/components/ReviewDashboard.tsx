@@ -4,6 +4,7 @@ import {
   Printer as PrinterIcon,
   RefreshCw,
   Share2 as ShareIcon,
+  Sparkles,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AuditGraphSkeleton } from "./AuditGraphSkeleton";
@@ -62,6 +63,11 @@ interface ReviewDashboardProps {
   result: AuditResult;
   onOpenCompare?: () => void;
   /**
+   * Roadmap M4.1 — opens the StackMatesDialog. Optional so renders
+   * without a host (storybook, tests) still mount cleanly.
+   */
+  onOpenStackMates?: () => void;
+  /**
    * Re-audit handler — drops the cached bundle for this repo and
    * re-fetches everything. Wired in App.tsx via `forceFresh: true`.
    * Optional so test renders + storybook still work without a host.
@@ -88,6 +94,7 @@ const SECTIONS: SectionItem[] = [
 export function ReviewDashboard({
   result,
   onOpenCompare,
+  onOpenStackMates,
   onReaudit,
 }: ReviewDashboardProps) {
   const securityCategory = result.categories.find((c) => c.key === "security");
@@ -230,6 +237,21 @@ export function ReviewDashboard({
                   the first row. The user-reported "copy ist zu weit
                   links" came from this mis-wrap. */}
               <div className="flex flex-wrap items-center justify-end gap-2">
+                {/* Roadmap M4.1 — discovers up to 5 stack-mates via
+                    GitHub Search and lets the user audit them
+                    individually. Sits beside "Compare with…" because
+                    both answer the same review-time question: "what
+                    else should I look at?". */}
+                {onOpenStackMates ? (
+                  <button
+                    type="button"
+                    onClick={onOpenStackMates}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-aurora-violet/40 bg-aurora-violet/10 px-3 py-1 text-xs font-medium text-aurora-violet transition hover:bg-aurora-violet/20 print:hidden"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Similar repos
+                  </button>
+                ) : null}
                 {onOpenCompare ? (
                   canCompare ? (
                     <button
