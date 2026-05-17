@@ -458,6 +458,25 @@ export interface Catalog {
   "leaderboard.tableTrend": string;
   "leaderboard.trendNew": string;
   "leaderboard.trendDropped": string;
+  // M7.1.2 — Watch this repo.
+  "sticky.watch": string;
+  "sticky.watching": string;
+  "sticky.watchAria": string;
+  "sticky.unwatchAria": string;
+  "sticky.watchAdded": string;
+  "sticky.watchRemoved": string;
+  "header.openWatched": string;
+  "watched.title": string;
+  "watched.subtitle": string;
+  "watched.empty": string;
+  "watched.close": string;
+  "watched.unwatch": string;
+  "watched.scoreLabel": string;
+  "watched.gradeLabel": string;
+  "watched.findingsLabel": string;
+  "watched.lastCheckedPrefix": string;
+  "watched.neverChecked": string;
+  "watched.intervalPrefix": string;
 }
 
 /**

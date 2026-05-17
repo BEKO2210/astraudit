@@ -1,7 +1,8 @@
-import { Bot, History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react";
+import { Bot, Eye, History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
 import { getStats as getHistoryStats } from "../lib/history/historyStore";
+import { listWatched } from "../lib/watch/watchStore";
 import { useTranslation } from "../lib/i18n";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
@@ -9,23 +10,29 @@ import { ThemeToggle } from "./ThemeToggle";
 interface HeroProps {
   onOpenSettings: () => void;
   onOpenHistory: () => void;
+  onOpenWatched: () => void;
   /** A tick that bumps whenever the token changes — re-renders the badge. */
   authTick: number;
   /** A tick that bumps whenever audit history changes. */
   historyTick: number;
+  /** A tick that bumps whenever the watched-list changes. */
+  watchedTick: number;
 }
 
 export function Hero({
   onOpenSettings,
   onOpenHistory,
+  onOpenWatched,
   authTick,
   historyTick,
+  watchedTick,
 }: HeroProps) {
   const { t } = useTranslation();
   const [hasToken, setHasToken] = useState(false);
   const [prefix, setPrefix] = useState<string | null>(null);
   const [historyCount, setHistoryCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const [watchedCount, setWatchedCount] = useState(0);
 
   useEffect(() => {
     setHasToken(!!loadToken());
@@ -37,6 +44,10 @@ export function Hero({
     setHistoryCount(stats.total);
     setFavoritesCount(stats.favorites);
   }, [historyTick]);
+
+  useEffect(() => {
+    setWatchedCount(listWatched().length);
+  }, [watchedTick]);
 
   return (
     <header className="relative pt-10 pb-8 sm:pt-16 sm:pb-14">
@@ -101,6 +112,21 @@ export function Hero({
                 History · {historyCount}
               </span>
               <span className="sm:hidden">{historyCount}</span>
+            </button>
+          ) : null}
+          {watchedCount > 0 ? (
+            <button
+              type="button"
+              onClick={onOpenWatched}
+              aria-label={t("header.openWatched")}
+              title={`${t("watched.title")}: ${watchedCount}`}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-aurora-amber/40 bg-aurora-amber/10 px-2.5 py-1 text-[11px] font-medium text-aurora-amber transition hover:bg-aurora-amber/20 print:hidden"
+            >
+              <Eye className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline">
+                {t("watched.title")} · {watchedCount}
+              </span>
+              <span className="sm:hidden">{watchedCount}</span>
             </button>
           ) : null}
         <button

@@ -10,6 +10,7 @@ import { Footer } from "./components/Footer";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
+import { WatchedDialog } from "./components/WatchedDialog";
 // Roadmap M4.1 UI slice — lazy so the discovery dialog doesn't
 // inflate the main chunk; it's only mounted after the user clicks
 // "Find similar repos" on a ready audit.
@@ -186,10 +187,12 @@ export default function App() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [stackMatesOpen, setStackMatesOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [watchedOpen, setWatchedOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [authTick, setAuthTick] = useState(0);
   const [historyTick, setHistoryTick] = useState(0);
+  const [watchedTick, setWatchedTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Roadmap M5.1 / M5.5 — opt‑in rule packs. Seeded from the URL
@@ -814,8 +817,10 @@ export default function App() {
       <Hero
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenHistory={() => setHistoryOpen(true)}
+        onOpenWatched={() => setWatchedOpen(true)}
         authTick={authTick}
         historyTick={historyTick}
+        watchedTick={watchedTick}
       />
 
       {/* Phase 6.9 — single <main> landmark so SR users can jump to
@@ -921,6 +926,17 @@ export default function App() {
           void startAudit(fullName);
         }}
         tick={historyTick}
+      />
+
+      <WatchedDialog
+        open={watchedOpen}
+        onClose={() => {
+          setWatchedOpen(false);
+          setWatchedTick((n) => n + 1);
+        }}
+        onPick={(fullName) => {
+          void startAudit(fullName);
+        }}
       />
 
       {paletteOpen ? (
