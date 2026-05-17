@@ -7,6 +7,11 @@ dist-ssr
 # committed because the bundled file would churn on every
 # engine change.
 dist-bin
+# Roadmap M3.1 — bundled audit-engine library. Regenerated via
+# `npm run build:audit-lib`. The browser extension + bookmarklet
+# (M3.2 onwards) consume it; nothing in src/ depends on it, so it
+# never needs to live in git.
+dist-audit-lib
 .vite
 .cache
 .DS_Store
