@@ -12,6 +12,9 @@ dist-bin
 # (M3.2 onwards) consume it; nothing in src/ depends on it, so it
 # never needs to live in git.
 dist-audit-lib
+# Roadmap M3.2 — bundled MV3 extension. Regenerated via
+# `npm run build:ext`. Source lives in extension/; output here.
+dist-extension
 .vite
 .cache
 .DS_Store
