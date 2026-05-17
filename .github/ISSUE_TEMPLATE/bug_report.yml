@@ -1,0 +1,114 @@
+name: Bug report
+description: Something in Astraudit is broken or behaves unexpectedly.
+title: "[bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug! A reproduction makes the difference
+        between "we'll get to it eventually" and "fixed today". Please
+        keep the report concise — the maintainer is one person.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: One or two sentences.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect Astraudit to do instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: |
+        Numbered list. If the bug is specific to a repository you
+        audited, paste the full URL — every Astraudit URL is shareable
+        (`https://beko2210.github.io/astraudit/#/audit/owner/repo`).
+      placeholder: |
+        1. Go to https://beko2210.github.io/astraudit/
+        2. Paste owner/repo
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or video
+      description: |
+        Drag-drop here. UI bugs without a screenshot are very hard
+        to triage.
+
+  - type: input
+    id: env-url
+    attributes:
+      label: Astraudit URL
+      description: e.g. https://beko2210.github.io/astraudit/ or a local commit hash
+      placeholder: https://beko2210.github.io/astraudit/
+    validations:
+      required: true
+
+  - type: input
+    id: env-browser
+    attributes:
+      label: Browser + version
+      placeholder: Firefox 142.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: env-os
+    attributes:
+      label: OS
+      placeholder: macOS 15.6 / Windows 11 / Fedora 41
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env-theme
+    attributes:
+      label: Theme
+      options:
+        - Dark
+        - Light
+        - System (followed)
+        - Both
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env-pat
+    attributes:
+      label: GitHub PAT configured in Settings?
+      description: Don't paste the token. Just yes/no.
+      options:
+        - "No"
+        - "Yes (fine-grained, public_repo read)"
+        - "Yes (classic, public_repo)"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: already-checked
+    attributes:
+      label: Already checked
+      description: Confirm before submitting.
+      options:
+        - label: I searched existing issues and PRs.
+          required: true
+        - label: I tried a hard reload (Cmd-Shift-R / Ctrl-Shift-R).
+          required: true
+        - label: I confirmed the repo I audited is **public**.
+          required: true
+        - label: I'm OK if my reproduction steps appear in the public response.
+          required: true

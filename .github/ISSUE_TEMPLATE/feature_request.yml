@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose a new panel, export, or UX improvement.
+title: "[feat] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Astraudit operates under four hard constraints. Items that
+        need a backend, OAuth, private-repo support, or LLM inference
+        will be politely declined — the full list lives in
+        [`ROADMAP.md` → anti-roadmap](https://github.com/BEKO2210/astraudit/blob/main/ROADMAP.md#anti-roadmap--things-astraudit-will-never-do).
+
+        🌐 browser-only · 🆓 free forever · 📂 public repos only · 📐 rule-based
+
+        **For new audit detectors**, use the
+        [`Rule proposal`](https://github.com/BEKO2210/astraudit/issues/new?template=rule_proposal.yml)
+        template instead — it's structured for detector triage.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: |
+        A short user story:
+        "As a maintainer auditing a fork before I trust it,
+         I want X so that Y."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: |
+        Sketch the new panel, export, or UX. Include example UI
+        copy if you have it — specifics make triage fast.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraint check
+      description: All four boxes must be checkable for the feature to fit.
+      options:
+        - label: Browser-only — no backend / serverless / database needed.
+          required: true
+        - label: Free forever — no paid API / vendor.
+          required: true
+        - label: Public repos only — works without OAuth or a private token.
+          required: true
+        - label: Rule-based — no AI / LLM inference for findings.
+          required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you try / consider? Why is this the better route?
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or references
+      description: |
+        Drop screenshots, links to comparable projects, or rough
+        wireframes here.
