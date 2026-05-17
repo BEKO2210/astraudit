@@ -25,6 +25,7 @@ import {
   type ExportFormat,
 } from "../lib/export/auditExport";
 import { pushToast } from "../lib/ui/toastStore";
+import { useTranslation } from "../lib/i18n";
 
 interface ExportMenuProps {
   result: AuditResult;
@@ -38,6 +39,7 @@ const OPTIONS: Array<{ format: ExportFormat; label: string; hint: string }> = [
 ];
 
 export function ExportMenu({ result, className = "" }: ExportMenuProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -114,7 +116,7 @@ export function ExportMenu({ result, className = "" }: ExportMenuProps) {
           ref={menuRef}
           id={menuId}
           role="menu"
-          aria-label="Export format"
+          aria-label={t("export.formatAria")}
           className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 shadow-glow backdrop-blur print:hidden"
         >
           <ul className="divide-y divide-white/5">

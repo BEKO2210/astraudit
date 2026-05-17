@@ -262,6 +262,42 @@ const DE: Catalog = {
   "palette.groupTheme": "Theme",
   "palette.groupHistory": "Aus deinem Verlauf",
   "palette.groupExamples": "Beispiel auditieren",
+  // M4.3 slice 6a — Panel headings + small components
+  "panel.auditGraph": "Audit‑Graph",
+  "panel.signals": "Signal‑Details",
+  "panel.signalsSubtitle": "Die acht relevanten Signale",
+  "panel.repoStory": "Repository‑Story",
+  "panel.repoStorySubtitle":
+    "Aus öffentlichen Metadaten, Dateien und Struktur generiert. Keine AI‑Inferenz.",
+  "panel.insights": "Repository‑Insights",
+  "panel.scoreBreakdown": "Score‑Aufschlüsselung",
+  "panel.registry": "Registry‑Signale",
+  "panel.maintenance": "Wartung",
+  "panel.dependencies": "Dependencies & Stack",
+  "footer.builtWith": "Mit Vite, React und der öffentlichen GitHub‑API gebaut.",
+  "examples.tryKnown": "Bekanntes öffentliches Repository ausprobieren",
+  "input.repoAria": "GitHub‑Repository‑URL",
+  "graph.filterAria": "Audit‑Graph nach Status filtern",
+  "graph.loadingAria": "Lade Audit‑Graph",
+  "registry.aria": "Öffentliche Registry‑Lookups",
+  "export.formatAria": "Export‑Format",
+  "sticky.summaryAria": "Audit‑Zusammenfassung",
+  "sticky.badgeAria": "Badge generieren",
+  "heatmap.less": "Weniger",
+  "heatmap.more": "Mehr",
+  "recommendations.emptyTitle": "Keine empfohlenen nächsten Schritte",
+  "recommendations.emptyBody":
+    "Astraudits regelbasierte Detektoren haben keine priorisierten Verbesserungen aufgedeckt. Das ist der seltene Fall, in dem der Audit jedes verfolgte Signal als bereits stark einstuft — behalte das Findings‑Panel für feinere Themen im Auge.",
+  "recommendations.copyAll": "Alle Schritte kopieren",
+  "recommendations.subtitle":
+    "Sieben priorisierte Verbesserungen, sortiert nach wahrscheinlicher Wirkung.",
+  "overview.archivedPill": "Archiviert",
+  "overview.forkPill": "Fork",
+  "overview.templatePill": "Template",
+  "overview.copyUrl": "GitHub‑URL kopieren",
+  "stackmates.close": "Schließen",
+  "compareDashboard.copySummary": "Zusammenfassung kopieren",
+  "compareDashboard.shared": "Gemeinsam",
 };
 
 export default DE;

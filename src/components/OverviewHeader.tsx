@@ -14,6 +14,7 @@ import type { RepoMetadata } from "../types/github";
 import { formatDate, formatRelative } from "../lib/utils/formatDate";
 import { formatNumber } from "../lib/utils/formatNumber";
 import { safeText } from "../lib/utils/safeText";
+import { useTranslation } from "../lib/i18n";
 import { CopyButton } from "./CopyButton";
 
 interface OverviewHeaderProps {
@@ -21,6 +22,7 @@ interface OverviewHeaderProps {
 }
 
 export function OverviewHeader({ metadata }: OverviewHeaderProps) {
+  const { t } = useTranslation();
   return (
     <section className="glass relative overflow-hidden p-5 sm:p-6">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -53,18 +55,18 @@ export function OverviewHeader({ metadata }: OverviewHeaderProps) {
               </a>
               <CopyButton
                 value={metadata.htmlUrl}
-                label="Copy GitHub URL"
+                label={t("overview.copyUrl")}
               />
               {metadata.archived ? (
                 <span className="pill text-risk-medium border-risk-medium/40 bg-risk-medium/10">
-                  Archived
+                  {t("overview.archivedPill")}
                 </span>
               ) : null}
               {metadata.fork ? (
-                <span className="pill text-risk-info">Fork</span>
+                <span className="pill text-risk-info">{t("overview.forkPill")}</span>
               ) : null}
               {metadata.isTemplate ? (
-                <span className="pill text-aurora-cyan">Template</span>
+                <span className="pill text-aurora-cyan">{t("overview.templatePill")}</span>
               ) : null}
             </div>
             <p className="mt-2 max-w-2xl text-sm text-slate-300/85">

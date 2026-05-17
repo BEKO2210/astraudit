@@ -2,6 +2,7 @@ import { CheckCircle2, PartyPopper, Sparkles } from "lucide-react";
 import type { Recommendation } from "../types/audit";
 import { CopyButton } from "./CopyButton";
 import { EmptyPanelState } from "./ui/EmptyPanelState";
+import { useTranslation } from "../lib/i18n";
 
 interface RecommendationsPanelProps {
   recommendations: Recommendation[];
@@ -22,6 +23,7 @@ const IMPACT_COLOR: Record<Recommendation["impact"], string> = {
 export function RecommendationsPanel({
   recommendations,
 }: RecommendationsPanelProps) {
+  const { t } = useTranslation();
   // Phase 5.5 — coherent empty state. Replaces the previous "render
   // the panel with an empty <ol>" pattern, which left an awkward
   // glass card with just the title and the Copy-all button (which
@@ -31,15 +33,8 @@ export function RecommendationsPanel({
     return (
       <EmptyPanelState
         icon={PartyPopper}
-        title="No recommended next steps"
-        description={
-          <>
-            Astraudit's rule-based detectors didn't surface any prioritised
-            improvements. That's the rare case where the audit thinks every
-            tracked signal is already strong — keep an eye on the Findings
-            panel for finer-grained issues.
-          </>
-        }
+        title={t("recommendations.emptyTitle")}
+        description={t("recommendations.emptyBody")}
         accentClass="text-aurora-mint"
       />
     );
@@ -58,12 +53,12 @@ export function RecommendationsPanel({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-aurora-mint" />
           <h3 className="text-sm font-semibold text-white">
-            Recommended next steps
+            {t("dashboard.meta.recommendationsLabel")}
           </h3>
         </div>
         <CopyButton
           value={allText}
-          label="Copy all steps"
+          label={t("recommendations.copyAll")}
           withText
           // Phase 6.2 — keep the action right-aligned even after the
           // header wraps to a second row on narrow viewports.
@@ -71,7 +66,7 @@ export function RecommendationsPanel({
         />
       </div>
       <p className="mt-1 text-xs text-slate-500">
-        Seven prioritized improvements ordered by likely impact.
+        {t("recommendations.subtitle")}
       </p>
       <ol className="mt-4 space-y-2">
         {recommendations.map((r, idx) => (

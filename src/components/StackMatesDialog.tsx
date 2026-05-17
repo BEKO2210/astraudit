@@ -19,6 +19,7 @@
 import { Sparkles, X, ArrowUpRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useDialog } from "../lib/ui/useDialog";
+import { useTranslation } from "../lib/i18n";
 import {
   discoverStackMates,
   type StackMate,
@@ -43,6 +44,7 @@ type FetchState =
   | { kind: "error"; message: string };
 
 export function StackMatesDialog({ open, onClose, base }: StackMatesDialogProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<FetchState>({ kind: "idle" });
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialog({ open, onClose, containerRef: dialogRef });
@@ -110,7 +112,7 @@ export function StackMatesDialog({ open, onClose, base }: StackMatesDialogProps)
             type="button"
             onClick={onClose}
             className="rounded-lg p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
-            aria-label="Close"
+            aria-label={t("stackmates.close")}
           >
             <X className="h-5 w-5" />
           </button>

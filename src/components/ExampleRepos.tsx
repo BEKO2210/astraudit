@@ -1,5 +1,6 @@
 import { ChevronRight, GitBranch } from "lucide-react";
 import { EXAMPLE_REPOS } from "../data/exampleRepos";
+import { useTranslation } from "../lib/i18n";
 
 interface ExampleReposProps {
   onPick: (fullName: string) => void;
@@ -7,9 +8,10 @@ interface ExampleReposProps {
 }
 
 export function ExampleRepos({ onPick, disabled }: ExampleReposProps) {
+  const { t } = useTranslation();
   return (
     <div className="mt-6">
-      <p className="card-title mb-3">Try a known public repository</p>
+      <p className="card-title mb-3">{t("examples.tryKnown")}</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {EXAMPLE_REPOS.map((repo) => (
           <button

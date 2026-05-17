@@ -1,20 +1,20 @@
 import { BookOpen } from "lucide-react";
 import type { RepoStorySection } from "../types/audit";
+import { useTranslation } from "../lib/i18n";
 
 interface RepoStoryProps {
   story: RepoStorySection[];
 }
 
 export function RepoStory({ story }: RepoStoryProps) {
+  const { t } = useTranslation();
   return (
     <section className="glass p-6">
       <div className="flex items-center gap-2">
         <BookOpen className="h-4 w-4 text-aurora-cyan" />
-        <h3 className="text-sm font-semibold text-white">Repository story</h3>
+        <h3 className="text-sm font-semibold text-white">{t("panel.repoStory")}</h3>
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        Generated from public metadata, files, and structure. No AI inference.
-      </p>
+      <p className="mt-1 text-xs text-slate-500">{t("panel.repoStorySubtitle")}</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {story.map((section, idx) => (
           <div

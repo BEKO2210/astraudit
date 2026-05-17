@@ -10,17 +10,19 @@
 
 import { Network } from "lucide-react";
 import { Skeleton } from "./Skeleton";
+import { useTranslation } from "../lib/i18n";
 
 export function AuditGraphSkeleton() {
+  const { t } = useTranslation();
   return (
     <section
       className="glass overflow-hidden print:hidden"
-      aria-label="Loading audit graph"
+      aria-label={t("graph.loadingAria")}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-aurora-cyan" />
-          <h3 className="text-sm font-semibold text-white">Audit graph</h3>
+          <h3 className="text-sm font-semibold text-white">{t("panel.auditGraph")}</h3>
           <span className="text-[11px] text-slate-500">loading…</span>
         </div>
       </div>

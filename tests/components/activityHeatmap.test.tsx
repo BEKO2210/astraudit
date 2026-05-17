@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ActivityHeatmap } from "../../src/components/ActivityHeatmap";
 import type { CommitInfo } from "../../src/types/github";
+import { I18nProvider } from "../../src/lib/i18n";
 
 const NOW = new Date("2026-05-10T12:00:00Z");
 
@@ -55,8 +56,12 @@ describe("<ActivityHeatmap />", () => {
     void realDate;
   }
 
+  // Roadmap M4.3 slice 6a — ActivityHeatmap now consumes
+  // useTranslation(); wrap in I18nProvider.
   const html = renderToStaticMarkup(
-    <ActivityHeatmap commits={sampleCommits()} />,
+    <I18nProvider initialLocale="en">
+      <ActivityHeatmap commits={sampleCommits()} />
+    </I18nProvider>,
   );
 
   it("uses role='grid' with an aria-label that mentions arrow-key navigation", () => {
@@ -127,7 +132,9 @@ describe("<ActivityHeatmap />", () => {
 
   it("falls back to the empty-state message when there are no commits", () => {
     const emptyHtml = renderToStaticMarkup(
-      <ActivityHeatmap commits={[]} />,
+      <I18nProvider initialLocale="en">
+        <ActivityHeatmap commits={[]} />
+      </I18nProvider>,
     );
     expect(emptyHtml).toContain("No commits in the last 12 weeks.");
     // Even on the empty path we still render the grid (84 cells with

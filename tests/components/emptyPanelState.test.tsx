@@ -68,29 +68,35 @@ describe("<EmptyPanelState />", () => {
 });
 
 describe("RecommendationsPanel — empty path", () => {
-  it("renders the celebratory empty state when given no recommendations", () => {
-    const html = renderToStaticMarkup(
-      <RecommendationsPanel recommendations={[]} />,
+  // Roadmap M4.3 slice 6a — RecommendationsPanel now consumes
+  // useTranslation(); wrap every render in <I18nProvider> so the
+  // existing assertions still resolve against the EN catalog.
+  const renderEmpty = () =>
+    renderToStaticMarkup(
+      <I18nProvider initialLocale="en">
+        <RecommendationsPanel recommendations={[]} />
+      </I18nProvider>,
     );
+
+  it("renders the celebratory empty state when given no recommendations", () => {
+    const html = renderEmpty();
     expect(html).toContain("No recommended next steps");
     // The celebratory message mentions the rule-based detectors so
     // users know the empty state is meaningful, not a render bug.
-    expect(html).toContain("rule-based detectors");
+    // Catalog uses the non-breaking hyphen U+2011 for typography,
+    // so the assertion matches the rendered character.
+    expect(html).toContain("rule‑based detectors");
   });
 
   it("does NOT render the Copy-all button on the empty path", () => {
     // The old implementation rendered Copy-all even with no items;
     // it'd copy the empty string. The new path omits it.
-    const html = renderToStaticMarkup(
-      <RecommendationsPanel recommendations={[]} />,
-    );
+    const html = renderEmpty();
     expect(html).not.toContain("Copy all steps");
   });
 
   it("still shows the empty-state card chrome (not literally nothing)", () => {
-    const html = renderToStaticMarkup(
-      <RecommendationsPanel recommendations={[]} />,
-    );
+    const html = renderEmpty();
     expect(html).toContain("glass");
     expect(html.length).toBeGreaterThan(200);
   });

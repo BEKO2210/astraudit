@@ -8,7 +8,10 @@
  * All three render as stand-alone hash routes so the SPA serves them
  * without a backend round-trip.
  */
+import { useTranslation } from "../lib/i18n";
+
 export function Footer() {
+  const { t } = useTranslation();
   const base = import.meta.env.BASE_URL;
   return (
     <footer className="mt-20 border-t border-white/5 py-8 print:mt-8 print:border-slate-200 print:py-4">
@@ -64,7 +67,7 @@ export function Footer() {
           Datenschutz
         </a>
         <span className="text-slate-700">·</span>
-        <span>Built with Vite, React, and GitHub's public API.</span>
+        <span>{t("footer.builtWith")}</span>
       </p>
     </footer>
   );

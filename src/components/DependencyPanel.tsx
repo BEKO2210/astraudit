@@ -11,18 +11,20 @@ import {
   Wrench,
 } from "lucide-react";
 import type { StackSignals } from "../types/audit";
+import { useTranslation } from "../lib/i18n";
 
 interface DependencyPanelProps {
   stack: StackSignals;
 }
 
 export function DependencyPanel({ stack }: DependencyPanelProps) {
+  const { t } = useTranslation();
   return (
     <section className="glass p-6">
       <div className="flex items-center gap-2">
         <Boxes className="h-4 w-4 text-aurora-violet" />
         <h3 className="text-sm font-semibold text-white">
-          Dependencies & stack
+          {t("panel.dependencies")}
         </h3>
       </div>
 

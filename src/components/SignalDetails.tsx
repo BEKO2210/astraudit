@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { CategoryScore, CategoryStatus } from "../types/audit";
+import { useTranslation } from "../lib/i18n";
 
 interface SignalDetailsProps {
   categories: CategoryScore[];
@@ -93,6 +94,7 @@ const STATUS_LABEL: Record<CategoryStatus, string> = {
 };
 
 export function SignalDetails({ categories }: SignalDetailsProps) {
+  const { t } = useTranslation();
   return (
     <section aria-labelledby="signal-details-heading">
       <div className="mb-3 flex items-center justify-between">
@@ -100,9 +102,9 @@ export function SignalDetails({ categories }: SignalDetailsProps) {
           id="signal-details-heading"
           className="text-sm font-semibold text-white"
         >
-          Signal Details
+          {t("panel.signals")}
         </h3>
-        <p className="text-xs text-slate-500">The eight signals that matter</p>
+        <p className="text-xs text-slate-500">{t("panel.signalsSubtitle")}</p>
       </div>
       <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
         {categories.map((c) => {

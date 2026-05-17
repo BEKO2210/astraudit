@@ -17,6 +17,7 @@ import {
 // so first paint of the home page never downloads it.
 import "reactflow/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "../lib/i18n";
 import {
   Activity,
   AlertTriangle,
@@ -187,6 +188,7 @@ interface AuditGraphProps {
 }
 
 function AuditGraphInner({ graph }: AuditGraphProps) {
+  const { t } = useTranslation();
   const { fitView } = useReactFlow();
   const [selectedId, setSelectedId] = useState<string | null>("repo");
   // Phase 5.10 — at narrow viewports, React Flow's default touch
@@ -294,7 +296,7 @@ function AuditGraphInner({ graph }: AuditGraphProps) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4">
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-aurora-cyan" />
-          <h3 className="text-sm font-semibold text-white">Audit graph</h3>
+          <h3 className="text-sm font-semibold text-white">{t("panel.auditGraph")}</h3>
           <span className="text-[11px] text-slate-500">
             {graph.nodes.length} nodes
           </span>
@@ -322,7 +324,7 @@ function AuditGraphInner({ graph }: AuditGraphProps) {
       <div
         className="flex flex-wrap items-center gap-1.5 border-b border-white/5 px-6 py-2.5"
         role="toolbar"
-        aria-label="Filter audit graph by status"
+        aria-label={t("graph.filterAria")}
       >
         <Filter className="mr-1 h-3.5 w-3.5 text-slate-500" />
         {STATUS_ORDER.map((status) => {

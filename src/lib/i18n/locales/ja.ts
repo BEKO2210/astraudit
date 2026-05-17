@@ -267,6 +267,43 @@ const JA: Catalog = {
   "palette.groupTheme": "テーマ",
   "palette.groupHistory": "履歴から",
   "palette.groupExamples": "例を監査",
+  // M4.3 slice 6a — Panel headings + small components
+  "panel.auditGraph": "監査グラフ",
+  "panel.signals": "シグナル詳細",
+  "panel.signalsSubtitle": "重要な8つのシグナル",
+  "panel.repoStory": "リポジトリストーリー",
+  "panel.repoStorySubtitle":
+    "公開メタデータ・ファイル・構造から生成。AI による推論なし。",
+  "panel.insights": "リポジトリインサイト",
+  "panel.scoreBreakdown": "スコア内訳",
+  "panel.registry": "レジストリシグナル",
+  "panel.maintenance": "メンテナンス",
+  "panel.dependencies": "依存関係とスタック",
+  "footer.builtWith":
+    "Vite、React、および GitHub の公開 API で構築。",
+  "examples.tryKnown": "既知の公開リポジトリを試す",
+  "input.repoAria": "GitHub リポジトリ URL",
+  "graph.filterAria": "監査グラフをステータスで絞り込み",
+  "graph.loadingAria": "監査グラフを読み込み中",
+  "registry.aria": "公開レジストリの検索",
+  "export.formatAria": "エクスポート形式",
+  "sticky.summaryAria": "監査サマリー",
+  "sticky.badgeAria": "バッジを生成",
+  "heatmap.less": "少ない",
+  "heatmap.more": "多い",
+  "recommendations.emptyTitle": "推奨される次のステップはありません",
+  "recommendations.emptyBody":
+    "Astraudit のルールベース検出器は優先すべき改善項目を見つけませんでした。これは追跡しているすべてのシグナルがすでに強いと監査が判断した稀なケースです — より細かい項目については Findings パネルをご確認ください。",
+  "recommendations.copyAll": "すべてのステップをコピー",
+  "recommendations.subtitle":
+    "影響度順に並べた7つの優先改善項目。",
+  "overview.archivedPill": "アーカイブ済み",
+  "overview.forkPill": "フォーク",
+  "overview.templatePill": "テンプレート",
+  "overview.copyUrl": "GitHub URL をコピー",
+  "stackmates.close": "閉じる",
+  "compareDashboard.copySummary": "サマリーをコピー",
+  "compareDashboard.shared": "共通",
 };
 
 export default JA;

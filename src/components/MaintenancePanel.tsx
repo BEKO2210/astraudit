@@ -3,17 +3,19 @@ import type { RepoBundle } from "../types/github";
 import { formatDate, formatRelative } from "../lib/utils/formatDate";
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { CopyButton } from "./CopyButton";
+import { useTranslation } from "../lib/i18n";
 
 interface MaintenancePanelProps {
   bundle: RepoBundle;
 }
 
 export function MaintenancePanel({ bundle }: MaintenancePanelProps) {
+  const { t } = useTranslation();
   return (
     <section className="glass p-6">
       <div className="flex items-center gap-2">
         <Activity className="h-4 w-4 text-aurora-cyan" />
-        <h3 className="text-sm font-semibold text-white">Maintenance</h3>
+        <h3 className="text-sm font-semibold text-white">{t("panel.maintenance")}</h3>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
