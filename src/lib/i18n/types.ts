@@ -453,6 +453,7 @@ export interface Catalog {
   "leaderboard.progressDone": string;
   "leaderboard.emptyHint": string;
   "leaderboard.errorRow": string;
+  "leaderboard.snapshotLabel": string;
 }
 
 /**

@@ -471,6 +471,7 @@ const DE: Catalog = {
   "leaderboard.emptyHint":
     "Filter oben konfigurieren und „Leaderboard starten“ drücken.",
   "leaderboard.errorRow": "Audit fehlgeschlagen",
+  "leaderboard.snapshotLabel": "Zeige gecachten Snapshot vom",
 };
 
 export default DE;

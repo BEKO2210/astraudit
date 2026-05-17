@@ -42,6 +42,12 @@ import {
   type BatchProgress,
   type BatchRow,
 } from "../../lib/leaderboard/batchAudit";
+import {
+  loadLatestSnapshot,
+  saveSnapshot,
+  type SnapshotRecord,
+  type SnapshotRow,
+} from "../../lib/leaderboard/snapshotStore";
 import type {
   AuditResult,
   WorkerInputMessage,
@@ -166,6 +172,10 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
     null,
   );
   const [notice, setNotice] = useState<string | null>(null);
+  // Roadmap M6.4 — restored snapshot rows so the page is not
+  // empty on first visit. Cleared once a fresh batch starts so
+  // the table doesn't double-render snapshot + live rows.
+  const [snapshot, setSnapshot] = useState<SnapshotRecord | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -188,6 +198,21 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
   // Cancel any in-flight batch on unmount.
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Restore the most recent snapshot for the current filter on
+  // mount + every time the filter changes. Running batches keep
+  // their own `rows` state — the snapshot only fills the table
+  // when no batch has produced live rows yet.
+  useEffect(() => {
+    if (running) return;
+    const filter = {
+      language: form.language.trim() || undefined,
+      topic: form.topic.trim().toLowerCase() || undefined,
+      minStars: form.minStars ? Number(form.minStars) : undefined,
+    };
+    const snap = loadLatestSnapshot(filter);
+    setSnapshot(snap);
+  }, [form.language, form.topic, form.minStars, running]);
+
   const updateField = useCallback(
     (key: keyof FormState, value: string) => {
       setForm((prev) => {
@@ -207,6 +232,7 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
     if (running) return;
     setNotice(null);
     setRows([]);
+    setSnapshot(null);
     setProgress(null);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -268,13 +294,35 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
         }
       };
 
-      await runBatchAudit({
+      const batch = await runBatchAudit({
         hits,
         auditOne,
         signal: controller.signal,
         onProgress,
         probeRateLimit,
       });
+
+      // Roadmap M6.4 — persist a compact snapshot of every ok row
+      // so a return visit shows the table instantly. Aborted /
+      // empty batches are skipped (snapshots would be misleading).
+      const okSnapshotRows: SnapshotRow[] = batch.rows
+        .filter((r): r is Extract<BatchRow, { status: "ok" }> => r.status === "ok")
+        .map((r) => ({
+          fullName: r.hit.fullName,
+          owner: r.hit.owner,
+          name: r.hit.name,
+          htmlUrl: r.hit.htmlUrl,
+          description: r.hit.description,
+          stars: r.hit.stars,
+          pushedAt: r.hit.pushedAt,
+          totalScore: r.audit.totalScore,
+          maxScore: r.audit.maxScore,
+          grade: r.audit.grade,
+        }));
+      if (okSnapshotRows.length > 0 && !batch.stoppedEarly) {
+        const saved = saveSnapshot(filter, okSnapshotRows);
+        setSnapshot(saved);
+      }
     } finally {
       setRunning(false);
       setProgress(null);
@@ -287,7 +335,7 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
     setNotice(null);
   }, []);
 
-  /** Sort rows: ok first (by score desc), then errors at the bottom. */
+  /** Sort live rows: ok first (by score desc), then errors at the bottom. */
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => {
       if (a.status === "ok" && b.status === "ok") {
@@ -298,6 +346,18 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
       return 0;
     });
   }, [rows]);
+
+  /** Snapshot rows pre-sorted by score desc — restored when no
+   *  live batch has produced rows yet. */
+  const snapshotSortedRows = useMemo(() => {
+    if (!snapshot) return [];
+    return [...snapshot.rows].sort(
+      (a, b) => (b.totalScore ?? -1) - (a.totalScore ?? -1),
+    );
+  }, [snapshot]);
+
+  const usingSnapshot = rows.length === 0 && snapshotSortedRows.length > 0;
+  const tableHasContent = sortedRows.length > 0 || usingSnapshot;
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
@@ -398,12 +458,19 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
         </p>
       ) : null}
 
-      {sortedRows.length === 0 && !running ? (
+      {!tableHasContent && !running ? (
         <p className="mt-6 text-sm text-slate-500">{t("leaderboard.emptyHint")}</p>
       ) : null}
 
-      {sortedRows.length > 0 ? (
-        <section className="glass mt-6 overflow-hidden p-0">
+      {usingSnapshot ? (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-400">
+          {t("leaderboard.snapshotLabel")}{" "}
+          {snapshot ? new Date(snapshot.savedAt).toLocaleString() : ""}
+        </p>
+      ) : null}
+
+      {tableHasContent ? (
+        <section className="glass mt-3 overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-white/[0.02] text-[10px] uppercase tracking-[0.16em] text-slate-500">
@@ -418,15 +485,84 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((row, idx) => (
-                  <Row key={row.hit.fullName} rank={idx + 1} row={row} t={t} />
-                ))}
+                {sortedRows.length > 0
+                  ? sortedRows.map((row, idx) => (
+                      <Row key={row.hit.fullName} rank={idx + 1} row={row} t={t} />
+                    ))
+                  : snapshotSortedRows.map((row, idx) => (
+                      <SnapshotRowView
+                        key={row.fullName}
+                        rank={idx + 1}
+                        row={row}
+                        t={t}
+                      />
+                    ))}
               </tbody>
             </table>
           </div>
         </section>
       ) : null}
     </div>
+  );
+}
+
+function SnapshotRowView({
+  rank,
+  row,
+  t,
+}: {
+  rank: number;
+  row: SnapshotRow;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <tr className="border-t border-white/5 hover:bg-white/[0.02]">
+      <td className="px-3 py-2 text-slate-400">{rank}</td>
+      <td className="px-3 py-2">
+        <a
+          href={row.htmlUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="font-medium text-white hover:text-aurora-cyan"
+        >
+          {row.fullName}
+        </a>
+        {row.description ? (
+          <div className="max-w-md truncate text-[11px] text-slate-500">
+            {row.description}
+          </div>
+        ) : null}
+      </td>
+      <td className="px-3 py-2 text-right font-mono">
+        {row.totalScore != null && row.maxScore != null
+          ? `${row.totalScore}/${row.maxScore}`
+          : "—"}
+      </td>
+      <td className="px-3 py-2">
+        {row.grade ? (
+          <span className={`pill border ${gradeClass(row.grade)}`}>
+            {row.grade}
+          </span>
+        ) : (
+          <span className="pill text-risk-medium border-risk-medium/40">
+            {t("leaderboard.errorRow")}
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-right font-mono text-slate-300">
+        {formatNumber(row.stars)}
+      </td>
+      <td className="px-3 py-2 text-slate-400">{formatRelative(row.pushedAt)}</td>
+      <td className="px-3 py-2 text-right">
+        <a
+          href={`#/audit/${row.fullName}`}
+          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-aurora-cyan hover:bg-white/[0.06]"
+        >
+          {t("leaderboard.openAudit")}
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </td>
+    </tr>
   );
 }
 

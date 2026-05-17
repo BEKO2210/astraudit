@@ -477,6 +477,7 @@ const JA: Catalog = {
   "leaderboard.emptyHint":
     "上のフィルタを設定し「リーダーボードを実行」を押してください。",
   "leaderboard.errorRow": "監査に失敗しました",
+  "leaderboard.snapshotLabel": "キャッシュされたスナップショットを表示中（",
 };
 
 export default JA;
