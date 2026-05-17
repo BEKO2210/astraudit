@@ -422,6 +422,10 @@ export interface Catalog {
   "rulePacks.ts.description": string;
   "rulePacks.monorepo.label": string;
   "rulePacks.monorepo.description": string;
+  // M5.5 — Settings dialog rule‑pack toggles.
+  "settings.rulePacksHeading": string;
+  "settings.rulePacksHint": string;
+  "settings.rulePacksReauditToast": string;
 }
 
 /**

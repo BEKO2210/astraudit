@@ -429,6 +429,12 @@ export const EN: Catalog = {
   "rulePacks.monorepo.label": "Monorepo health",
   "rulePacks.monorepo.description":
     "Workspaces declared, consistent dependency versions, Turborepo / nx signals.",
+  // M5.5 — Settings dialog rule‑pack toggles
+  "settings.rulePacksHeading": "Rule packs",
+  "settings.rulePacksHint":
+    "Opt‑in detector families. The URL flag (?rules=…) stays the source of truth so audits are shareable.",
+  "settings.rulePacksReauditToast":
+    "Rule packs updated. Re‑run the audit to apply.",
 };
 
 export default EN;

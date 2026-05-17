@@ -440,6 +440,12 @@ const JA: Catalog = {
   "rulePacks.monorepo.label": "モノレポの健全性",
   "rulePacks.monorepo.description":
     "ワークスペース宣言、依存バージョンの一貫性、Turborepo / nx のシグナル。",
+  // M5.5 — 設定: Rule Pack の切替
+  "settings.rulePacksHeading": "Rule Pack",
+  "settings.rulePacksHint":
+    "オプトイン検出ファミリ。URL フラグ（?rules=…）が常に正の情報源で、監査の共有性が保たれます。",
+  "settings.rulePacksReauditToast":
+    "Rule Pack を更新しました。適用するには監査を再実行してください。",
 };
 
 export default JA;

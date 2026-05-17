@@ -434,6 +434,12 @@ const DE: Catalog = {
   "rulePacks.monorepo.label": "Monorepo‑Gesundheit",
   "rulePacks.monorepo.description":
     "Workspaces deklariert, konsistente Dependency‑Versionen, Turborepo‑/nx‑Signale.",
+  // M5.5 — Einstellungen: Rule‑Pack‑Toggles
+  "settings.rulePacksHeading": "Rule‑Packs",
+  "settings.rulePacksHint":
+    "Opt‑in Detektor‑Familien. Das URL‑Flag (?rules=…) bleibt führend, damit Audits teilbar bleiben.",
+  "settings.rulePacksReauditToast":
+    "Rule‑Packs aktualisiert. Audit erneut ausführen, um die Änderung anzuwenden.",
 };
 
 export default DE;

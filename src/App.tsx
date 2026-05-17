@@ -78,7 +78,11 @@ import {
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import { loadRepoBundle } from "./lib/github";
 import { useTranslation } from "./lib/i18n";
-import { readEnabledPacks } from "./lib/audit/rulePacks/parseRules";
+import {
+  readEnabledPacks,
+  serialiseEnabledPacks,
+} from "./lib/audit/rulePacks/parseRules";
+import type { RulePackId } from "./lib/audit/rulePacks/types";
 import {
   emptyRepoView,
   mapAuditError,
@@ -168,14 +172,39 @@ export default function App() {
   const [historyTick, setHistoryTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  // Roadmap M5.1 — opt‑in rule packs read from the URL once on
-  // mount. Held in a ref because the value never changes mid‑session
-  // (toggles will replace the URL + force a re‑audit in M5.5) and
-  // because the worker postMessage call sites are spread across the
-  // file — a ref keeps the value cheap to thread through.
-  const enabledPacksRef = useRef<readonly string[]>(
-    Array.from(readEnabledPacks()),
+  // Roadmap M5.1 / M5.5 — opt‑in rule packs. Seeded from the URL
+  // on mount (URL is the canonical source of truth) and mutated
+  // by the Settings dialog's toggles. Held in state so the
+  // SettingsDialog re-renders on toggle; held in a ref mirror so
+  // the worker postMessage call sites don't re-read state on
+  // every audit kickoff.
+  const [enabledPacks, setEnabledPacks] = useState<readonly RulePackId[]>(
+    () => Array.from(readEnabledPacks()) as RulePackId[],
   );
+  const enabledPacksRef = useRef<readonly string[]>(enabledPacks);
+  useEffect(() => {
+    enabledPacksRef.current = enabledPacks;
+  }, [enabledPacks]);
+
+  /**
+   * Replace the active rule packs. Updates state, mirrors the
+   * value into the worker-message ref, and rewrites `?rules=` in
+   * the URL via `history.replaceState` so the canonical share
+   * link stays in sync (URL flag remains the source of truth).
+   */
+  const updateEnabledPacks = useCallback((next: readonly RulePackId[]) => {
+    setEnabledPacks(next);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const serialised = serialiseEnabledPacks(new Set(next));
+    if (serialised) {
+      url.searchParams.set("rules", serialised);
+    } else {
+      url.searchParams.delete("rules");
+    }
+    const newHref = url.pathname + url.search + url.hash;
+    window.history.replaceState(window.history.state, "", newHref);
+  }, []);
   const compareJobRef = useRef<{
     left?: AuditResult;
     right?: AuditResult;
@@ -845,6 +874,8 @@ export default function App() {
           setSettingsOpen(false);
           setAuthTick((t) => t + 1);
         }}
+        enabledPacks={enabledPacks}
+        onChangeEnabledPacks={updateEnabledPacks}
       />
 
       <HistoryDialog
