@@ -426,6 +426,7 @@ const JA: Catalog = {
   "skeleton.loadingScope": "スコープページを読み込み中",
   "skeleton.loadingBookmarklet": "ブックマークレットページを読み込み中",
   "skeleton.loadingCompare": "比較ダッシュボードを読み込み中",
+  "skeleton.loadingLeaderboard": "リーダーボードを読み込み中",
   // M5.1 — オプトイン Rule Pack
   "rulePacks.activeLabel": "有効な Rule Pack",
   "rulePacks.a11y.label": "アクセシビリティ",
@@ -446,6 +447,36 @@ const JA: Catalog = {
     "オプトイン検出ファミリ。URL フラグ（?rules=…）が常に正の情報源で、監査の共有性が保たれます。",
   "settings.rulePacksReauditToast":
     "Rule Pack を更新しました。適用するには監査を再実行してください。",
+  // M6.3 — リーダーボード
+  "leaderboard.heading": "トップリポジトリ・リーダーボード",
+  "leaderboard.intro":
+    "言語とトピックでフィルタを設定し、バッチ監査をキューします。結果は Astraudit スコア順にソートされます。シングルフライト + レート制限対応 — 公開 GitHub PAT で安全に実行できます。",
+  "leaderboard.filterLanguage": "言語",
+  "leaderboard.filterLanguagePlaceholder": "例: typescript",
+  "leaderboard.filterTopic": "トピック",
+  "leaderboard.filterTopicPlaceholder": "例: cli",
+  "leaderboard.filterMinStars": "最低スター数",
+  "leaderboard.filterLimit": "件数",
+  "leaderboard.start": "リーダーボードを実行",
+  "leaderboard.cancel": "キャンセル",
+  "leaderboard.reset": "リセット",
+  "leaderboard.preflightLow":
+    "このバッチにはレート制限が不足しています。設定で GitHub PAT を追加するか件数を減らしてください。",
+  "leaderboard.rateLimitHit":
+    "バッチ実行中に GitHub レート制限に達しました。部分的な結果を表示します。リセット後に再開できます。",
+  "leaderboard.tableRank": "順位",
+  "leaderboard.tableRepo": "リポジトリ",
+  "leaderboard.tableScore": "スコア",
+  "leaderboard.tableGrade": "評価",
+  "leaderboard.tableStars": "スター",
+  "leaderboard.tableLastPushed": "最終プッシュ",
+  "leaderboard.tableActions": "アクション",
+  "leaderboard.openAudit": "監査を開く",
+  "leaderboard.progressLabel": "監査中",
+  "leaderboard.progressDone": "完了",
+  "leaderboard.emptyHint":
+    "上のフィルタを設定し「リーダーボードを実行」を押してください。",
+  "leaderboard.errorRow": "監査に失敗しました",
 };
 
 export default JA;

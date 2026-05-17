@@ -64,6 +64,13 @@ const BookmarkletPage = lazy(() =>
     default: m.BookmarkletPage,
   })),
 );
+// Roadmap M6.3 — Top‑100 leaderboard at `#/leaderboard`. Lazy so
+// the search + batch‑orchestrator code stays out of the main chunk.
+const LeaderboardPage = lazy(() =>
+  import("./components/leaderboard/LeaderboardPage").then((m) => ({
+    default: m.LeaderboardPage,
+  })),
+);
 import { readBundle, removeBundle, writeBundle } from "./lib/cache/auditCache";
 import { applyDensity, loadDensity } from "./lib/density/densityStore";
 import { recordAudit } from "./lib/history/historyStore";
@@ -101,7 +108,14 @@ type CompareSide = "left" | "right";
 /** Map a hash fragment to one of the doc-page slugs (or null). */
 function routeFromHash(
   hash: string,
-): "impressum" | "datenschutz" | "rules" | "scope" | "bookmarklet" | null {
+):
+  | "impressum"
+  | "datenschutz"
+  | "rules"
+  | "scope"
+  | "bookmarklet"
+  | "leaderboard"
+  | null {
   // Strip leading `#/` AND any trailing slash so `#/scope`,
   // `#/scope/`, and `#scope/` all resolve identically. Codex flagged
   // that the documented `/scope/` shape was not handled (#78 review).
@@ -139,6 +153,12 @@ function routeFromHash(
   // listing or social posts both resolve here.
   if (normalized === "bookmarklet" || normalized === "pin") {
     return "bookmarklet";
+  }
+  // Roadmap M6.3 — Top‑100 leaderboard at `#/leaderboard`. Accept
+  // the short `top` shorthand too so a casually-typed URL still
+  // lands the visitor on the right page.
+  if (normalized === "leaderboard" || normalized === "top") {
+    return "leaderboard";
   }
   return null;
 }
@@ -222,7 +242,13 @@ export default function App() {
   // hash-based router rather than touching the existing audit/compare
   // hash logic — the legal hashes are independent and never overlap.
   const [legalRoute, setLegalRoute] = useState<
-    "impressum" | "datenschutz" | "rules" | "scope" | "bookmarklet" | null
+    | "impressum"
+    | "datenschutz"
+    | "rules"
+    | "scope"
+    | "bookmarklet"
+    | "leaderboard"
+    | null
   >(() => routeFromHash(typeof window !== "undefined" ? window.location.hash : ""));
 
   useEffect(() => {
@@ -769,6 +795,16 @@ export default function App() {
         fallback={<PanelSkeleton label={t("skeleton.loadingBookmarklet")} rows={6} />}
       >
         <BookmarkletPage />
+      </Suspense>
+    );
+  }
+
+  if (legalRoute === "leaderboard") {
+    return (
+      <Suspense
+        fallback={<PanelSkeleton label={t("skeleton.loadingLeaderboard")} rows={8} />}
+      >
+        <LeaderboardPage enabledPacks={enabledPacks} />
       </Suspense>
     );
   }
