@@ -35,3 +35,23 @@ export interface RulePackMeta {
   /** Catalog key for the one‑line description. */
   descriptionKey: string;
 }
+
+/**
+ * Roadmap M5.2 — pack execution context. Packs are pure functions
+ * of (bundle, classified files, dependency signals) so they're
+ * trivially unit-testable without the rest of the audit pipeline.
+ * Additional pre-computed signals can be added here as future
+ * packs need them; existing packs ignore fields they don't read.
+ */
+import type { ClassifiedFiles } from "../fileClassifier";
+import type { DependencySignals } from "../dependencyDetector";
+import type { RepoBundle } from "../../../types/github";
+import type { Finding } from "../../../types/finding";
+
+export interface RulePackContext {
+  bundle: RepoBundle;
+  classified: ClassifiedFiles;
+  deps: DependencySignals;
+}
+
+export type RulePackRunner = (ctx: RulePackContext) => Finding[];
