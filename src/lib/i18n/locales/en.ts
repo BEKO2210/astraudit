@@ -471,6 +471,27 @@ export const EN: Catalog = {
   "leaderboard.tableTrend": "Trend",
   "leaderboard.trendNew": "New",
   "leaderboard.trendDropped": "Dropped",
+  // M7.1.2 — Watch this repo
+  "sticky.watch": "Watch",
+  "sticky.watching": "Watching",
+  "sticky.watchAria": "Watch this repository for changes",
+  "sticky.unwatchAria": "Stop watching this repository",
+  "sticky.watchAdded": "Repository added to your watch list.",
+  "sticky.watchRemoved": "Repository removed from your watch list.",
+  "header.openWatched": "Open watched repositories",
+  "watched.title": "Watched",
+  "watched.subtitle":
+    "Repositories you've marked for change tracking. Stored locally — no telemetry.",
+  "watched.empty":
+    "No watched repositories yet. Press the Watch button on any audit's sticky bar to start tracking it.",
+  "watched.close": "Close watched repositories",
+  "watched.unwatch": "Unwatch",
+  "watched.scoreLabel": "Score",
+  "watched.gradeLabel": "Grade",
+  "watched.findingsLabel": "Findings",
+  "watched.lastCheckedPrefix": "Last checked",
+  "watched.neverChecked": "Never checked yet",
+  "watched.intervalPrefix": "Check every",
 };
 
 export default EN;

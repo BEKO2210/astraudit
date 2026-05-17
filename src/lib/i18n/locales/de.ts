@@ -476,6 +476,27 @@ const DE: Catalog = {
   "leaderboard.tableTrend": "Trend",
   "leaderboard.trendNew": "Neu",
   "leaderboard.trendDropped": "Raus",
+  // M7.1.2 — Repo beobachten
+  "sticky.watch": "Beobachten",
+  "sticky.watching": "Beobachtet",
+  "sticky.watchAria": "Dieses Repository auf Änderungen beobachten",
+  "sticky.unwatchAria": "Beobachtung dieses Repositorys beenden",
+  "sticky.watchAdded": "Repository zur Beobachtungsliste hinzugefügt.",
+  "sticky.watchRemoved": "Repository aus der Beobachtungsliste entfernt.",
+  "header.openWatched": "Beobachtete Repositories öffnen",
+  "watched.title": "Beobachtet",
+  "watched.subtitle":
+    "Repositories, die du zum Tracking markiert hast. Lokal gespeichert — keine Telemetrie.",
+  "watched.empty":
+    "Noch keine beobachteten Repositories. Klicke „Beobachten“ in der Sticky‑Leiste eines Audits, um eines zu tracken.",
+  "watched.close": "Beobachtete Repositories schließen",
+  "watched.unwatch": "Stoppen",
+  "watched.scoreLabel": "Score",
+  "watched.gradeLabel": "Note",
+  "watched.findingsLabel": "Funde",
+  "watched.lastCheckedPrefix": "Zuletzt geprüft",
+  "watched.neverChecked": "Noch nie geprüft",
+  "watched.intervalPrefix": "Prüfung alle",
 };
 
 export default DE;

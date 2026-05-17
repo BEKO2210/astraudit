@@ -28,14 +28,20 @@
  *   - https://ryanmulligan.dev/blog/sticky-header-scroll-shadow/
  */
 
-import { Award, ArrowLeftRight, ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Award, ArrowLeftRight, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import type { AuditResult } from "../types/audit";
 import { CopyButton } from "./CopyButton";
 import { PrintButton } from "./PrintButton";
 import { ShareButton } from "./ShareButton";
 import { Tooltip } from "./ui/Tooltip";
 import { useTranslation } from "../lib/i18n";
+import {
+  isWatched,
+  unwatchRepo,
+  watchRepo,
+} from "../lib/watch/watchStore";
+import { pushToast } from "../lib/ui/toastStore";
 
 const STICKY_OFFSET_VAR = "--sticky-offset";
 const BAR_HEIGHT_PX = 48;
@@ -110,6 +116,32 @@ export function StickyScoreBar({
 
   const verdictPlain = `Astraudit · ${fullName}\nScore: ${result.totalScore}/${result.maxScore} (${result.grade})\n${result.headline}\n${result.verdict}`;
 
+  // Roadmap M7.1.2 — watch toggle. Local state so the icon
+  // flips immediately; the store is the persistent truth.
+  const [watching, setWatching] = useState(() => isWatched({ owner, repo }));
+  useEffect(() => {
+    setWatching(isWatched({ owner, repo }));
+  }, [owner, repo]);
+  const toggleWatch = useCallback(() => {
+    if (watching) {
+      unwatchRepo({ owner, repo });
+      setWatching(false);
+      pushToast({ tone: "info", message: t("sticky.watchRemoved") });
+    } else {
+      watchRepo(
+        { owner, repo },
+        {
+          totalScore: result.totalScore,
+          maxScore: result.maxScore,
+          grade: result.grade,
+          findingCount: result.findings.length,
+        },
+      );
+      setWatching(true);
+      pushToast({ tone: "success", message: t("sticky.watchAdded") });
+    }
+  }, [watching, owner, repo, result, t]);
+
   return (
     <div
       role="region"
@@ -182,6 +214,21 @@ export function StickyScoreBar({
               </Tooltip>
             )
           ) : null}
+          <button
+            type="button"
+            onClick={toggleWatch}
+            aria-label={watching ? t("sticky.unwatchAria") : t("sticky.watchAria")}
+            aria-pressed={watching}
+            className={`inline-flex min-h-[1.625rem] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+              watching
+                ? "border-aurora-amber/40 bg-aurora-amber/10 text-aurora-amber hover:bg-aurora-amber/20"
+                : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+            }`}
+            tabIndex={visible ? 0 : -1}
+          >
+            {watching ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+            {watching ? t("sticky.watching") : t("sticky.watch")}
+          </button>
           <ShareButton coords={{ owner, repo }} />
           {onOpenBadge ? (
             <button

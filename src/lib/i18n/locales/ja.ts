@@ -482,6 +482,27 @@ const JA: Catalog = {
   "leaderboard.tableTrend": "推移",
   "leaderboard.trendNew": "新規",
   "leaderboard.trendDropped": "離脱",
+  // M7.1.2 — リポジトリをウォッチ
+  "sticky.watch": "ウォッチ",
+  "sticky.watching": "ウォッチ中",
+  "sticky.watchAria": "このリポジトリの変更をウォッチ",
+  "sticky.unwatchAria": "このリポジトリのウォッチを停止",
+  "sticky.watchAdded": "リポジトリをウォッチリストに追加しました。",
+  "sticky.watchRemoved": "リポジトリをウォッチリストから削除しました。",
+  "header.openWatched": "ウォッチ中のリポジトリを開く",
+  "watched.title": "ウォッチ中",
+  "watched.subtitle":
+    "変更を追跡するためにマークしたリポジトリ。ローカル保存・テレメトリなし。",
+  "watched.empty":
+    "ウォッチ中のリポジトリはまだありません。監査のスティッキーバーで「ウォッチ」を押すと追跡を開始できます。",
+  "watched.close": "ウォッチ中のリポジトリを閉じる",
+  "watched.unwatch": "停止",
+  "watched.scoreLabel": "スコア",
+  "watched.gradeLabel": "評価",
+  "watched.findingsLabel": "検出数",
+  "watched.lastCheckedPrefix": "最終チェック",
+  "watched.neverChecked": "未チェック",
+  "watched.intervalPrefix": "チェック間隔",
 };
 
 export default JA;
