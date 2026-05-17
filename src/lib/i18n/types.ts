@@ -54,6 +54,23 @@ export interface Catalog {
   "dialog.similarRepos.empty": string;
   // Locale switcher self‑label.
   "switcher.language": string;
+  // Header / hero chrome (M4.3 slice 1 — Hero action buttons + pills).
+  "header.brandSubtitle": string;
+  "header.homeAria": string;
+  "header.openHistory": string;
+  "header.auth": string;
+  "header.authShort": string;
+  "header.settings": string;
+  "header.settingsShort": string;
+  "header.authTitle": string;
+  "header.publicRateTitle": string;
+  "header.pillBrowserOnly": string;
+  "header.pillStatic": string;
+  "header.pillPublic": string;
+  "header.pillPatActive": string;
+  "header.pillPatOptional": string;
+  "header.pillAiMcp": string;
+  "header.pillAiMcpTitle": string;
 }
 
 /**
