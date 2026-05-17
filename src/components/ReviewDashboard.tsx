@@ -24,6 +24,7 @@ import { VIEW_ENTER_CLASS } from "../lib/ui/transitions";
 import { SpeedDialFAB, type SpeedDialAction } from "./SpeedDialFAB";
 import type { AuditResult } from "../types/audit";
 import { OverviewHeader } from "./OverviewHeader";
+import { ActivePacksChip } from "./ActivePacksChip";
 import { ScoreRing } from "./ScoreRing";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SignalDetails } from "./SignalDetails";
@@ -214,6 +215,7 @@ export function ReviewDashboard({
 
       <section id="overview">
         <OverviewHeader metadata={result.bundle.metadata} />
+        <ActivePacksChip enabledPacks={result.enabledPacks} />
       </section>
 
       <section id="score" className="glass relative overflow-hidden p-5 sm:p-6">

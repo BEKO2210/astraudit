@@ -116,6 +116,14 @@ export interface AuditResult {
   insights: DerivedInsights;
   onboarding: OnboardingStep[];
   generatedAt: string;
+  /**
+   * Roadmap M5.1 — list of opt‑in rule packs the visitor enabled
+   * via `?rules=…`. Plain array (not Set) so it survives the
+   * worker postMessage structured clone + JSON roundtrips. Empty
+   * for the default audit. Always serialised in canonical order so
+   * comparing two snapshots is cheap.
+   */
+  enabledPacks: string[];
 }
 
 export type AuditProgressStep =
@@ -140,6 +148,12 @@ export interface WorkerInputMessage {
   bundle: RepoBundle;
   /** Optional correlation id so callers can match parallel audits. */
   id?: string;
+  /**
+   * Roadmap M5.1 — opt‑in rule packs to enable for this audit.
+   * Plain array of pack ids; the worker validates against the
+   * canonical registry before applying. Omitted = no packs.
+   */
+  enabledPacks?: string[];
 }
 
 export type WorkerOutputMessage =

@@ -78,6 +78,7 @@ import {
 import { parseRepoInput } from "./lib/github/parseRepoInput";
 import { loadRepoBundle } from "./lib/github";
 import { useTranslation } from "./lib/i18n";
+import { readEnabledPacks } from "./lib/audit/rulePacks/parseRules";
 import {
   emptyRepoView,
   mapAuditError,
@@ -167,6 +168,14 @@ export default function App() {
   const [historyTick, setHistoryTick] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Roadmap M5.1 — opt‑in rule packs read from the URL once on
+  // mount. Held in a ref because the value never changes mid‑session
+  // (toggles will replace the URL + force a re‑audit in M5.5) and
+  // because the worker postMessage call sites are spread across the
+  // file — a ref keeps the value cheap to thread through.
+  const enabledPacksRef = useRef<readonly string[]>(
+    Array.from(readEnabledPacks()),
+  );
   const compareJobRef = useRef<{
     left?: AuditResult;
     right?: AuditResult;
@@ -316,7 +325,11 @@ export default function App() {
         setState({ kind: "auditing", repoLabel, step: "metadata" });
         const worker = workerRef.current;
         if (worker) {
-          worker.postMessage({ type: "audit", bundle });
+          worker.postMessage({
+            type: "audit",
+            bundle,
+            enabledPacks: [...enabledPacksRef.current],
+          });
           return;
         }
       }
@@ -367,7 +380,11 @@ export default function App() {
         });
         return;
       }
-      worker.postMessage({ type: "audit", bundle });
+      worker.postMessage({
+        type: "audit",
+        bundle,
+        enabledPacks: [...enabledPacksRef.current],
+      });
     },
     [],
   );
@@ -471,8 +488,19 @@ export default function App() {
         });
         return;
       }
-      worker.postMessage({ type: "audit", bundle: leftBundle, id: "left" });
-      worker.postMessage({ type: "audit", bundle: rightBundle, id: "right" });
+      const packs = [...enabledPacksRef.current];
+      worker.postMessage({
+        type: "audit",
+        bundle: leftBundle,
+        id: "left",
+        enabledPacks: packs,
+      });
+      worker.postMessage({
+        type: "audit",
+        bundle: rightBundle,
+        id: "right",
+        enabledPacks: packs,
+      });
     },
     [loadBundleFor],
   );
