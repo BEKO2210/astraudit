@@ -44,10 +44,12 @@ import {
 } from "../../lib/leaderboard/batchAudit";
 import {
   loadLatestSnapshot,
+  loadSnapshotHistory,
   saveSnapshot,
   type SnapshotRecord,
   type SnapshotRow,
 } from "../../lib/leaderboard/snapshotStore";
+import { computeTrends, type Trend } from "../../lib/leaderboard/trends";
 import type {
   AuditResult,
   WorkerInputMessage,
@@ -176,6 +178,10 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
   // empty on first visit. Cleared once a fresh batch starts so
   // the table doesn't double-render snapshot + live rows.
   const [snapshot, setSnapshot] = useState<SnapshotRecord | null>(null);
+  // Roadmap M6.5 — second-to-last snapshot for trend computation
+  // against the currently displayed rows.
+  const [previousSnapshot, setPreviousSnapshot] =
+    useState<SnapshotRecord | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
@@ -211,6 +217,12 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
     };
     const snap = loadLatestSnapshot(filter);
     setSnapshot(snap);
+    // The second-to-last snapshot, if any, becomes the baseline
+    // for trend arrows on the snapshot rows we just restored.
+    const history = loadSnapshotHistory(filter);
+    setPreviousSnapshot(
+      history.length >= 2 ? history[history.length - 2]! : null,
+    );
   }, [form.language, form.topic, form.minStars, running]);
 
   const updateField = useCallback(
@@ -320,8 +332,18 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
           grade: r.audit.grade,
         }));
       if (okSnapshotRows.length > 0 && !batch.stoppedEarly) {
+        // Reload the history so `previousSnapshot` reflects what
+        // was the latest *before* this save — that's our trend
+        // baseline. Doing it via loadSnapshotHistory keeps the
+        // truth on disk authoritative.
+        const historyBefore = loadSnapshotHistory(filter);
         const saved = saveSnapshot(filter, okSnapshotRows);
         setSnapshot(saved);
+        setPreviousSnapshot(
+          historyBefore.length > 0
+            ? historyBefore[historyBefore.length - 1]!
+            : null,
+        );
       }
     } finally {
       setRunning(false);
@@ -358,6 +380,26 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
 
   const usingSnapshot = rows.length === 0 && snapshotSortedRows.length > 0;
   const tableHasContent = sortedRows.length > 0 || usingSnapshot;
+
+  /** Trend baseline: previous snapshot's rows, or empty when none. */
+  const trends = useMemo(() => {
+    if (!previousSnapshot) return new Map<string, Trend>();
+    const latestInput =
+      sortedRows.length > 0
+        ? sortedRows.map((r) => ({
+            fullName: r.hit.fullName,
+            totalScore: r.status === "ok" ? r.audit.totalScore : null,
+          }))
+        : snapshotSortedRows.map((r) => ({
+            fullName: r.fullName,
+            totalScore: r.totalScore,
+          }));
+    const previousInput = previousSnapshot.rows.map((r) => ({
+      fullName: r.fullName,
+      totalScore: r.totalScore,
+    }));
+    return computeTrends(latestInput, previousInput);
+  }, [sortedRows, snapshotSortedRows, previousSnapshot]);
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:px-8">
@@ -478,6 +520,7 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
                   <Th>{t("leaderboard.tableRank")}</Th>
                   <Th>{t("leaderboard.tableRepo")}</Th>
                   <Th className="text-right">{t("leaderboard.tableScore")}</Th>
+                  <Th>{t("leaderboard.tableTrend")}</Th>
                   <Th>{t("leaderboard.tableGrade")}</Th>
                   <Th className="text-right">{t("leaderboard.tableStars")}</Th>
                   <Th>{t("leaderboard.tableLastPushed")}</Th>
@@ -487,13 +530,20 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
               <tbody>
                 {sortedRows.length > 0
                   ? sortedRows.map((row, idx) => (
-                      <Row key={row.hit.fullName} rank={idx + 1} row={row} t={t} />
+                      <Row
+                        key={row.hit.fullName}
+                        rank={idx + 1}
+                        row={row}
+                        trend={trends.get(row.hit.fullName) ?? null}
+                        t={t}
+                      />
                     ))
                   : snapshotSortedRows.map((row, idx) => (
                       <SnapshotRowView
                         key={row.fullName}
                         rank={idx + 1}
                         row={row}
+                        trend={trends.get(row.fullName) ?? null}
                         t={t}
                       />
                     ))}
@@ -509,10 +559,12 @@ export function LeaderboardPage({ enabledPacks }: LeaderboardPageProps) {
 function SnapshotRowView({
   rank,
   row,
+  trend,
   t,
 }: {
   rank: number;
   row: SnapshotRow;
+  trend: Trend | null;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   return (
@@ -537,6 +589,9 @@ function SnapshotRowView({
         {row.totalScore != null && row.maxScore != null
           ? `${row.totalScore}/${row.maxScore}`
           : "—"}
+      </td>
+      <td className="px-3 py-2">
+        <TrendCell trend={trend} t={t} />
       </td>
       <td className="px-3 py-2">
         {row.grade ? (
@@ -602,13 +657,58 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
   );
 }
 
+/**
+ * Roadmap M6.5 — per-row trend pill. Empty cell when no previous
+ * snapshot exists (so the first leaderboard run isn't visually
+ * cluttered with "new" badges on every row).
+ */
+function TrendCell({
+  trend,
+  t,
+}: {
+  trend: Trend | null;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (!trend) return <span className="text-slate-600">—</span>;
+  if (trend.direction === "new") {
+    return (
+      <span className="pill text-aurora-cyan border-aurora-cyan/40">
+        {t("leaderboard.trendNew")}
+      </span>
+    );
+  }
+  if (trend.direction === "dropped") {
+    return (
+      <span className="pill text-slate-500 border-white/10">
+        {t("leaderboard.trendDropped")}
+      </span>
+    );
+  }
+  if (trend.delta == null || trend.direction === "same") {
+    return <span className="text-slate-500">→</span>;
+  }
+  const isUp = trend.direction === "up";
+  const arrow = isUp ? "↑" : "↓";
+  const tone = isUp ? "text-aurora-mint" : "text-risk-medium";
+  const sign = isUp ? "+" : "";
+  return (
+    <span className={`inline-flex items-center gap-1 font-mono text-xs ${tone}`}>
+      <span aria-hidden="true">{arrow}</span>
+      {sign}
+      {trend.delta}
+    </span>
+  );
+}
+
 function Row({
   rank,
   row,
+  trend,
   t,
 }: {
   rank: number;
   row: BatchRow;
+  trend: Trend | null;
   t: ReturnType<typeof useTranslation>["t"];
 }) {
   const hit = row.hit;
@@ -632,6 +732,9 @@ function Row({
       </td>
       <td className="px-3 py-2 text-right font-mono">
         {row.status === "ok" ? `${row.audit.totalScore}/${row.audit.maxScore}` : "—"}
+      </td>
+      <td className="px-3 py-2">
+        <TrendCell trend={trend} t={t} />
       </td>
       <td className="px-3 py-2">
         {row.status === "ok" ? (

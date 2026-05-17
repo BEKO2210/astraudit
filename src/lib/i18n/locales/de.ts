@@ -472,6 +472,10 @@ const DE: Catalog = {
     "Filter oben konfigurieren und „Leaderboard starten“ drücken.",
   "leaderboard.errorRow": "Audit fehlgeschlagen",
   "leaderboard.snapshotLabel": "Zeige gecachten Snapshot vom",
+  // M6.5 — Trend‑Pills
+  "leaderboard.tableTrend": "Trend",
+  "leaderboard.trendNew": "Neu",
+  "leaderboard.trendDropped": "Raus",
 };
 
 export default DE;

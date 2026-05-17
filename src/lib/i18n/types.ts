@@ -454,6 +454,10 @@ export interface Catalog {
   "leaderboard.emptyHint": string;
   "leaderboard.errorRow": string;
   "leaderboard.snapshotLabel": string;
+  // M6.5 — trend pills.
+  "leaderboard.tableTrend": string;
+  "leaderboard.trendNew": string;
+  "leaderboard.trendDropped": string;
 }
 
 /**
