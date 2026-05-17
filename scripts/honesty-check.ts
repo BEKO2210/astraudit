@@ -16,6 +16,20 @@
 import { loadRepoBundle } from "../src/lib/github/index";
 import { runAudit } from "../src/lib/audit/auditEngine";
 import { parseRepoInput } from "../src/lib/github/parseRepoInput";
+import {
+  RateLimitError,
+  probeRateLimit,
+} from "../src/lib/github/githubClient";
+
+/**
+ * Approximate per-repo API budget. Each `loadRepoBundle` call fires
+ * roughly this many requests against api.github.com (metadata, tree,
+ * readme, important-files, languages, commits, releases, issues,
+ * org-health-fallback, branch-protection). Used by the pre-flight
+ * budget check + the post-failure comment so the maintainer can see
+ * "we needed X, had Y" instead of a generic 403.
+ */
+const APPROX_CALLS_PER_REPO = 10;
 
 /**
  * Phase 7.0.7 — multi-stack honesty sweep. The target list grew
@@ -205,9 +219,31 @@ interface Summary {
   total_lies: number;
   lies_per_repo: Array<{ repo: string; lies: number; details: string[] }>;
   errors: Array<{ repo: string; message: string }>;
+  /**
+   * True when the sweep stopped early because the GitHub token's
+   * rate-limit window was exhausted. The downstream workflow uses
+   * this to render an explanatory PR comment AND skip the
+   * block-on-new-lies merge gate — a rate-limited run produces no
+   * trustworthy signal, so blocking on it would be a false positive.
+   */
+  rate_limited: boolean;
+  /**
+   * Detail for the comment when rate_limited=true. Includes how many
+   * repos got swept before the limit, plus the seconds until the
+   * window resets so the maintainer can decide between "wait + rerun"
+   * vs "merge anyway".
+   */
+  rate_limit_detail?: {
+    repos_swept: number;
+    repos_total: number;
+    reset_in_seconds: number | null;
+  };
 }
 
-function buildSummary(verdicts: Verdict[]): Summary {
+function buildSummary(
+  verdicts: Verdict[],
+  rateLimit?: Summary["rate_limit_detail"],
+): Summary {
   let totalLies = 0;
   const lies_per_repo: Summary["lies_per_repo"] = [];
   const errors: Summary["errors"] = [];
@@ -227,6 +263,8 @@ function buildSummary(verdicts: Verdict[]): Summary {
     total_lies: totalLies,
     lies_per_repo,
     errors,
+    rate_limited: !!rateLimit,
+    ...(rateLimit ? { rate_limit_detail: rateLimit } : {}),
   };
 }
 
@@ -239,20 +277,75 @@ async function main() {
     ? (msg: string) => process.stderr.write(msg + "\n")
     : (msg: string) => console.log(msg);
 
+  // Pre-flight rate-limit probe. Honesty.yml currently runs two
+  // sweeps per PR (head + base) and each sweep is ~targets × 10
+  // calls. With a 1000/h token budget that single workflow can
+  // saturate the window when several PRs land in quick succession,
+  // which is exactly what produced the recurring rate-limit failure
+  // on PRs #103–#105.
+  //
+  // If we already know we don't have enough budget, fail fast with a
+  // structured "rate_limited" JSON payload so the workflow can post
+  // a useful comment instead of letting 56 individual 403s thrash.
+  const needed = targets.length * APPROX_CALLS_PER_REPO;
+  const probe = await probeRateLimit();
+  if (probe) {
+    log(
+      `Token budget: ${probe.remaining}/${probe.limit} remaining, ` +
+        `${probe.used} used, resets in ${probe.resetSeconds}s. ` +
+        `Need ~${needed} for this sweep.`,
+    );
+    if (probe.remaining < needed) {
+      log(
+        `× Skipping sweep: budget too low (${probe.remaining} remaining, ${needed} needed).`,
+      );
+      if (jsonMode) {
+        const summary = buildSummary([], {
+          repos_swept: 0,
+          repos_total: targets.length,
+          reset_in_seconds: probe.resetSeconds,
+        });
+        process.stdout.write(JSON.stringify(summary, null, 2) + "\n");
+      }
+      // Exit 0 — a rate-limited skip is not a lie. The workflow
+      // surfaces the situation via its sticky comment.
+      process.exitCode = 0;
+      return;
+    }
+  }
+
   log(`Honesty check across ${targets.length} repo(s)\n`);
   const verdicts: Verdict[] = [];
+  let rateLimited: Summary["rate_limit_detail"] | undefined;
+  let sweptCount = 0;
   for (const t of targets) {
     if (jsonMode) process.stderr.write(`• ${t.padEnd(36)} `);
     else process.stdout.write(`• ${t.padEnd(36)} `);
     try {
       const v = await audit(t);
       verdicts.push(v);
+      sweptCount += 1;
       if (v.ok) log("✓");
       else log(`× (${v.lies.length} lie${v.lies.length === 1 ? "" : "s"})`);
     } catch (err) {
+      // Rate-limit mid-sweep: stop. Every subsequent call will hit
+      // the same 403, just burning latency without adding signal.
+      if (err instanceof RateLimitError) {
+        const reset = err.resetAtSeconds
+          ? Math.max(0, err.resetAtSeconds - Math.floor(Date.now() / 1000))
+          : null;
+        log(`× rate-limit hit (reset in ${reset ?? "?"}s) — stopping early`);
+        rateLimited = {
+          repos_swept: sweptCount,
+          repos_total: targets.length,
+          reset_in_seconds: reset,
+        };
+        break;
+      }
       const msg = (err as Error).message;
       log(`error: ${msg}`);
       verdicts.push({ repo: t, ok: false, lies: [`error: ${msg}`], notes: [] });
+      sweptCount += 1;
     }
   }
   log("\n--- Details ---");
@@ -269,11 +362,22 @@ async function main() {
       totalLies += realLies.length;
     }
   }
-  log(`\nTotal lies across ${targets.length} repos: ${totalLies}`);
-  if (jsonMode) {
-    process.stdout.write(JSON.stringify(buildSummary(verdicts), null, 2) + "\n");
+  log(`\nTotal lies across ${verdicts.length} repos: ${totalLies}`);
+  if (rateLimited) {
+    log(
+      `× Rate-limited after ${rateLimited.repos_swept}/${rateLimited.repos_total} repos. ` +
+        `Reset in ${rateLimited.reset_in_seconds ?? "?"}s.`,
+    );
   }
-  process.exitCode = totalLies > 0 ? 1 : 0;
+  if (jsonMode) {
+    process.stdout.write(
+      JSON.stringify(buildSummary(verdicts, rateLimited), null, 2) + "\n",
+    );
+  }
+  // Rate-limited runs exit 0 even with partial verdicts — the
+  // signal is incomplete, so we can't honestly call it a lie. Real
+  // lies (verdicts.length > 0 AND no rate-limit) still exit 1.
+  process.exitCode = !rateLimited && totalLies > 0 ? 1 : 0;
 }
 
 main().catch((err) => {
