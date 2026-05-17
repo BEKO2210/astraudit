@@ -5,6 +5,7 @@ import type { RepoCoordinates } from "../types/github";
 import { FindingCard } from "./FindingCard";
 import { severityRank } from "../lib/utils/severity";
 import { EmptyFindingsCelebration } from "./EmptyFindingsCelebration";
+import { useTranslation, type TranslationKey } from "../lib/i18n";
 
 interface FindingsPanelProps {
   findings: Finding[];
@@ -24,25 +25,28 @@ interface FindingsPanelProps {
   coords?: RepoCoordinates;
 }
 
-const SEVERITY_OPTIONS: Array<{ key: Severity | "all"; label: string }> = [
-  { key: "all", label: "All severities" },
-  { key: "critical", label: "Critical" },
-  { key: "high", label: "High" },
-  { key: "medium", label: "Medium" },
-  { key: "low", label: "Low" },
-  { key: "info", label: "Info" },
+// M4.3 slice 4 — both option lists carry a translation key per
+// entry. Labels are looked up at render time so a runtime locale
+// switch picks them up without re-instantiating the arrays.
+const SEVERITY_OPTIONS: Array<{ key: Severity | "all"; labelKey: TranslationKey }> = [
+  { key: "all", labelKey: "severity.all" },
+  { key: "critical", labelKey: "severity.critical" },
+  { key: "high", labelKey: "severity.high" },
+  { key: "medium", labelKey: "severity.medium" },
+  { key: "low", labelKey: "severity.low" },
+  { key: "info", labelKey: "severity.info" },
 ];
 
-const CATEGORY_OPTIONS: Array<{ key: FindingCategory | "all"; label: string }> = [
-  { key: "all", label: "All categories" },
-  { key: "security", label: "Security" },
-  { key: "documentation", label: "Documentation" },
-  { key: "quality", label: "Quality" },
-  { key: "ci", label: "CI/CD" },
-  { key: "structure", label: "Structure" },
-  { key: "ecosystem", label: "Ecosystem" },
-  { key: "maintenance", label: "Maintenance" },
-  { key: "dx", label: "DX" },
+const CATEGORY_OPTIONS: Array<{ key: FindingCategory | "all"; labelKey: TranslationKey }> = [
+  { key: "all", labelKey: "category.all" },
+  { key: "security", labelKey: "category.security" },
+  { key: "documentation", labelKey: "category.documentation" },
+  { key: "quality", labelKey: "category.quality" },
+  { key: "ci", labelKey: "category.ci" },
+  { key: "structure", labelKey: "category.structure" },
+  { key: "ecosystem", labelKey: "category.ecosystem" },
+  { key: "maintenance", labelKey: "category.maintenance" },
+  { key: "dx", labelKey: "category.dx" },
 ];
 
 export function FindingsPanel({
@@ -53,6 +57,7 @@ export function FindingsPanel({
   onOpenCompare,
   coords,
 }: FindingsPanelProps) {
+  const { t } = useTranslation();
   const [severity, setSeverity] = useState<Severity | "all">("all");
   const [category, setCategory] = useState<FindingCategory | "all">("all");
 
@@ -71,7 +76,9 @@ export function FindingsPanel({
       <section className="glass p-6">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-aurora-violet" />
-          <h3 className="text-sm font-semibold text-white">Findings (0)</h3>
+          <h3 className="text-sm font-semibold text-white">
+            {t("panel.findings.title")} (0)
+          </h3>
         </div>
         <div className="mt-4">
           <EmptyFindingsCelebration
@@ -91,18 +98,19 @@ export function FindingsPanel({
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-aurora-violet" />
           <h3 className="text-sm font-semibold text-white">
-            Findings ({findings.length})
+            {t("panel.findings.title")} ({findings.length})
           </h3>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value as Severity | "all")}
+            aria-label={t("severity.all")}
             className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200"
           >
             {SEVERITY_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key} className="bg-ink-800">
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -111,11 +119,12 @@ export function FindingsPanel({
             onChange={(e) =>
               setCategory(e.target.value as FindingCategory | "all")
             }
+            aria-label={t("category.all")}
             className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-200"
           >
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.key} value={opt.key} className="bg-ink-800">
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -124,9 +133,7 @@ export function FindingsPanel({
 
       <div className="mt-4 space-y-3">
         {filtered.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No findings match the current filters.
-          </p>
+          <p className="text-sm text-slate-400">{t("panel.findings.empty")}</p>
         ) : (
           filtered.map((f) => (
             <FindingCard key={f.id} finding={f} coords={coords} />

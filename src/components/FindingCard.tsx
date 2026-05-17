@@ -1,9 +1,32 @@
 import { ShieldAlert } from "lucide-react";
-import type { Finding } from "../types/finding";
+import type { Finding, FindingCategory, Severity } from "../types/finding";
 import type { RepoCoordinates } from "../types/github";
-import { severityClass, severityLabel } from "../lib/utils/severity";
+import { severityClass } from "../lib/utils/severity";
 import { CopyButton } from "./CopyButton";
 import { findingElementId, formatShareUrl } from "../lib/share/urlState";
+import { useTranslation, type TranslationKey } from "../lib/i18n";
+
+// Severity + category → catalog key. Inline so a renamed enum value
+// triggers a typecheck error here rather than a missing translation
+// at runtime.
+const SEVERITY_KEY: Record<Severity, TranslationKey> = {
+  critical: "severity.critical",
+  high: "severity.high",
+  medium: "severity.medium",
+  low: "severity.low",
+  info: "severity.info",
+};
+
+const CATEGORY_KEY: Record<FindingCategory, TranslationKey> = {
+  security: "category.security",
+  documentation: "category.documentation",
+  quality: "category.quality",
+  ci: "category.ci",
+  structure: "category.structure",
+  ecosystem: "category.ecosystem",
+  maintenance: "category.maintenance",
+  dx: "category.dx",
+};
 
 interface FindingCardProps {
   finding: Finding;
@@ -18,6 +41,7 @@ interface FindingCardProps {
 }
 
 export function FindingCard({ finding, coords }: FindingCardProps) {
+  const { t } = useTranslation();
   const deepLinkUrl = coords
     ? formatShareUrl(coords, undefined, { focus: finding.id })
     : null;
@@ -38,13 +62,13 @@ export function FindingCard({ finding, coords }: FindingCardProps) {
               <span
                 className={`pill border ${severityClass(finding.severity)}`}
               >
-                {severityLabel(finding.severity)}
+                {t(SEVERITY_KEY[finding.severity])}
               </span>
               <span className="pill text-slate-300">
-                {finding.category}
+                {t(CATEGORY_KEY[finding.category])}
               </span>
               <span className="pill text-slate-400">
-                Confidence: {finding.confidence}
+                {t("finding.confidenceLabel")}: {finding.confidence}
               </span>
             </div>
           </div>
@@ -52,7 +76,7 @@ export function FindingCard({ finding, coords }: FindingCardProps) {
         {deepLinkUrl ? (
           <CopyButton
             value={deepLinkUrl}
-            label="Copy link to this finding"
+            label={t("finding.copyDeepLink")}
             className="!h-7 !w-7 border-white/10 text-slate-500 hover:!text-white print:hidden"
           />
         ) : null}
@@ -61,13 +85,13 @@ export function FindingCard({ finding, coords }: FindingCardProps) {
       <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
           <dt className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-            Evidence
+            {t("finding.evidenceLabel")}
           </dt>
           <dd className="mt-1 text-slate-300">{finding.evidence}</dd>
         </div>
         <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
           <dt className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
-            Recommendation
+            {t("finding.recommendationLabel")}
           </dt>
           <dd className="mt-1 text-slate-300">{finding.recommendation}</dd>
         </div>
@@ -84,7 +108,7 @@ export function FindingCard({ finding, coords }: FindingCardProps) {
               </code>
               <CopyButton
                 value={file}
-                label="Copy path"
+                label={t("finding.copyPath")}
                 className="!h-4 !w-4 !border-0 !bg-transparent !text-slate-500 hover:!text-white"
               />
             </span>
@@ -92,7 +116,7 @@ export function FindingCard({ finding, coords }: FindingCardProps) {
           {finding.affectedFiles.length > 1 ? (
             <CopyButton
               value={finding.affectedFiles.join("\n")}
-              label="Copy all paths"
+              label={t("finding.copyAllPaths")}
               withText
               className="border-white/10"
             />
