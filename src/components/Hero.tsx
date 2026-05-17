@@ -156,20 +156,18 @@ export function Hero({
             fixes — so users know what to expect when they hit the
             Audit button. */}
         <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
-          Should you trust this{" "}
+          {t("hero.h1.prefix")}
           <span className="bg-gradient-to-br from-aurora-violet via-aurora-blue to-aurora-mint bg-clip-text text-transparent">
-            public GitHub
-          </span>{" "}
-          repo? Find out in 30 seconds.
+            {t("hero.h1.brand")}
+          </span>
+          {t("hero.h1.suffix")}
         </h1>
         <p className="mt-5 max-w-2xl text-base text-slate-300/85 sm:text-lg">
-          Paste a URL.{" "}
+          {t("hero.lead.prefix")}
           <strong className="font-semibold text-white">
-            Get a 100-point readiness score
+            {t("hero.lead.bold")}
           </strong>
-          , the eight signals that matter, and the fixes a maintainer would
-          prioritize first — before you fork, depend on, or contribute. No
-          login, no backend, no AI guesswork.
+          {t("hero.lead.suffix")}
         </p>
       </div>
 

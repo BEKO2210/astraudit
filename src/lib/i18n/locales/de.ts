@@ -43,6 +43,38 @@ const DE: Catalog = {
   "header.pillAiMcp": "AI‑ready · MCP",
   "header.pillAiMcpTitle":
     "Astraudit bringt einen MCP‑Server mit, damit AI‑Clients (Claude Desktop, Cursor, Zed, VS Code) Audits als natives Tool ausführen können. Klicken für die Anleitung.",
+  // M4.3 slice 2 — hero marketing copy
+  "hero.h1.prefix": "Sollten Sie diesem ",
+  "hero.h1.brand": "öffentlichen GitHub",
+  "hero.h1.suffix": "‑Repo vertrauen? Antwort in 30 Sekunden.",
+  "hero.lead.prefix": "URL einfügen. ",
+  "hero.lead.bold": "Erhalten Sie einen 100‑Punkte‑Readiness‑Score",
+  "hero.lead.suffix":
+    ", die acht relevanten Signale und die Fixes, die ein Maintainer zuerst angeht — bevor Sie forken, abhängen oder beitragen. Kein Login, kein Backend, kein AI‑Rätselraten.",
+  // M4.3 slice 2 — empty-state feature grid
+  "empty.heading": "Was ein Audit liefert",
+  "empty.feature1.title": "Repository‑Story",
+  "empty.feature1.body":
+    "Eine faktische Zusammenfassung dessen, was das Repo zu sein scheint — abgeleitet ausschließlich aus öffentlichen Dateien und Metadaten.",
+  "empty.feature2.title": "Strukturelles Audit",
+  "empty.feature2.body":
+    "Wir kartieren Verzeichnisse, Configs und Tests, um Dokumentation, Qualität und Struktur zu bewerten.",
+  "empty.feature3.title": "Trust‑Signale",
+  "empty.feature3.body":
+    "Lizenz, Security Policy, Dependency‑Hygiene und CI/CD‑Präsenz — ohne jemals Code auszuführen.",
+  "empty.feature4.title": "Priorisierte Fixes",
+  "empty.feature4.body":
+    "Sieben konkrete nächste Schritte, sortiert nach Wirkung in Security, Qualität und Developer Experience.",
+  // M4.3 slice 2 — onboarding panel
+  "onboarding.heading": "Wie man dieses Repository tatsächlich nutzt",
+  "onboarding.subtitle":
+    "Schritte abgeleitet aus Dateibaum, Lockfile und erkannten Scripts. Keiner davon wird von Astraudit ausgeführt — sie sind Hinweise für Sie.",
+  "onboarding.emptyTitle": "Keine automatisierten Onboarding‑Schritte erkannt",
+  "onboarding.emptyDescription":
+    "Astraudit hat keine erkannte Package‑Manifest‑/Lockfile‑/Run‑Script‑Kombination gefunden, aus der sich ein Setup‑Rezept ableiten ließe. Schauen Sie ins README des Projekts — dessen Install‑Anweisungen sind hier wahrscheinlich der maßgebliche Pfad.",
+  "onboarding.pillOptional": "optional",
+  "onboarding.pillRecommended": "empfohlen",
+  "onboarding.copyCommand": "Befehl kopieren",
 };
 
 export default DE;

@@ -47,6 +47,38 @@ const JA: Catalog = {
   "header.pillAiMcp": "AI 対応 · MCP",
   "header.pillAiMcpTitle":
     "Astraudit は MCP サーバーを同梱しており、AI クライアント (Claude Desktop, Cursor, Zed, VS Code) からネイティブツールとして監査を実行できます。クリックで手順を表示。",
+  // M4.3 slice 2 — hero marketing copy
+  "hero.h1.prefix": "この",
+  "hero.h1.brand": " public GitHub ",
+  "hero.h1.suffix": "リポジトリを信頼すべきか？30秒で答えがわかります。",
+  "hero.lead.prefix": "URL を貼り付け。",
+  "hero.lead.bold": "100点満点のレディネススコア",
+  "hero.lead.suffix":
+    "、重要な8つのシグナル、メンテナが最初に着手する修正項目を取得 — フォーク・依存追加・コントリビュートの前に。ログインなし、バックエンドなし、AI による推測なし。",
+  // M4.3 slice 2 — empty-state feature grid
+  "empty.heading": "監査で得られる内容",
+  "empty.feature1.title": "リポジトリストーリー",
+  "empty.feature1.body":
+    "公開ファイルとメタデータのみから導いた、リポジトリが何であるかの事実ベースの要約です。",
+  "empty.feature2.title": "構造監査",
+  "empty.feature2.body":
+    "ディレクトリ・設定・テストをマッピングし、ドキュメント・品質・構造をスコア化します。",
+  "empty.feature3.title": "信頼シグナル",
+  "empty.feature3.body":
+    "ライセンス・セキュリティポリシー・依存関係衛生・CI/CD の有無を、コードを一切実行せずに検査します。",
+  "empty.feature4.title": "優先度付き修正項目",
+  "empty.feature4.body":
+    "セキュリティ・品質・開発者体験への影響度で並べた、具体的な7つの次のステップ。",
+  // M4.3 slice 2 — onboarding panel
+  "onboarding.heading": "このリポジトリの実際の使い方",
+  "onboarding.subtitle":
+    "ファイルツリー・ロックファイル・検出されたスクリプトから推測した手順です。Astraudit はこれらを実行しません。あくまでガイダンスです。",
+  "onboarding.emptyTitle": "自動化されたオンボーディング手順は検出されませんでした",
+  "onboarding.emptyDescription":
+    "Astraudit はセットアップ手順を生成できる package マニフェスト・ロックファイル・実行スクリプトの組み合わせを認識できませんでした。プロジェクトの README をご確認ください — そこに記載されたインストール手順が信頼できるパスです。",
+  "onboarding.pillOptional": "任意",
+  "onboarding.pillRecommended": "推奨",
+  "onboarding.copyCommand": "コマンドをコピー",
 };
 
 export default JA;

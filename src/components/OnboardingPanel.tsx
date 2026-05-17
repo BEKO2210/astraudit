@@ -2,12 +2,14 @@ import { Check, Compass, Sparkles } from "lucide-react";
 import type { OnboardingStep } from "../lib/audit/copyEngine";
 import { CopyButton } from "./CopyButton";
 import { EmptyPanelState } from "./ui/EmptyPanelState";
+import { useTranslation } from "../lib/i18n";
 
 interface OnboardingPanelProps {
   steps: OnboardingStep[];
 }
 
 export function OnboardingPanel({ steps }: OnboardingPanelProps) {
+  const { t } = useTranslation();
   // Phase 5.5 — was `return null` (silently dropped the section).
   // Now a coherent empty state so users who scrolled here looking
   // for setup steps know Astraudit looked and found nothing
@@ -16,15 +18,8 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
     return (
       <EmptyPanelState
         icon={Sparkles}
-        title="No automated onboarding steps detected"
-        description={
-          <>
-            Astraudit didn't find a recognised package manifest, lockfile, or
-            run-script combination to build a setup recipe from. Check the
-            project's README — its install instructions are likely the
-            authoritative path here.
-          </>
-        }
+        title={t("onboarding.emptyTitle")}
+        description={t("onboarding.emptyDescription")}
         accentClass="text-aurora-cyan"
       />
     );
@@ -34,13 +29,10 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
       <div className="flex items-center gap-2">
         <Compass className="h-4 w-4 text-aurora-mint" />
         <h3 className="text-sm font-semibold text-white">
-          How to actually use this repository
+          {t("onboarding.heading")}
         </h3>
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        Steps inferred from the file tree, lockfile, and detected scripts. None
-        of these are executed by Astraudit — they are guidance for you.
-      </p>
+      <p className="mt-1 text-xs text-slate-500">{t("onboarding.subtitle")}</p>
       <ol className="mt-4 space-y-3">
         {steps.map((step, idx) => (
           <li
@@ -58,11 +50,13 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
                     {step.title}
                   </h4>
                   {step.optional ? (
-                    <span className="pill text-slate-400">optional</span>
+                    <span className="pill text-slate-400">
+                      {t("onboarding.pillOptional")}
+                    </span>
                   ) : (
                     <span className="pill text-aurora-mint border-aurora-mint/30 bg-aurora-mint/10">
                       <Check className="h-3 w-3" />
-                      recommended
+                      {t("onboarding.pillRecommended")}
                     </span>
                   )}
                 </div>
@@ -76,7 +70,7 @@ export function OnboardingPanel({ steps }: OnboardingPanelProps) {
                     </pre>
                     <CopyButton
                       value={step.command}
-                      label="Copy command"
+                      label={t("onboarding.copyCommand")}
                       className="absolute right-1.5 top-1.5"
                     />
                   </div>

@@ -42,6 +42,38 @@ export const EN: Catalog = {
   "header.pillAiMcp": "AI‑ready · MCP",
   "header.pillAiMcpTitle":
     "Astraudit ships an MCP server so AI clients (Claude Desktop, Cursor, Zed, VS Code) can run audits as a native tool. Click for the walkthrough.",
+  // M4.3 slice 2 — hero marketing copy
+  "hero.h1.prefix": "Should you trust this ",
+  "hero.h1.brand": "public GitHub",
+  "hero.h1.suffix": " repo? Find out in 30 seconds.",
+  "hero.lead.prefix": "Paste a URL. ",
+  "hero.lead.bold": "Get a 100‑point readiness score",
+  "hero.lead.suffix":
+    ", the eight signals that matter, and the fixes a maintainer would prioritize first — before you fork, depend on, or contribute. No login, no backend, no AI guesswork.",
+  // M4.3 slice 2 — empty-state feature grid
+  "empty.heading": "What an audit produces",
+  "empty.feature1.title": "Repository story",
+  "empty.feature1.body":
+    "A factual summary of what the repo appears to be, derived only from public files and metadata.",
+  "empty.feature2.title": "Structural audit",
+  "empty.feature2.body":
+    "We map directories, configs, and tests to score documentation, quality, and structure.",
+  "empty.feature3.title": "Trust signals",
+  "empty.feature3.body":
+    "License, security policy, dependency hygiene, and CI/CD presence — without ever running any code.",
+  "empty.feature4.title": "Prioritized fixes",
+  "empty.feature4.body":
+    "Seven concrete next steps ordered by impact across security, quality, and developer experience.",
+  // M4.3 slice 2 — onboarding panel
+  "onboarding.heading": "How to actually use this repository",
+  "onboarding.subtitle":
+    "Steps inferred from the file tree, lockfile, and detected scripts. None of these are executed by Astraudit — they are guidance for you.",
+  "onboarding.emptyTitle": "No automated onboarding steps detected",
+  "onboarding.emptyDescription":
+    "Astraudit didn't find a recognised package manifest, lockfile, or run‑script combination to build a setup recipe from. Check the project's README — its install instructions are likely the authoritative path here.",
+  "onboarding.pillOptional": "optional",
+  "onboarding.pillRecommended": "recommended",
+  "onboarding.copyCommand": "Copy command",
 };
 
 export default EN;
