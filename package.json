@@ -45,6 +45,7 @@
     "build:ext": "tsx scripts/build-extension.ts",
     "check:bundle-size": "tsx scripts/check-bundle-size.ts",
     "check:audit": "npm audit --omit=dev --audit-level=high",
+    "community:awesome-entries": "tsx scripts/awesome-list-entries.ts",
     "release:prep": "tsx scripts/prepare-release.ts",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit && tsc -p tsconfig.extension.json --noEmit",

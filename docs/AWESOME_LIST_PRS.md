@@ -250,3 +250,34 @@ to commit it to the repo). One row per list with:
 When all 7 are decided, append a single line to `CHANGELOG.md`
 under the next release: *"Listed on N awesome‑lists (see press
 kit)."* Don't enumerate them — the press kit links each one.
+
+---
+
+## Generating the entries (M8.1)
+
+The seven per‑list entry snippets above are also available
+machine‑readable through `scripts/awesome-list-entries.ts`. The
+script is the single source of truth — edit Astraudit's
+description there once and every list's variant stays in sync
+with its own conventions (em‑dash vs. hyphen separator,
+inline license badge, MCP bin name vs. homepage, etc.).
+
+```bash
+# Human-readable dump of every list + entry + PR title:
+npm run community:awesome-entries
+
+# JSON for piping into other tooling:
+npm run community:awesome-entries -- --json
+
+# Just one list's entry markdown, ready to paste:
+npm run community:awesome-entries -- github
+npm run community:awesome-entries -- static-analysis
+npm run community:awesome-entries -- mcp
+```
+
+Known list ids: `github`, `static-analysis`, `dev-tools`, `mcp`,
+`dx-onboarding`, `repo-tools`, `code-quality`.
+
+When a new list joins the rotation, add it to the `LISTS` array
+in the script and re‑run; the doc + every variant stays
+consistent without copy/paste drift.
