@@ -33,6 +33,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AuditResult } from "../types/audit";
 import { CopyButton } from "./CopyButton";
 import { PrintButton } from "./PrintButton";
+import { PromoCardButton } from "./PromoCardButton";
 import { ShareButton } from "./ShareButton";
 import { Tooltip } from "./ui/Tooltip";
 import { useTranslation } from "../lib/i18n";
@@ -243,6 +244,7 @@ export function StickyScoreBar({
             </button>
           ) : null}
           <CopyButton value={verdictPlain} label={t("dashboard.actions.copyVerdict")} />
+          <PromoCardButton result={result} />
           <PrintButton />
         </div>
       </div>

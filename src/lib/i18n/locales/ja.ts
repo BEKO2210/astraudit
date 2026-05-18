@@ -537,6 +537,17 @@ const JA: Catalog = {
   "settings.keymapConflictPrefix": "競合相手:",
   "settings.keymapSavedToast": "ショートカットを更新しました。",
   "settings.keymapResetToast": "ショートカットをデフォルトに戻しました。",
+  // M8.2 — プロモカードメニュー
+  "promo.label": "プロモカード",
+  "promo.menuAria": "プロモカード出力メニュー",
+  "promo.downloadSvg": "SVG をダウンロード",
+  "promo.downloadPng": "PNG をダウンロード",
+  "promo.copyMeta": "README スニペットをコピー",
+  "promo.svgSavedToast": "プロモカード SVG をダウンロードしました。",
+  "promo.pngSavedToast": "プロモカード PNG をダウンロードしました。",
+  "promo.pngFailedToast": "SVG を PNG に変換できませんでした。SVG ダウンロードをご利用ください。",
+  "promo.metaCopiedToast": "README スニペットをクリップボードにコピーしました。",
+  "promo.metaFailedToast": "クリップボードへのアクセスに失敗しました。",
 };
 
 export default JA;

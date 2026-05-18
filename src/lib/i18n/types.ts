@@ -508,6 +508,17 @@ export interface Catalog {
   "settings.keymapConflictPrefix": string;
   "settings.keymapSavedToast": string;
   "settings.keymapResetToast": string;
+  // M8.2 — Promo card menu.
+  "promo.label": string;
+  "promo.menuAria": string;
+  "promo.downloadSvg": string;
+  "promo.downloadPng": string;
+  "promo.copyMeta": string;
+  "promo.svgSavedToast": string;
+  "promo.pngSavedToast": string;
+  "promo.pngFailedToast": string;
+  "promo.metaCopiedToast": string;
+  "promo.metaFailedToast": string;
 }
 
 /**

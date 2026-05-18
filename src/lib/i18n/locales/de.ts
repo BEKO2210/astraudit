@@ -531,6 +531,18 @@ const DE: Catalog = {
   "settings.keymapConflictPrefix": "Konflikt mit",
   "settings.keymapSavedToast": "Tastenkürzel aktualisiert.",
   "settings.keymapResetToast": "Tastenkürzel zurückgesetzt.",
+  // M8.2 — Promo‑Card‑Menü
+  "promo.label": "Promo‑Card",
+  "promo.menuAria": "Promo‑Card‑Export‑Menü",
+  "promo.downloadSvg": "SVG herunterladen",
+  "promo.downloadPng": "PNG herunterladen",
+  "promo.copyMeta": "README‑Snippet kopieren",
+  "promo.svgSavedToast": "Promo‑Card‑SVG heruntergeladen.",
+  "promo.pngSavedToast": "Promo‑Card‑PNG heruntergeladen.",
+  "promo.pngFailedToast":
+    "SVG konnte nicht in PNG umgewandelt werden. Bitte SVG‑Download nutzen.",
+  "promo.metaCopiedToast": "README‑Snippet in die Zwischenablage kopiert.",
+  "promo.metaFailedToast": "Zugriff auf die Zwischenablage fehlgeschlagen.",
 };
 
 export default DE;

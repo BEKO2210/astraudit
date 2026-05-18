@@ -58,7 +58,11 @@ const BUDGETS: Budget[] = [
   // watch toggle + 20 catalog keys × 3 locales; chunk grew to ~585
   // KB. Ceiling raised to 610 KB to absorb the rest of Monat 7
   // (notification opt-in, keymap editor) without per-slice bumps.
-  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 610 * 1024 },
+  // M8.2 added the eager PromoCardButton + 1200×630 SVG renderer +
+  // 10 locale keys × 3 → chunk crossed 611 KB. Ceiling raised to
+  // 640 KB so the rest of Monat 8 (community templates) lands
+  // without per-slice budget bumps.
+  { label: "main entry chunk", prefix: "index-", suffix: ".js", maxBytes: 640 * 1024 },
   // AuditGraph is React Flow's lazy chunk — Phase 4.4 split it out so
   // it doesn't load until the user enters the dashboard.
   { label: "AuditGraph chunk (React Flow)", prefix: "AuditGraph-", suffix: ".js", maxBytes: 175 * 1024 },
