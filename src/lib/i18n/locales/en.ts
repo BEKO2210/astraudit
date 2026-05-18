@@ -512,6 +512,20 @@ export const EN: Catalog = {
   "inbox.kindFindingsUp": "More findings",
   "inbox.kindFindingsDown": "Fewer findings",
   "inbox.kindGradeChanged": "Grade changed",
+  // M7.2 — Keymap editor
+  "settings.keymapHeading": "Keyboard shortcuts",
+  "settings.keymapHint":
+    "Click Record to rebind. Press Esc during recording to cancel.",
+  "settings.keymapActionPalette": "Open command palette",
+  "settings.keymapActionCheatSheet": "Open shortcut cheat sheet",
+  "settings.keymapActionFocusInput": "Focus repo input",
+  "settings.keymapRecord": "Record",
+  "settings.keymapRecording": "Press a key…",
+  "settings.keymapReset": "Reset",
+  "settings.keymapResetAll": "Reset all",
+  "settings.keymapConflictPrefix": "Conflict with",
+  "settings.keymapSavedToast": "Shortcut updated.",
+  "settings.keymapResetToast": "Shortcut reset to default.",
 };
 
 export default EN;

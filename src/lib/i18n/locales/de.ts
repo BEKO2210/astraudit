@@ -517,6 +517,20 @@ const DE: Catalog = {
   "inbox.kindFindingsUp": "Mehr Funde",
   "inbox.kindFindingsDown": "Weniger Funde",
   "inbox.kindGradeChanged": "Note geändert",
+  // M7.2 — Keymap‑Editor
+  "settings.keymapHeading": "Tastenkürzel",
+  "settings.keymapHint":
+    "Auf „Aufnehmen“ klicken, um neu zu belegen. Esc bricht die Aufnahme ab.",
+  "settings.keymapActionPalette": "Command‑Palette öffnen",
+  "settings.keymapActionCheatSheet": "Shortcut‑Cheatsheet öffnen",
+  "settings.keymapActionFocusInput": "Repo‑Eingabe fokussieren",
+  "settings.keymapRecord": "Aufnehmen",
+  "settings.keymapRecording": "Taste drücken…",
+  "settings.keymapReset": "Zurücksetzen",
+  "settings.keymapResetAll": "Alle zurücksetzen",
+  "settings.keymapConflictPrefix": "Konflikt mit",
+  "settings.keymapSavedToast": "Tastenkürzel aktualisiert.",
+  "settings.keymapResetToast": "Tastenkürzel zurückgesetzt.",
 };
 
 export default DE;

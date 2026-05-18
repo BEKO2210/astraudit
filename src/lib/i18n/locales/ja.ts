@@ -523,6 +523,20 @@ const JA: Catalog = {
   "inbox.kindFindingsUp": "検出が増加",
   "inbox.kindFindingsDown": "検出が減少",
   "inbox.kindGradeChanged": "評価が変更",
+  // M7.2 — キーマップエディタ
+  "settings.keymapHeading": "キーボードショートカット",
+  "settings.keymapHint":
+    "「記録」をクリックして再割り当て。記録中に Esc でキャンセル。",
+  "settings.keymapActionPalette": "コマンドパレットを開く",
+  "settings.keymapActionCheatSheet": "ショートカット一覧を開く",
+  "settings.keymapActionFocusInput": "リポジトリ入力にフォーカス",
+  "settings.keymapRecord": "記録",
+  "settings.keymapRecording": "キーを押してください…",
+  "settings.keymapReset": "リセット",
+  "settings.keymapResetAll": "全てリセット",
+  "settings.keymapConflictPrefix": "競合相手:",
+  "settings.keymapSavedToast": "ショートカットを更新しました。",
+  "settings.keymapResetToast": "ショートカットをデフォルトに戻しました。",
 };
 
 export default JA;

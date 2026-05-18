@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { getKeymap, matchesBinding } from "./keymapStore";
 
 export interface GlobalShortcutHandlers {
   /** Toggle the command palette. */
@@ -68,33 +69,50 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers): void {
     };
 
     const handler = (e: KeyboardEvent) => {
-      // Cmd/Ctrl+K opens the palette regardless of focus, mirroring
-      // the convention every editor uses.
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      // Roadmap M7.2 — resolve the keymap on every event so a
+      // rebinding done in Settings takes effect immediately
+      // without re-mounting. Cheap (single localStorage read +
+      // 3-key merge); much simpler than wiring a subscription.
+      const keymap = getKeymap();
+
+      // Palette (default Cmd/Ctrl+K) — fires regardless of
+      // focus, mirroring the editor convention.
+      if (matchesBinding(e, keymap.palette)) {
         e.preventDefault();
         cancelPending();
         refs.current.onPalette();
         return;
       }
 
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isEditableTarget(e.target)) return;
+      // Editable-target gate for the un-prefixed shortcuts —
+      // we never want to hijack the user's typing.
+      if (isEditableTarget(e.target)) {
+        // Still allow Cmd/Ctrl-based bindings on inputs by
+        // checking against bindings that *require* a modifier.
+        // (palette already returned above; the other two
+        //  defaults don't require modifiers.)
+      }
 
-      // "?" shows the cheat sheet (shift+/ on most layouts).
-      if (e.key === "?") {
+      if (matchesBinding(e, keymap.cheatSheet)) {
+        if (isEditableTarget(e.target)) return;
         e.preventDefault();
         cancelPending();
         refs.current.onCheatSheet();
         return;
       }
 
-      // "/" focuses the repo input.
-      if (e.key === "/") {
+      if (matchesBinding(e, keymap.focusInput)) {
+        if (isEditableTarget(e.target)) return;
         e.preventDefault();
         cancelPending();
         refs.current.onFocusInput();
         return;
       }
+
+      // The vim-style `g <key>` chord map stays hard-coded —
+      // it's not part of the M7.2 rebindable surface.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isEditableTarget(e.target)) return;
 
       // "g <key>" two-step jump.
       if (pendingG) {
