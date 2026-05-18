@@ -61,6 +61,55 @@ describe("classifyFiles — IMPORTANT_FILE_ALIASES (Phase 7.x)", () => {
     expect(c.importantFilesMissing).toContain("CODE_OF_CONDUCT.md");
   });
 
+  it("flips vite.config.ts to present when only vite.config.mts exists (Vite 5+ ESM)", () => {
+    const tree = makeTree(["vite.config.mts", "package.json"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("vite.config.mts");
+    expect(c.importantFilesMissing).not.toContain("vite.config.ts");
+  });
+
+  it("flips next.config.js to present when next.config.ts exists (Next 15+)", () => {
+    const tree = makeTree(["next.config.ts", "package.json"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("next.config.ts");
+    expect(c.importantFilesMissing).not.toContain("next.config.js");
+  });
+
+  it("flips webpack.config.js to present when webpack.config.cjs exists", () => {
+    const tree = makeTree(["webpack.config.cjs"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("webpack.config.cjs");
+    expect(c.importantFilesMissing).not.toContain("webpack.config.js");
+  });
+
+  it("flips rollup.config.js to present when rollup.config.ts exists", () => {
+    const tree = makeTree(["rollup.config.ts"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("rollup.config.ts");
+    expect(c.importantFilesMissing).not.toContain("rollup.config.js");
+  });
+
+  it("flips eslint.config.js to present when eslint.config.ts exists", () => {
+    const tree = makeTree(["eslint.config.ts"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("eslint.config.ts");
+    expect(c.importantFilesMissing).not.toContain("eslint.config.js");
+  });
+
+  it("flips biome.json to present when biome.jsonc exists", () => {
+    const tree = makeTree(["biome.jsonc"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("biome.jsonc");
+    expect(c.importantFilesMissing).not.toContain("biome.json");
+  });
+
+  it("flips .prettierrc to present when prettier.config.cjs exists", () => {
+    const tree = makeTree(["prettier.config.cjs"]);
+    const c = classifyFiles(tree, makeImportantFiles({}));
+    expect(c.importantFilesPresent).toContain("prettier.config.cjs");
+    expect(c.importantFilesMissing).not.toContain(".prettierrc");
+  });
+
   it("expressjs/express-shaped tree: History.md + Readme.md flips CHANGELOG to present", () => {
     const tree = makeTree(["Readme.md", "History.md", "LICENSE", "package.json"]);
     const c = classifyFiles(tree, makeImportantFiles({}));
