@@ -492,6 +492,26 @@ export const EN: Catalog = {
   "watched.lastCheckedPrefix": "Last checked",
   "watched.neverChecked": "Never checked yet",
   "watched.intervalPrefix": "Check every",
+  // M7.1.4 — Watch inbox
+  "header.openInbox": "Open watch inbox",
+  "inbox.title": "Inbox",
+  "inbox.subtitle":
+    "Changes the background refresh loop spotted across your watched repos.",
+  "inbox.close": "Close inbox",
+  "inbox.empty": "No new activity",
+  "inbox.emptyHint":
+    "Watched repos refresh on their interval. Events show up here when a score, finding count, or grade changes.",
+  "inbox.markRead": "Mark read",
+  "inbox.markAllRead": "Mark all read",
+  "inbox.clear": "Clear",
+  "inbox.openAudit": "Audit",
+  "inbox.allReadToast": "All events marked read.",
+  "inbox.clearedToast": "Inbox cleared.",
+  "inbox.kindScoreUp": "Score ↑",
+  "inbox.kindScoreDown": "Score ↓",
+  "inbox.kindFindingsUp": "More findings",
+  "inbox.kindFindingsDown": "Fewer findings",
+  "inbox.kindGradeChanged": "Grade changed",
 };
 
 export default EN;

@@ -497,6 +497,26 @@ const DE: Catalog = {
   "watched.lastCheckedPrefix": "Zuletzt geprüft",
   "watched.neverChecked": "Noch nie geprüft",
   "watched.intervalPrefix": "Prüfung alle",
+  // M7.1.4 — Watch‑Inbox
+  "header.openInbox": "Inbox öffnen",
+  "inbox.title": "Inbox",
+  "inbox.subtitle":
+    "Änderungen, die der Hintergrund‑Refresh in deinen beobachteten Repos gefunden hat.",
+  "inbox.close": "Inbox schließen",
+  "inbox.empty": "Keine neue Aktivität",
+  "inbox.emptyHint":
+    "Beobachtete Repos aktualisieren sich in ihrem Intervall. Ereignisse erscheinen hier, wenn sich Score, Funde oder Note ändern.",
+  "inbox.markRead": "Gelesen",
+  "inbox.markAllRead": "Alle gelesen",
+  "inbox.clear": "Leeren",
+  "inbox.openAudit": "Audit",
+  "inbox.allReadToast": "Alle Ereignisse als gelesen markiert.",
+  "inbox.clearedToast": "Inbox geleert.",
+  "inbox.kindScoreUp": "Score ↑",
+  "inbox.kindScoreDown": "Score ↓",
+  "inbox.kindFindingsUp": "Mehr Funde",
+  "inbox.kindFindingsDown": "Weniger Funde",
+  "inbox.kindGradeChanged": "Note geändert",
 };
 
 export default DE;
