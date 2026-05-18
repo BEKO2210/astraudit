@@ -10,8 +10,8 @@
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/playwright.yml"><img alt="Visual regression" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/playwright.yml?branch=main&label=visual&style=flat-square&color=42e8c8"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/quality.yml"><img alt="Lighthouse + axe" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/quality.yml?branch=main&label=quality&style=flat-square&color=3ad6ff"></a>
     <a href="https://github.com/BEKO2210/astraudit/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://img.shields.io/github/actions/workflow/status/BEKO2210/astraudit/codeql.yml?branch=main&label=codeql&style=flat-square&color=7a5cff"></a>
-    <img alt="Vitest" src="https://img.shields.io/badge/vitest-855%20passing-42e8c8?style=flat-square">
-    <img alt="Playwright" src="https://img.shields.io/badge/playwright-73%20passing-42e8c8?style=flat-square">
+    <img alt="Vitest" src="https://img.shields.io/badge/vitest-1177%20passing-42e8c8?style=flat-square">
+    <img alt="Playwright" src="https://img.shields.io/badge/playwright-45%20specs-42e8c8?style=flat-square">
     <img alt="MCP" src="https://img.shields.io/badge/MCP-server%20included-7a5cff?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-94a3b8?style=flat-square">
     <img alt="Backend" src="https://img.shields.io/badge/backend-none-94a3b8?style=flat-square">
@@ -23,25 +23,16 @@
 
 > **TL;DR** — paste a `github.com/owner/repo` URL, get a 100‑point readiness score across eight categories, an interactive audit graph, prioritized next steps, and a printable PDF report. **No backend. No login. No tokens. No AI inference.**
 
-> **Status note · May 2026 · Phase 7 Track 0 closed.** v1.0.0
-> shipped on 2026‑05‑11 and was discussed publicly soon after.
-> The community feedback that landed — *"the audit reads
-> JS‑centric on non‑JS stacks; it scolds projects for missing
-> files the stack doesn't use; it flags 'no wiki / no docs' on
-> repos whose docs live on Read the Docs or a wiki it can't see"*
-> — was fair, and Phase 7's first track was a credibility pass
-> against it. **All 10 Track 0 items shipped:** stack‑aware
-> finding gates (7.0.1), Wiki + external‑docs awareness (7.0.2),
-> branch‑protection probe with an honest *Unknown* verdict
-> (7.0.3), transitive‑dependency honesty disclaimer (7.0.4),
-> `not‑applicable` + `unknown` verdict states (7.0.5), per‑stack
-> rule packs for Go / Rust / Ruby / pytest (7.0.6), a multi‑stack
-> honesty sweep + CI gate that blocks any PR introducing a new
-> "lie" (7.0.7), the [public scope page](./docs/SCOPE.md) (7.0.8),
-> stack‑aware finding‑copy review (7.0.9), and this very block
-> (7.0.10). Full per‑item history lives in
-> [`ROADMAP.md` § Phase 7 / Track 0](./ROADMAP.md#0--credibility--stack-awareness-must-clear-before-launch).
-> The launch sequence (Tracks A / B / C) is the next focus.
+> **Beyond v1.0** — Astraudit has grown into a full audit suite
+> since launch: EN/DE/JA UI with locale‑URL prefixes + hreflang
+> SEO, four opt‑in [rule packs](./docs/RULES.md) (`?rules=a11y`
+> · `?rules=i18n` · `?rules=ts` · `?rules=monorepo`), a
+> [Top‑100 leaderboard](./docs/LEADERBOARD.md) with snapshot
+> persistence + trend arrows, **Watch‑This‑Repo** background
+> refresh with desktop‑notification opt‑in + an inbox, a
+> rebindable keymap, per‑audit promo card SVG/PNG export, and
+> a pre‑formatted social‑share menu (X / Mastodon / Bluesky /
+> LinkedIn). Twelve‑month plan in [`docs/ROADMAP_2026_2027.md`](./docs/ROADMAP_2026_2027.md).
 
 <p align="center">
   <img src="docs/readme/desktop-dark.png" alt="Astraudit on desktop in dark mode" width="900" />
@@ -280,7 +271,7 @@ Other scripts:
 npm run build        # production build → dist/
 npm run preview      # serve dist/ locally on :4173
 npm run typecheck    # strict tsc -b --noEmit
-npm test             # vitest run (745 tests)
+npm test             # vitest run (1177 tests)
 npm run mcp          # start the MCP server in dev mode (tsx, stdio)
 npm run build:bin    # compile bin/mcp-server.ts → dist-bin/mcp-server.js
 npm run test:visual  # Playwright snapshot suite (chromium)
@@ -296,8 +287,8 @@ Astraudit defaults to **unauthenticated** GitHub API calls (60 req/hour). If you
 
 | Suite | Tool | Specs |
 |---|---|---:|
-| Unit / integration | Vitest | 745 tests across 58 files (`tests/`) — includes the MCP `audit_repo` handler |
-| Visual regression | Playwright + Chromium | 36 specs across 9 files (`tests/visual/`) — all major routes at 320 / 360 / 390 / 768 / 1280 px |
+| Unit / integration | Vitest | 1177 tests across 98 files (`tests/`) — includes the MCP `audit_repo` handler, every rule pack, Watch loop, leaderboard pipeline |
+| Visual regression | Playwright + Chromium | 45 specs across 20 files (`tests/visual/`) — all major routes at 320 / 360 / 390 / 768 / 1280 px |
 | Accessibility | Playwright + axe‑core | Home, Impressum, Datenschutzerklärung, Rule book |
 | Mobile gestures | Playwright | Audit graph touch‑action, FAB sticky positioning, dialog scroll-trap on `< md` viewports |
 | Dialog hardening | Playwright | WAI‑ARIA APG focus trap + restore + scroll lock + Esc dismissal + viewport-size containment |
