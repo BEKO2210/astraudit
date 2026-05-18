@@ -519,6 +519,14 @@ export interface Catalog {
   "promo.pngFailedToast": string;
   "promo.metaCopiedToast": string;
   "promo.metaFailedToast": string;
+  // M8.3 — Share-to-community menu.
+  "share.label": string;
+  "share.menuAria": string;
+  "share.copyAria": string;
+  "share.openAria": string;
+  "share.open": string;
+  "share.copiedToast": string;
+  "share.copyFailedToast": string;
 }
 
 /**

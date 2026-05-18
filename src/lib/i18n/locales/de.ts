@@ -543,6 +543,14 @@ const DE: Catalog = {
     "SVG konnte nicht in PNG umgewandelt werden. Bitte SVG‑Download nutzen.",
   "promo.metaCopiedToast": "README‑Snippet in die Zwischenablage kopiert.",
   "promo.metaFailedToast": "Zugriff auf die Zwischenablage fehlgeschlagen.",
+  // M8.3 — Social‑Share‑Menü
+  "share.label": "Post teilen",
+  "share.menuAria": "Social‑Share‑Menü",
+  "share.copyAria": "Post‑Text kopieren",
+  "share.openAria": "Compose‑Dialog öffnen",
+  "share.open": "Öffnen",
+  "share.copiedToast": "Post‑Text in die Zwischenablage kopiert.",
+  "share.copyFailedToast": "Zugriff auf die Zwischenablage fehlgeschlagen.",
 };
 
 export default DE;
