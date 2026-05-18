@@ -1,4 +1,4 @@
-import { Bot, Eye, History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react";
+import { Bell, Bot, Eye, History, Settings, ShieldCheck, Workflow, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { loadToken, loadTokenMeta } from "../lib/auth/tokenStore";
 import { getStats as getHistoryStats } from "../lib/history/historyStore";
@@ -11,21 +11,26 @@ interface HeroProps {
   onOpenSettings: () => void;
   onOpenHistory: () => void;
   onOpenWatched: () => void;
+  onOpenInbox: () => void;
   /** A tick that bumps whenever the token changes — re-renders the badge. */
   authTick: number;
   /** A tick that bumps whenever audit history changes. */
   historyTick: number;
   /** A tick that bumps whenever the watched-list changes. */
   watchedTick: number;
+  /** Live unread-events count surfaced by the inbox badge. */
+  inboxUnread: number;
 }
 
 export function Hero({
   onOpenSettings,
   onOpenHistory,
   onOpenWatched,
+  onOpenInbox,
   authTick,
   historyTick,
   watchedTick,
+  inboxUnread,
 }: HeroProps) {
   const { t } = useTranslation();
   const [hasToken, setHasToken] = useState(false);
@@ -127,6 +132,21 @@ export function Hero({
                 {t("watched.title")} · {watchedCount}
               </span>
               <span className="sm:hidden">{watchedCount}</span>
+            </button>
+          ) : null}
+          {inboxUnread > 0 ? (
+            <button
+              type="button"
+              onClick={onOpenInbox}
+              aria-label={t("header.openInbox")}
+              title={`${t("inbox.title")}: ${inboxUnread}`}
+              className="relative inline-flex shrink-0 items-center gap-1.5 rounded-full border border-aurora-violet/40 bg-aurora-violet/10 px-2.5 py-1 text-[11px] font-medium text-aurora-violet transition hover:bg-aurora-violet/20 print:hidden"
+            >
+              <Bell className="h-3 w-3 shrink-0" />
+              <span className="hidden sm:inline">
+                {t("inbox.title")} · {inboxUnread}
+              </span>
+              <span className="sm:hidden">{inboxUnread}</span>
             </button>
           ) : null}
         <button

@@ -11,6 +11,14 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { CompareDialog } from "./components/CompareDialog";
 import { HistoryDialog } from "./components/HistoryDialog";
 import { WatchedDialog } from "./components/WatchedDialog";
+import { WatchInbox } from "./components/WatchInbox";
+import { unreadCount } from "./lib/watch/eventStore";
+import { runWatchRefresh } from "./lib/watch/refreshLoop";
+import {
+  fireWatchNotification,
+  notificationsAllowed,
+} from "./lib/watch/notify";
+import type { WatchedRepo, WatchSnapshot } from "./lib/watch/watchStore";
 // Roadmap M4.1 UI slice — lazy so the discovery dialog doesn't
 // inflate the main chunk; it's only mounted after the user clicks
 // "Find similar repos" on a ready audit.
@@ -193,6 +201,8 @@ export default function App() {
   const [authTick, setAuthTick] = useState(0);
   const [historyTick, setHistoryTick] = useState(0);
   const [watchedTick, setWatchedTick] = useState(0);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxUnread, setInboxUnread] = useState(0);
   const workerRef = useRef<Worker | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Roadmap M5.1 / M5.5 — opt‑in rule packs. Seeded from the URL
@@ -339,6 +349,108 @@ export default function App() {
     return () => {
       worker.terminate();
       workerRef.current = null;
+    };
+  }, []);
+
+  // Seed inbox unread count on mount.
+  useEffect(() => {
+    setInboxUnread(unreadCount());
+  }, []);
+
+  // Roadmap M7.1.4 — boot-time refresh trigger. Waits 30s after
+  // mount so the visitor's first audit + initial page-paint are
+  // never blocked by background traffic. Uses a dedicated batch
+  // worker so the main audit worker (in workerRef) stays
+  // available for foreground audits.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      const refreshWorker = new Worker(
+        new URL("./workers/audit.worker.ts", import.meta.url),
+        { type: "module" },
+      );
+      const packs = [...enabledPacksRef.current];
+      const auditOne = async (
+        entry: WatchedRepo,
+        signal?: AbortSignal,
+      ): Promise<WatchSnapshot> => {
+        const bundle = await loadRepoBundle(
+          { owner: entry.owner, repo: entry.repo },
+          { signal },
+        );
+        const id = entry.fullName;
+        return new Promise<WatchSnapshot>((resolve, reject) => {
+          const onMessage = (e: MessageEvent<WorkerOutputMessage>) => {
+            const m = e.data;
+            if (!m || m.id !== id) return;
+            if (m.type === "result") {
+              cleanup();
+              resolve({
+                totalScore: m.result.totalScore,
+                maxScore: m.result.maxScore,
+                grade: m.result.grade,
+                findingCount: m.result.findings.length,
+              });
+            } else if (m.type === "error") {
+              cleanup();
+              reject(new Error(m.message));
+            }
+          };
+          const onAbort = () => {
+            cleanup();
+            const e = new Error("aborted");
+            e.name = "AbortError";
+            reject(e);
+          };
+          const cleanup = () => {
+            refreshWorker.removeEventListener("message", onMessage);
+            signal?.removeEventListener("abort", onAbort);
+          };
+          if (signal?.aborted) return onAbort();
+          refreshWorker.addEventListener("message", onMessage);
+          signal?.addEventListener("abort", onAbort);
+          refreshWorker.postMessage({
+            type: "audit",
+            bundle,
+            id,
+            enabledPacks: packs,
+          });
+        });
+      };
+      runWatchRefresh({ auditOne, signal: controller.signal })
+        .then((summary) => {
+          if (cancelled) return;
+          if (summary.events.length > 0) {
+            setInboxUnread(unreadCount());
+            if (notificationsAllowed()) {
+              fireWatchNotification({
+                title: `Astraudit · ${summary.events.length} watch event${
+                  summary.events.length === 1 ? "" : "s"
+                }`,
+                body: summary.events
+                  .slice(0, 3)
+                  .map((e) => `${e.fullName} (${e.kind})`)
+                  .join("\n"),
+                tag: "astraudit-watch",
+                onClick: () => setInboxOpen(true),
+              });
+            }
+          }
+        })
+        .catch(() => {
+          /* refresh failures are non-fatal */
+        })
+        .finally(() => {
+          refreshWorker.terminate();
+        });
+    }, 30_000);
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timer);
     };
   }, []);
 
@@ -818,9 +930,11 @@ export default function App() {
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenWatched={() => setWatchedOpen(true)}
+        onOpenInbox={() => setInboxOpen(true)}
         authTick={authTick}
         historyTick={historyTick}
         watchedTick={watchedTick}
+        inboxUnread={inboxUnread}
       />
 
       {/* Phase 6.9 — single <main> landmark so SR users can jump to
@@ -933,6 +1047,17 @@ export default function App() {
         onClose={() => {
           setWatchedOpen(false);
           setWatchedTick((n) => n + 1);
+        }}
+        onPick={(fullName) => {
+          void startAudit(fullName);
+        }}
+      />
+
+      <WatchInbox
+        open={inboxOpen}
+        onClose={() => {
+          setInboxOpen(false);
+          setInboxUnread(unreadCount());
         }}
         onPick={(fullName) => {
           void startAudit(fullName);

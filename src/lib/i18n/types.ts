@@ -477,6 +477,24 @@ export interface Catalog {
   "watched.lastCheckedPrefix": string;
   "watched.neverChecked": string;
   "watched.intervalPrefix": string;
+  // M7.1.4 — Watch inbox.
+  "header.openInbox": string;
+  "inbox.title": string;
+  "inbox.subtitle": string;
+  "inbox.close": string;
+  "inbox.empty": string;
+  "inbox.emptyHint": string;
+  "inbox.markRead": string;
+  "inbox.markAllRead": string;
+  "inbox.clear": string;
+  "inbox.openAudit": string;
+  "inbox.allReadToast": string;
+  "inbox.clearedToast": string;
+  "inbox.kindScoreUp": string;
+  "inbox.kindScoreDown": string;
+  "inbox.kindFindingsUp": string;
+  "inbox.kindFindingsDown": string;
+  "inbox.kindGradeChanged": string;
 }
 
 /**

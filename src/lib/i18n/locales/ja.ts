@@ -503,6 +503,26 @@ const JA: Catalog = {
   "watched.lastCheckedPrefix": "最終チェック",
   "watched.neverChecked": "未チェック",
   "watched.intervalPrefix": "チェック間隔",
+  // M7.1.4 — ウォッチ受信箱
+  "header.openInbox": "受信箱を開く",
+  "inbox.title": "受信箱",
+  "inbox.subtitle":
+    "バックグラウンド更新がウォッチ中のリポジトリで検出した変更。",
+  "inbox.close": "受信箱を閉じる",
+  "inbox.empty": "新しい活動はありません",
+  "inbox.emptyHint":
+    "ウォッチ中のリポジトリは設定された間隔で更新されます。スコア、検出数、評価が変わると、ここに表示されます。",
+  "inbox.markRead": "既読",
+  "inbox.markAllRead": "全て既読",
+  "inbox.clear": "クリア",
+  "inbox.openAudit": "監査",
+  "inbox.allReadToast": "全てのイベントを既読にしました。",
+  "inbox.clearedToast": "受信箱をクリアしました。",
+  "inbox.kindScoreUp": "スコア ↑",
+  "inbox.kindScoreDown": "スコア ↓",
+  "inbox.kindFindingsUp": "検出が増加",
+  "inbox.kindFindingsDown": "検出が減少",
+  "inbox.kindGradeChanged": "評価が変更",
 };
 
 export default JA;
