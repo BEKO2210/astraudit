@@ -537,6 +537,14 @@ export const EN: Catalog = {
   "promo.pngFailedToast": "Could not rasterise the SVG. Try the SVG download.",
   "promo.metaCopiedToast": "README snippet copied to clipboard.",
   "promo.metaFailedToast": "Could not access the clipboard.",
+  // M8.3 — Share-to-community menu
+  "share.label": "Share post",
+  "share.menuAria": "Social share menu",
+  "share.copyAria": "Copy post text",
+  "share.openAria": "Open compose dialog",
+  "share.open": "Open",
+  "share.copiedToast": "Post text copied to clipboard.",
+  "share.copyFailedToast": "Could not access the clipboard.",
 };
 
 export default EN;

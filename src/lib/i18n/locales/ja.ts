@@ -548,6 +548,14 @@ const JA: Catalog = {
   "promo.pngFailedToast": "SVG を PNG に変換できませんでした。SVG ダウンロードをご利用ください。",
   "promo.metaCopiedToast": "README スニペットをクリップボードにコピーしました。",
   "promo.metaFailedToast": "クリップボードへのアクセスに失敗しました。",
+  // M8.3 — ソーシャル共有メニュー
+  "share.label": "投稿を共有",
+  "share.menuAria": "ソーシャル共有メニュー",
+  "share.copyAria": "投稿テキストをコピー",
+  "share.openAria": "投稿作成ダイアログを開く",
+  "share.open": "開く",
+  "share.copiedToast": "投稿テキストをクリップボードにコピーしました。",
+  "share.copyFailedToast": "クリップボードへのアクセスに失敗しました。",
 };
 
 export default JA;
