@@ -1,5 +1,6 @@
 import type { ImportantFile, RepoTree } from "../../types/github";
 import {
+  IMPORTANT_FILE_ALIASES,
   IMPORTANT_FOLDERS,
   IMPORTANT_ROOT_FILES,
   SUSPICIOUS_ALLOW_LIST,
@@ -168,8 +169,22 @@ export function classifyFiles(
   const importantFilesPresent: string[] = [];
   const importantFilesMissing: string[] = [];
   for (const file of IMPORTANT_ROOT_FILES) {
-    const found = blobPathsLower.get(file.toLowerCase());
-    if (found) importantFilesPresent.push(found);
+    // Phase 7.x — honour the alias map so old-Node-style History.md,
+    // dashed Code-Of-Conduct.md, LICENSE.txt and friends count
+    // toward the canonical filename instead of being silently
+    // reported missing. The actual filename is surfaced so the
+    // dashboard's "Important files present" panel shows the real
+    // value the visitor would find on GitHub.
+    const candidates = [file, ...(IMPORTANT_FILE_ALIASES[file] ?? [])];
+    let hit: string | null = null;
+    for (const candidate of candidates) {
+      const found = blobPathsLower.get(candidate.toLowerCase());
+      if (found) {
+        hit = found;
+        break;
+      }
+    }
+    if (hit) importantFilesPresent.push(hit);
     else importantFilesMissing.push(file);
   }
 
