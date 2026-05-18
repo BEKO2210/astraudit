@@ -526,6 +526,17 @@ export const EN: Catalog = {
   "settings.keymapConflictPrefix": "Conflict with",
   "settings.keymapSavedToast": "Shortcut updated.",
   "settings.keymapResetToast": "Shortcut reset to default.",
+  // M8.2 — Promo card menu
+  "promo.label": "Promo card",
+  "promo.menuAria": "Promo card export menu",
+  "promo.downloadSvg": "Download SVG",
+  "promo.downloadPng": "Download PNG",
+  "promo.copyMeta": "Copy README snippet",
+  "promo.svgSavedToast": "Promo card SVG downloaded.",
+  "promo.pngSavedToast": "Promo card PNG downloaded.",
+  "promo.pngFailedToast": "Could not rasterise the SVG. Try the SVG download.",
+  "promo.metaCopiedToast": "README snippet copied to clipboard.",
+  "promo.metaFailedToast": "Could not access the clipboard.",
 };
 
 export default EN;
