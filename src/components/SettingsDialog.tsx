@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useDialog } from "../lib/ui/useDialog";
 import {
   CheckCircle2,
+  Command,
   Database,
   ExternalLink,
   Eye,
@@ -39,6 +40,18 @@ import {
   RULE_PACK_IDS,
   type RulePackId,
 } from "../lib/audit/rulePacks/types";
+import {
+  KEY_ACTIONS,
+  bindingFromEvent,
+  findConflict,
+  formatBinding,
+  getKeymap,
+  resetAllBindings,
+  resetBinding,
+  setBinding,
+  type KeyAction,
+  type KeyBinding,
+} from "../lib/keyboard/keymapStore";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -469,6 +482,11 @@ export function SettingsDialog({
           </div>
         </div>
 
+        {/* Roadmap M7.2 — Keymap editor. Rebind the three
+            single-key global shortcuts; the vim chord map stays
+            hard-coded. */}
+        <KeymapSection open={open} t={t} />
+
         <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
@@ -546,6 +564,137 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="text-sm font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+const ACTION_LABEL_KEY: Record<
+  KeyAction,
+  import("../lib/i18n").TranslationKey
+> = {
+  palette: "settings.keymapActionPalette",
+  cheatSheet: "settings.keymapActionCheatSheet",
+  focusInput: "settings.keymapActionFocusInput",
+};
+
+/**
+ * Roadmap M7.2 — Keymap editor section. Lives at the bottom of
+ * the Settings dialog. Recording mode listens for a single
+ * keydown, validates against the conflict map, and persists via
+ * setBinding. Esc cancels.
+ */
+function KeymapSection({
+  open,
+  t,
+}: {
+  open: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const [map, setMap] = useState<Record<KeyAction, KeyBinding>>(() => getKeymap());
+  const [recording, setRecording] = useState<KeyAction | null>(null);
+
+  // Re-read the keymap whenever the dialog opens so it reflects
+  // changes made from outside (or from a previous open session).
+  useEffect(() => {
+    if (open) setMap(getKeymap());
+  }, [open]);
+
+  useEffect(() => {
+    if (!recording) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setRecording(null);
+        return;
+      }
+      const captured = bindingFromEvent(e);
+      if (!captured) return; // modifier-only keypress; keep listening
+      e.preventDefault();
+      setBinding(recording, captured);
+      setMap(getKeymap());
+      setRecording(null);
+      pushToast({ tone: "success", message: t("settings.keymapSavedToast") });
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [recording, t]);
+
+  const handleReset = (action: KeyAction) => {
+    resetBinding(action);
+    setMap(getKeymap());
+    pushToast({ tone: "info", message: t("settings.keymapResetToast") });
+  };
+
+  const handleResetAll = () => {
+    resetAllBindings();
+    setMap(getKeymap());
+    pushToast({ tone: "info", message: t("settings.keymapResetToast") });
+  };
+
+  return (
+    <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-slate-400">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Command className="h-3.5 w-3.5 shrink-0 text-aurora-cyan" />
+          <span className="font-medium text-white">
+            {t("settings.keymapHeading")}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleResetAll}
+          className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-300 hover:bg-white/[0.06]"
+        >
+          {t("settings.keymapResetAll")}
+        </button>
+      </div>
+      <p className="mt-0.5 text-slate-500">{t("settings.keymapHint")}</p>
+      <ul className="mt-2 space-y-1.5">
+        {KEY_ACTIONS.map((action) => {
+          const binding = map[action];
+          const isRecording = recording === action;
+          const conflict = findConflict(binding, action, map);
+          return (
+            <li
+              key={action}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-black/20 px-2.5 py-1.5"
+            >
+              <span className="min-w-0 text-slate-200">
+                {t(ACTION_LABEL_KEY[action])}
+                {conflict ? (
+                  <span className="ml-2 text-[10px] text-risk-medium">
+                    {t("settings.keymapConflictPrefix")}{" "}
+                    {t(ACTION_LABEL_KEY[conflict])}
+                  </span>
+                ) : null}
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <span className="font-mono text-[11px] text-aurora-cyan">
+                  {isRecording ? t("settings.keymapRecording") : formatBinding(binding)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRecording(isRecording ? null : action)}
+                  className={`rounded-md border px-2 py-0.5 text-[11px] transition ${
+                    isRecording
+                      ? "border-aurora-violet/50 bg-aurora-violet/15 text-white"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {t("settings.keymapRecord")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReset(action)}
+                  className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-400 hover:bg-white/[0.06]"
+                >
+                  {t("settings.keymapReset")}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -495,6 +495,19 @@ export interface Catalog {
   "inbox.kindFindingsUp": string;
   "inbox.kindFindingsDown": string;
   "inbox.kindGradeChanged": string;
+  // M7.2 — Keymap editor.
+  "settings.keymapHeading": string;
+  "settings.keymapHint": string;
+  "settings.keymapActionPalette": string;
+  "settings.keymapActionCheatSheet": string;
+  "settings.keymapActionFocusInput": string;
+  "settings.keymapRecord": string;
+  "settings.keymapRecording": string;
+  "settings.keymapReset": string;
+  "settings.keymapResetAll": string;
+  "settings.keymapConflictPrefix": string;
+  "settings.keymapSavedToast": string;
+  "settings.keymapResetToast": string;
 }
 
 /**
