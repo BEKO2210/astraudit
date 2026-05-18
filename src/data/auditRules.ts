@@ -51,6 +51,36 @@ export const IMPORTANT_ROOT_FILES = [
   "nx.json",
 ];
 
+/**
+ * Canonical → alternate filename map for the `IMPORTANT_ROOT_FILES`
+ * presence check. When a repo ships an alias the classifier treats
+ * the canonical entry as present and surfaces the actual filename in
+ * `importantFilesPresent`, so the dashboard's "Important files
+ * present" / "Notable missing files" panels stay honest on
+ * ecosystems that don't use the modern convention.
+ *
+ * Examples
+ * - `History.md` is the canonical Node.js-era release log
+ *   (expressjs/express, Bun's lockb, every koajs repo, …).
+ * - `CHANGES`/`CHANGES.md` is the Python / Werkzeug convention.
+ * - `LICENSE.md` / `LICENSE.txt` / `COPYING` are common license
+ *   filename variants the SPDX classifier already tolerates but
+ *   the presence check should too.
+ * - `Code-Of-Conduct.md` is the dashed form (CNCF / Express-style).
+ *
+ * Casing is irrelevant — the classifier already does case-insensitive
+ * lookups; only punctuation / extension variants need to be listed
+ * here.
+ */
+export const IMPORTANT_FILE_ALIASES: Record<string, readonly string[]> = {
+  "CHANGELOG.md": ["History.md", "HISTORY.md", "CHANGELOG", "CHANGELOG.markdown", "CHANGES.md", "CHANGES"],
+  "LICENSE": ["LICENSE.md", "LICENSE.txt", "LICENCE", "LICENCE.md", "COPYING", "COPYING.md"],
+  "CODE_OF_CONDUCT.md": ["Code-Of-Conduct.md", "CODE-OF-CONDUCT.md", "CodeOfConduct.md", ".github/CODE_OF_CONDUCT.md"],
+  "CONTRIBUTING.md": ["Contributing.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md"],
+  "SECURITY.md": ["Security.md", ".github/SECURITY.md", "docs/SECURITY.md"],
+  "CODEOWNERS": [".github/CODEOWNERS", "docs/CODEOWNERS"],
+};
+
 export const IMPORTANT_FOLDERS = [
   "src",
   "app",

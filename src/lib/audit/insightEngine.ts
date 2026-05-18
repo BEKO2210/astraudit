@@ -660,6 +660,12 @@ export function deriveInsights(ctx: InsightsContext): DerivedInsights {
     classified.importantFileMap.get("CHANGELOG.markdown") ??
     classified.importantFileMap.get("CHANGELOG") ??
     classified.importantFileMap.get("changelog.md") ??
+    // Phase 7.x — Node-era alias used by expressjs and koajs:
+    classified.importantFileMap.get("History.md") ??
+    classified.importantFileMap.get("HISTORY.md") ??
+    classified.importantFileMap.get("history.md") ??
+    classified.importantFileMap.get("CHANGES.md") ??
+    classified.importantFileMap.get("changes.md") ??
     null;
   const changelog = changelogFile?.content
     ? parseChangelog(changelogFile.content)

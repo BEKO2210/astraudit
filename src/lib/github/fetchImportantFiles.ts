@@ -42,11 +42,29 @@ const TARGET_FILES = [
   ".env.example",
   ".gitignore",
   "CHANGELOG.md",
+  // Phase 7.x — fetch common alias filenames too so the changelog
+  // parser, license classifier, and CODEOWNERS reader can read
+  // content on repos that don't follow the modern convention.
+  // The classifier's IMPORTANT_FILE_ALIASES map is the source of
+  // truth; this list mirrors it for the content-fetch side.
+  "History.md",
+  "HISTORY.md",
+  "CHANGES.md",
   "CONTRIBUTING.md",
+  "Contributing.md",
+  ".github/CONTRIBUTING.md",
+  "docs/CONTRIBUTING.md",
   "CODE_OF_CONDUCT.md",
+  "Code-Of-Conduct.md",
+  "CODE-OF-CONDUCT.md",
+  ".github/CODE_OF_CONDUCT.md",
   "SECURITY.md",
+  "Security.md",
+  ".github/SECURITY.md",
+  "docs/SECURITY.md",
   "CODEOWNERS",
   ".github/CODEOWNERS",
+  "docs/CODEOWNERS",
   ".github/dependabot.yml",
   ".github/dependabot.yaml",
 ];
