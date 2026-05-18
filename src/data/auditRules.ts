@@ -79,6 +79,30 @@ export const IMPORTANT_FILE_ALIASES: Record<string, readonly string[]> = {
   "CONTRIBUTING.md": ["Contributing.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md"],
   "SECURITY.md": ["Security.md", ".github/SECURITY.md", "docs/SECURITY.md"],
   "CODEOWNERS": [".github/CODEOWNERS", "docs/CODEOWNERS"],
+  // Phase 7.x — bundler / framework config aliases. Modern
+  // projects regularly ship `.mts` / `.cts` ESM-typed configs;
+  // Next 15 supports `.ts` configs natively; webpack/rollup
+  // commonly use `.cjs` for CommonJS pinning. Without these
+  // aliases the "Notable missing files" panel would list every
+  // canonical as missing on a repo that just picked a different
+  // extension. Each entry only adds an alias — the canonical
+  // is what shows in the panel when nothing better matches.
+  "vite.config.ts": ["vite.config.js", "vite.config.mts", "vite.config.cts", "vite.config.mjs", "vite.config.cjs"],
+  "vite.config.js": ["vite.config.ts", "vite.config.mts", "vite.config.cts", "vite.config.mjs", "vite.config.cjs"],
+  "next.config.js": ["next.config.mjs", "next.config.ts", "next.config.cjs"],
+  "next.config.mjs": ["next.config.js", "next.config.ts", "next.config.cjs"],
+  "webpack.config.js": ["webpack.config.ts", "webpack.config.mjs", "webpack.config.cjs"],
+  "rollup.config.js": ["rollup.config.ts", "rollup.config.mjs", "rollup.config.cjs"],
+  // eslint 9 with --experimental-cli + tsx supports a TS config.
+  "eslint.config.js": ["eslint.config.ts", "eslint.config.mjs", "eslint.config.cjs"],
+  "eslint.config.mjs": ["eslint.config.js", "eslint.config.ts", "eslint.config.cjs"],
+  "eslint.config.cjs": ["eslint.config.js", "eslint.config.ts", "eslint.config.mjs"],
+  // Biome accepts JSONC variant since v1.5.
+  "biome.json": ["biome.jsonc"],
+  // Prettier honours every JS variant + a JSON config.
+  ".prettierrc": [".prettierrc.json", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  ".prettierrc.json": [".prettierrc", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  ".prettierrc.js": [".prettierrc", ".prettierrc.json", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
 };
 
 export const IMPORTANT_FOLDERS = [
