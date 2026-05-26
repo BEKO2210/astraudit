@@ -346,8 +346,14 @@ function detectMonorepo(
   return null;
 }
 
-function detectPackageManager(classified: ClassifiedFiles): string | null {
+function detectPackageManager(
+  classified: ClassifiedFiles,
+  pkg: PackageJson | null,
+): string | null {
   const has = classified.hasFile;
+  // Lockfile-driven detection wins — it's the most specific signal,
+  // and the same project may carry several manifests (a Node project
+  // with a Python doc tool, etc.).
   if (has("pnpm-lock.yaml")) return "pnpm";
   if (has("yarn.lock")) return "yarn";
   if (has("bun.lockb", "bun.lock")) return "bun";
@@ -358,6 +364,29 @@ function detectPackageManager(classified: ClassifiedFiles): string | null {
   if (has("go.sum")) return "go modules";
   if (has("composer.lock")) return "composer";
   if (has("Gemfile.lock")) return "bundler";
+  // package.json `packageManager` field (Corepack) — the maintainer's
+  // declared choice, even when no lockfile is committed.
+  if (pkg?.packageManager) {
+    const name = pkg.packageManager.split("@")[0]?.trim().toLowerCase();
+    if (name === "pnpm" || name === "yarn" || name === "bun" || name === "npm") {
+      return name;
+    }
+  }
+  // Manifest-only detection. Library repos commonly skip committing a
+  // lockfile (expressjs/express, lodash/lodash, sindresorhus packages,
+  // many cargo libraries). Without this fallback the ecosystem score
+  // erroneously reports "no package manager" on perfectly fine repos.
+  if (has("package.json")) return "npm";
+  if (has("Cargo.toml")) return "cargo";
+  if (has("pyproject.toml")) return "python (pyproject)";
+  if (has("Pipfile")) return "pipenv";
+  if (has("go.mod")) return "go modules";
+  if (has("composer.json")) return "composer";
+  if (has("Gemfile")) return "bundler";
+  if (has("Package.swift")) return "swift pm";
+  if (has("pubspec.yaml")) return "pub (Dart/Flutter)";
+  if (has("mix.exs")) return "mix (Elixir)";
+  if (has("project.clj", "deps.edn")) return "clojure";
   return null;
 }
 
@@ -382,6 +411,16 @@ function detectRuntime(
   if (lang === "php") return "PHP";
   if (lang === "java" || lang === "kotlin" || lang === "scala") return "JVM";
   if (lang === "python") return "Python";
+  if (lang === "c" || lang === "c++" || lang === "cpp") return "C/C++";
+  if (lang === "dart") return "Dart";
+  if (lang === "elixir") return "Elixir";
+  if (lang === "swift") return "Swift";
+  if (lang === "objective-c" || lang === "objective-c++") return "Objective-C";
+  if (lang === "csharp" || lang === "c#") return ".NET";
+  if (lang === "haskell") return "Haskell";
+  if (lang === "ocaml") return "OCaml";
+  if (lang === "clojure") return "Clojure";
+  if (lang === "elm") return "Elm";
 
   // Fall back to config-file heuristics only when the project isn't
   // dominantly JavaScript/TypeScript — otherwise auxiliary build tooling
@@ -399,9 +438,25 @@ function detectRuntime(
   return null;
 }
 
+export interface StackDetectOptions {
+  /**
+   * Repo topics from the GitHub metadata. Used as a fallback signal
+   * for framework detection: a library that IS the framework (e.g.
+   * expressjs/express itself, koajs/koa, fastify/fastify) cannot
+   * detect itself via deps because it never lists itself as a
+   * dependency. Repo topics are the maintainer's declared positioning,
+   * which is the next-most-reliable signal short of static-analysing
+   * the source.
+   */
+  topics?: readonly string[];
+  /** Repo name — used to gate self-detection for library repos. */
+  repoName?: string;
+}
+
 export function detectStack(
   classified: ClassifiedFiles,
   languages: LanguagesMap,
+  options: StackDetectOptions = {},
 ): StackSignals {
   const pkgFile =
     classified.importantFileMap.get("package.json") ??
@@ -418,6 +473,232 @@ export function detectStack(
   const buildTools = pickHints(BUILD_TOOL_HINTS, allDeps);
   const testTools = pickHints(TEST_TOOL_HINTS, allDeps);
   const lintTools = pickHints(LINT_TOOL_HINTS, allDeps);
+
+  // Config-file fallback for tool detection.
+  //
+  // The dep-based scan misses three real-world cases:
+  //   1. The project IS the tool (`expressjs/express` doesn't list
+  //      "express" in its own deps; `mochajs/mocha` doesn't either).
+  //   2. Tools shipped via system / global installs (eslint via brew,
+  //      mocha via npx, prettier via VS Code extension) — the
+  //      repo carries the config but no devDep entry.
+  //   3. Older `.eslintrc.yml` / `.prettierrc.yml` configs without
+  //      a JS variant that pickHints would also catch.
+  //
+  // Each addLint/addTest/addBuild/addFramework helper guards against
+  // double-counting via a Set, so adding a config-file probe never
+  // makes the listed tools array longer than the truth.
+  const addUnique = (arr: string[], label: string) => {
+    if (!arr.includes(label)) arr.push(label);
+  };
+  if (
+    classified.hasFile(
+      ".eslintrc",
+      ".eslintrc.json",
+      ".eslintrc.js",
+      ".eslintrc.cjs",
+      ".eslintrc.yml",
+      ".eslintrc.yaml",
+      "eslint.config.js",
+      "eslint.config.mjs",
+      "eslint.config.cjs",
+      "eslint.config.ts",
+    )
+  ) {
+    addUnique(lintTools, "ESLint");
+  }
+  if (
+    classified.hasFile(
+      ".prettierrc",
+      ".prettierrc.json",
+      ".prettierrc.js",
+      ".prettierrc.cjs",
+      ".prettierrc.mjs",
+      ".prettierrc.yml",
+      ".prettierrc.yaml",
+      ".prettierrc.toml",
+      "prettier.config.js",
+      "prettier.config.cjs",
+      "prettier.config.mjs",
+      "prettier.config.ts",
+    )
+  ) {
+    addUnique(lintTools, "Prettier");
+  }
+  if (classified.hasFile("biome.json", "biome.jsonc")) {
+    addUnique(lintTools, "Biome");
+  }
+  if (
+    classified.hasFile(
+      "stylelint.config.js",
+      "stylelint.config.cjs",
+      ".stylelintrc",
+      ".stylelintrc.json",
+      ".stylelintrc.js",
+    )
+  ) {
+    addUnique(lintTools, "Stylelint");
+  }
+  if (
+    classified.hasFile(
+      ".mocharc",
+      ".mocharc.js",
+      ".mocharc.cjs",
+      ".mocharc.json",
+      ".mocharc.yml",
+      ".mocharc.yaml",
+    )
+  ) {
+    addUnique(testTools, "Mocha");
+  }
+  if (
+    classified.hasFile(
+      "jest.config.js",
+      "jest.config.ts",
+      "jest.config.mjs",
+      "jest.config.cjs",
+      "jest.config.json",
+    )
+  ) {
+    addUnique(testTools, "Jest");
+  }
+  if (
+    classified.hasFile(
+      "vitest.config.js",
+      "vitest.config.ts",
+      "vitest.config.mjs",
+      "vitest.config.cjs",
+    )
+  ) {
+    addUnique(testTools, "Vitest");
+  }
+  if (
+    classified.hasFile(
+      "playwright.config.js",
+      "playwright.config.ts",
+      "playwright.config.mjs",
+      "playwright.config.cjs",
+    )
+  ) {
+    addUnique(testTools, "Playwright");
+  }
+  if (classified.hasFile("cypress.config.js", "cypress.config.ts", "cypress.json")) {
+    addUnique(testTools, "Cypress");
+  }
+  if (
+    classified.hasFile(
+      "karma.conf.js",
+      "karma.conf.ts",
+      "karma.conf.cjs",
+    )
+  ) {
+    addUnique(testTools, "Karma");
+  }
+  if (
+    classified.hasFile(
+      "webpack.config.js",
+      "webpack.config.ts",
+      "webpack.config.mjs",
+      "webpack.config.cjs",
+    )
+  ) {
+    addUnique(buildTools, "Webpack");
+  }
+  if (
+    classified.hasFile(
+      "rollup.config.js",
+      "rollup.config.ts",
+      "rollup.config.mjs",
+      "rollup.config.cjs",
+    )
+  ) {
+    addUnique(buildTools, "Rollup");
+  }
+  if (
+    classified.hasFile(
+      "vite.config.js",
+      "vite.config.ts",
+      "vite.config.mts",
+      "vite.config.cts",
+      "vite.config.mjs",
+      "vite.config.cjs",
+    )
+  ) {
+    addUnique(buildTools, "Vite");
+  }
+  if (
+    classified.hasFile(
+      "next.config.js",
+      "next.config.ts",
+      "next.config.mjs",
+      "next.config.cjs",
+    )
+  ) {
+    addUnique(frameworks, "Next.js");
+  }
+  if (classified.hasFile("astro.config.js", "astro.config.ts", "astro.config.mjs")) {
+    addUnique(frameworks, "Astro");
+  }
+  if (classified.hasFile("nuxt.config.js", "nuxt.config.ts")) {
+    addUnique(frameworks, "Nuxt");
+  }
+  if (classified.hasFile("svelte.config.js", "svelte.config.ts")) {
+    addUnique(frameworks, "Svelte");
+  }
+  if (classified.hasFile("angular.json")) {
+    addUnique(frameworks, "Angular");
+  }
+  if (classified.hasFile("remix.config.js", "remix.config.ts", "remix.config.mjs")) {
+    addUnique(frameworks, "Remix");
+  }
+  if (classified.hasFile("gatsby-config.js", "gatsby-config.ts")) {
+    addUnique(frameworks, "Gatsby");
+  }
+  if (classified.hasFile("expo.config.js", "expo.config.ts", "app.config.js", "app.config.ts")) {
+    // expo / EAS use app.config.* — only credit when there's no other framework hit
+    // since plain Node projects sometimes ship `app.config.js` for unrelated reasons.
+    if (frameworks.length === 0) addUnique(frameworks, "Expo");
+  }
+  if (classified.hasFile("Rakefile")) {
+    addUnique(buildTools, "Rake");
+  }
+  if (classified.hasFile("manage.py")) {
+    addUnique(frameworks, "Django");
+  }
+  if (classified.hasFile("app.py", "flask_app.py") && (classified.hasFile("requirements.txt") || classified.hasFile("pyproject.toml"))) {
+    // We don't actually know flask is used without parsing imports;
+    // skip silently to avoid false positives.
+  }
+
+  // Topic-based fallback for self-detection.
+  //
+  // A repo that IS a framework cannot list itself in its deps
+  // (expressjs/express, koajs/koa, fastify/fastify, sveltejs/svelte,
+  // vuejs/core all hit this). Without a fallback, the ecosystem
+  // detector reports "no frameworks detected" on the very projects
+  // that DEFINE the frameworks. We use the repo's declared topics +
+  // its name as the next-best signal, anchored to the FRAMEWORK_HINTS
+  // catalogue so we never invent a label that isn't already
+  // recognised by Astraudit.
+  const topicSet = new Set(
+    (options.topics ?? []).map((t) => t.toLowerCase().trim()).filter(Boolean),
+  );
+  const repoNameLower = (options.repoName ?? "").toLowerCase();
+  if (topicSet.size > 0 || repoNameLower) {
+    for (const hint of FRAMEWORK_HINTS) {
+      const keyLower = hint.key.toLowerCase();
+      const labelLower = hint.label.toLowerCase();
+      // Strip scope (`@org/name` → `name`) so we can match either form.
+      const bareKey = keyLower.includes("/")
+        ? keyLower.split("/").pop()!
+        : keyLower;
+      const candidates = [keyLower, labelLower, bareKey];
+      const hit = candidates.some(
+        (c) => topicSet.has(c) || repoNameLower === c,
+      );
+      if (hit) addUnique(frameworks, hint.label);
+    }
+  }
 
   const totalBytes = Object.values(languages).reduce((sum, n) => sum + n, 0);
   const languagesArr = Object.entries(languages)
@@ -449,7 +730,7 @@ export function detectStack(
 
   const language = languagesArr[0]?.name ?? null;
   const monorepoTool = detectMonorepo(classified, pkg);
-  const packageManager = detectPackageManager(classified);
+  const packageManager = detectPackageManager(classified, pkg);
   const runtime = detectRuntime(classified, pkg, language);
 
   const hasLockfile =

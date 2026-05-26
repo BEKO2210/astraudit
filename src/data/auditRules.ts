@@ -1,6 +1,8 @@
 export const IMPORTANT_ROOT_FILES = [
   "README.md",
   "LICENSE",
+  "LICENSE.md",
+  "LICENSE.txt",
   "CHANGELOG.md",
   "CONTRIBUTING.md",
   "CODE_OF_CONDUCT.md",
@@ -27,7 +29,27 @@ export const IMPORTANT_ROOT_FILES = [
   ".eslintrc.js",
   ".prettierrc",
   ".prettierrc.json",
+  ".prettierrc.yml",
+  ".prettierrc.yaml",
+  ".eslintrc.yml",
+  ".eslintrc.yaml",
   "biome.json",
+  ".mocharc.yml",
+  ".mocharc.yaml",
+  ".mocharc.js",
+  ".mocharc.cjs",
+  ".mocharc.json",
+  "jest.config.js",
+  "jest.config.ts",
+  "jest.config.mjs",
+  "jest.config.cjs",
+  "vitest.config.ts",
+  "vitest.config.js",
+  "playwright.config.ts",
+  "playwright.config.js",
+  "cypress.config.js",
+  "cypress.config.ts",
+  "karma.conf.js",
   "Dockerfile",
   "docker-compose.yml",
   "docker-compose.yaml",
@@ -49,6 +71,26 @@ export const IMPORTANT_ROOT_FILES = [
   "deno.json",
   "turbo.json",
   "nx.json",
+  // Dart / Flutter — pubspec is the canonical manifest. Without
+  // this entry the structure detector reports "no manifest" on
+  // every sass/dart-sass-style repo.
+  "pubspec.yaml",
+  "pubspec.lock",
+  // .NET — project / solution files.
+  "Directory.Build.props",
+  "Directory.Packages.props",
+  "global.json",
+  "nuget.config",
+  // Conan / vcpkg / CMake — C/C++ ecosystem manifests.
+  "CMakeLists.txt",
+  "conanfile.txt",
+  "conanfile.py",
+  "vcpkg.json",
+  // Bazel / Buck — meta-build systems.
+  "WORKSPACE",
+  "WORKSPACE.bazel",
+  "MODULE.bazel",
+  "BUILD.bazel",
 ];
 
 /**
@@ -73,12 +115,125 @@ export const IMPORTANT_ROOT_FILES = [
  * here.
  */
 export const IMPORTANT_FILE_ALIASES: Record<string, readonly string[]> = {
-  "CHANGELOG.md": ["History.md", "HISTORY.md", "CHANGELOG", "CHANGELOG.markdown", "CHANGES.md", "CHANGES"],
-  "LICENSE": ["LICENSE.md", "LICENSE.txt", "LICENCE", "LICENCE.md", "COPYING", "COPYING.md"],
-  "CODE_OF_CONDUCT.md": ["Code-Of-Conduct.md", "CODE-OF-CONDUCT.md", "CodeOfConduct.md", ".github/CODE_OF_CONDUCT.md"],
-  "CONTRIBUTING.md": ["Contributing.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md"],
-  "SECURITY.md": ["Security.md", ".github/SECURITY.md", "docs/SECURITY.md"],
-  "CODEOWNERS": [".github/CODEOWNERS", "docs/CODEOWNERS"],
+  "CHANGELOG.md": [
+    "History.md",
+    "HISTORY.md",
+    "CHANGELOG",
+    "CHANGELOG.markdown",
+    "CHANGELOG.rst",
+    "CHANGELOG.txt",
+    "CHANGES.md",
+    "CHANGES.rst",
+    "CHANGES.txt",
+    "CHANGES",
+    "NEWS.md",
+    "NEWS.rst",
+    "NEWS",
+    "ReleaseNotes.md",
+    "RELEASES.md",
+    "RELEASES",
+  ],
+  "LICENSE": [
+    "LICENSE.md",
+    "LICENSE.txt",
+    "LICENSE.rst",
+    "LICENCE",
+    "LICENCE.md",
+    "LICENCE.txt",
+    "COPYING",
+    "COPYING.md",
+    "COPYING.txt",
+    "COPYING.LESSER",
+    "COPYRIGHT",
+    "COPYRIGHT.md",
+    "UNLICENSE",
+    "License",
+    "License.md",
+    "License.txt",
+    "license",
+    "license.md",
+    "license.txt",
+    // Apache + MIT dual-licensed projects (rust-lang/rust, many crates)
+    // commonly ship both files. Either one satisfies "has a license".
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "LICENSE-APACHE-2.0",
+    "LICENSE.MIT",
+    "LICENSE.APACHE",
+  ],
+  "CODE_OF_CONDUCT.md": [
+    "Code-Of-Conduct.md",
+    "Code-of-Conduct.md",
+    "Code-of-conduct.md",
+    "CODE-OF-CONDUCT.md",
+    "code-of-conduct.md",
+    "CodeOfConduct.md",
+    "code_of_conduct.md",
+    "CODE_OF_CONDUCT",
+    "CODE_OF_CONDUCT.markdown",
+    "CODE_OF_CONDUCT.rst",
+    "CODE_OF_CONDUCT.txt",
+    "CODEOFCONDUCT.md",
+    ".github/CODE_OF_CONDUCT.md",
+    ".github/CODE_OF_CONDUCT.rst",
+    ".github/CODE_OF_CONDUCT",
+    "docs/CODE_OF_CONDUCT.md",
+    "docs/code-of-conduct.md",
+  ],
+  "CONTRIBUTING.md": [
+    "Contributing.md",
+    "contributing.md",
+    "CONTRIBUTING",
+    "CONTRIBUTING.markdown",
+    "CONTRIBUTING.rst",
+    "CONTRIBUTING.txt",
+    "CONTRIBUTING.adoc",
+    "CONTRIBUTING.asciidoc",
+    ".github/CONTRIBUTING.md",
+    ".github/CONTRIBUTING.rst",
+    ".github/CONTRIBUTING",
+    "docs/CONTRIBUTING.md",
+    "docs/CONTRIBUTING.rst",
+    "docs/contributing.md",
+  ],
+  "SECURITY.md": [
+    "Security.md",
+    "security.md",
+    "SECURITY",
+    "SECURITY.markdown",
+    "SECURITY.rst",
+    "SECURITY.txt",
+    "SECURITY.adoc",
+    ".github/SECURITY.md",
+    ".github/SECURITY.rst",
+    ".github/SECURITY",
+    "docs/SECURITY.md",
+    "docs/SECURITY.rst",
+    "docs/security.md",
+  ],
+  "CODEOWNERS": [
+    ".github/CODEOWNERS",
+    "docs/CODEOWNERS",
+    ".gitlab/CODEOWNERS",
+    ".gitea/CODEOWNERS",
+  ],
+  // Many JS ecosystems use `README.md`, but reST (Python) and AsciiDoc
+  // (Asciidoctor / Spring) projects ship `.rst` / `.adoc`. Without
+  // aliases the panel reports "missing README" on Django, Flask,
+  // Sphinx, and most Spring projects. The classifier still flags the
+  // canonical "README.md" name in the missing list otherwise.
+  "README.md": [
+    "Readme.md",
+    "readme.md",
+    "README",
+    "README.markdown",
+    "README.rst",
+    "README.txt",
+    "README.adoc",
+    "README.asciidoc",
+    "ReadMe.md",
+    "Readme.markdown",
+  ],
   // Phase 7.x — bundler / framework config aliases. Modern
   // projects regularly ship `.mts` / `.cts` ESM-typed configs;
   // Next 15 supports `.ts` configs natively; webpack/rollup
@@ -97,12 +252,24 @@ export const IMPORTANT_FILE_ALIASES: Record<string, readonly string[]> = {
   "eslint.config.js": ["eslint.config.ts", "eslint.config.mjs", "eslint.config.cjs"],
   "eslint.config.mjs": ["eslint.config.js", "eslint.config.ts", "eslint.config.cjs"],
   "eslint.config.cjs": ["eslint.config.js", "eslint.config.ts", "eslint.config.mjs"],
+  // Legacy eslintrc supports YAML/YML on top of the JSON/JS forms (expressjs/express ships
+  // `.eslintrc.yml`). Without these aliases the "Notable missing files" panel would say
+  // "no ESLint config" on a repo that clearly has one.
+  ".eslintrc": [".eslintrc.json", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.yml", ".eslintrc.yaml"],
+  ".eslintrc.json": [".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.yml", ".eslintrc.yaml"],
+  ".eslintrc.js": [".eslintrc", ".eslintrc.json", ".eslintrc.cjs", ".eslintrc.yml", ".eslintrc.yaml"],
+  ".eslintrc.yml": [".eslintrc", ".eslintrc.json", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.yaml"],
+  ".eslintrc.yaml": [".eslintrc", ".eslintrc.json", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.yml"],
   // Biome accepts JSONC variant since v1.5.
   "biome.json": ["biome.jsonc"],
-  // Prettier honours every JS variant + a JSON config.
-  ".prettierrc": [".prettierrc.json", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
-  ".prettierrc.json": [".prettierrc", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
-  ".prettierrc.js": [".prettierrc", ".prettierrc.json", ".prettierrc.cjs", ".prettierrc.mjs", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  // Prettier honours every JS variant + JSON + YAML configs (toml too in newer
+  // versions). Without YAML/YML the "no Prettier config" line fires on every
+  // repo that ships `.prettierrc.yml` instead.
+  ".prettierrc": [".prettierrc.json", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", ".prettierrc.yml", ".prettierrc.yaml", ".prettierrc.toml", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  ".prettierrc.json": [".prettierrc", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs", ".prettierrc.yml", ".prettierrc.yaml", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  ".prettierrc.js": [".prettierrc", ".prettierrc.json", ".prettierrc.cjs", ".prettierrc.mjs", ".prettierrc.yml", ".prettierrc.yaml", "prettier.config.js", "prettier.config.cjs", "prettier.config.mjs", "prettier.config.ts"],
+  ".prettierrc.yml": [".prettierrc", ".prettierrc.json", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.yaml", "prettier.config.js"],
+  ".prettierrc.yaml": [".prettierrc", ".prettierrc.json", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.yml", "prettier.config.js"],
 };
 
 export const IMPORTANT_FOLDERS = [
@@ -178,6 +345,15 @@ export const TEST_FOLDER_HINTS = [
   "e2e/",
   "cypress/",
   "playwright/",
+  // Per-stack idiomatic test directories. Without these, the audit's
+  // "Code Quality" detector reports "no tests" on Maven/Gradle Java
+  // projects (`src/test/java/`), Rails apps (`spec/`), Go modules
+  // (`*_test.go` files — handled in TEST_FILE_HINTS), and Python
+  // pytest layouts (`tests/` already covered).
+  "src/test/",
+  "src/Test/",
+  "src/tests/",
+  "src/spec/",
 ];
 
 export const TEST_FILE_HINTS = [
@@ -195,4 +371,25 @@ export const TEST_FILE_HINTS = [
   // `manifest_loader.go`. The matcher does `p.includes(hint)`, so
   // we slash-anchor here.
   "/test_",
+  // Go's canonical test-file convention: `<name>_test.go`. The
+  // existing `_test.` matches it, but only because the `.` happens
+  // to follow `_test`. Pin the Go-style extension explicitly so a
+  // file named e.g. `foo_test.go` registers regardless of upstream
+  // refactors to the existing hint.
+  "_test.go",
+  // Rust `#[cfg(test)]` integration tests live in `tests/<name>.rs`,
+  // already covered by TEST_FOLDER_HINTS. But unit tests inside
+  // `src/` are conventionally inline in the same `.rs` file; the
+  // file-name heuristic can't see those without parsing, so we
+  // accept the `tests/` folder + `Cargo.toml` presence as the
+  // signal at the detector level.
+  // Java tests: `*Test.java`, `*Tests.java`, `*IT.java` (integration).
+  "test.java",
+  "tests.java",
+  // Ruby RSpec: `<name>_spec.rb` already caught by `_spec.`.
+  // PHP: `<Name>Test.php`.
+  "test.php",
+  // .NET: `<Name>Tests.cs`. Conventionally PascalCase, but the
+  // matcher is case-insensitive (we lowercase paths before testing).
+  "tests.cs",
 ];

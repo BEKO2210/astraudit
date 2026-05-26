@@ -105,7 +105,19 @@ async function loadRepoBundleInner(
   const languages = await fetchLanguages(coords.owner, coords.repo, signal);
 
   tick("readme");
-  const readme = await fetchReadme(coords.owner, coords.repo, signal);
+  // Phase 7.0.7 — pass the tree + branch through so fetchReadme can
+  // do a raw-content fallback when the dedicated `/repos/{o}/{r}/readme`
+  // call fails (rate-limited browser sessions, gateway blips). The raw
+  // path lives on raw.githubusercontent.com which carries its own
+  // request budget independent of the core REST surface — so this
+  // fallback frequently succeeds where the API path didn't.
+  const readme = await fetchReadme(
+    coords.owner,
+    coords.repo,
+    signal,
+    tree,
+    metadata.defaultBranch,
+  );
 
   tick("files");
   const importantFiles = await fetchImportantFiles(

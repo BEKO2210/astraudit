@@ -20,11 +20,16 @@ interface ScoreContext {
 }
 
 function statusForRatio(ratio: number, hasAnything: boolean): CategoryStatus {
-  if (!hasAnything) return "missing";
+  // When real points were earned, the status should reflect the
+  // ratio — not the `hasAnything` heuristic. The legacy "if no
+  // signal-of-interest, return missing" branch produced confusing
+  // labels like `quality 11/15 (missing)` on repos that scored well
+  // via secondary signals (CI + lockfile + typecheck) but happened
+  // to ship no `test/` folder and no devDep matching LINT_TOOL_HINTS.
   if (ratio >= 0.8) return "strong";
   if (ratio >= 0.5) return "partial";
   if (ratio > 0) return "weak";
-  return "missing";
+  return hasAnything ? "weak" : "missing";
 }
 
 /**

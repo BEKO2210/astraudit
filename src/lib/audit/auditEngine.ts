@@ -94,7 +94,10 @@ export function runAudit(
   const classified = classifyFiles(bundle.tree, bundle.importantFiles);
 
   emit("stack");
-  const stack = detectStack(classified, bundle.languages);
+  const stack = detectStack(classified, bundle.languages, {
+    topics: bundle.metadata.topics,
+    repoName: bundle.metadata.name,
+  });
   const deps = analyzeDependencies(classified);
 
   emit("documentation");
@@ -103,8 +106,26 @@ export function runAudit(
   // (Astraudit can't fetch wiki content — it lives in a separate
   // git repo at github.com/owner/repo.wiki.git that the tree API
   // doesn't cover — but presence-of-wiki is itself an honest signal).
+  // Tree-presence fallback: when the dedicated /readme API failed
+  // (rate-limited browser session, gateway blip) we can still see
+  // the README in the tree via the classifier's case-insensitive
+  // match. Pass the resolved path through so analyzeReadme credits
+  // presence even without content.
+  const treeReadmePath =
+    classified.hasFile(
+      "README.md",
+      "README.markdown",
+      "README.rst",
+      "README.txt",
+      "README.adoc",
+      "README.asciidoc",
+      "README",
+      "Readme.md",
+      "readme.md",
+    ) ?? null;
   const readme = analyzeReadme(bundle.readme, {
     hasWiki: bundle.metadata.hasWiki,
+    treeReadmePath,
   });
 
   emit("quality");

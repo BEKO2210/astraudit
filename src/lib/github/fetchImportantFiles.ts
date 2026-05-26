@@ -1,5 +1,6 @@
 import type { ImportantFile, RepoTree } from "../../types/github";
 import { fetchRawFile } from "./githubClient";
+import { IMPORTANT_FILE_ALIASES } from "../../data/auditRules";
 
 const MAX_FILE_BYTES = 250_000;
 
@@ -92,15 +93,46 @@ export async function fetchImportantFiles(
   tree: RepoTree,
   signal?: AbortSignal,
 ): Promise<ImportantFile[]> {
-  const treePathSet = new Set(
-    tree.entries.filter((e) => e.type === "blob").map((e) => e.path),
-  );
+  // Case-insensitive tree-path index. GitHub paths are case-sensitive
+  // on disk, but ecosystem conventions vary wildly: `License` vs
+  // `LICENSE`, `Readme.md` vs `README.md`, `Makefile` vs `makefile`,
+  // and so on. A case-sensitive `.has(path)` here used to silently
+  // skip the actual file when its case didn't exactly match
+  // TARGET_FILES — leaving the classifier with no content to parse
+  // (no package.json scripts, no CODEOWNERS, no SECURITY.md body) and
+  // collapsing the audit's downstream scoring on perfectly fine repos
+  // like `expressjs/express`. We keep the original-cased path so the
+  // raw-content fetch uses the actual filename.
+  const treeLowerToPath = new Map<string, string>();
   const sizeMap = new Map<string, number | undefined>();
   for (const entry of tree.entries) {
-    if (entry.type === "blob") sizeMap.set(entry.path, entry.size);
+    if (entry.type !== "blob") continue;
+    treeLowerToPath.set(entry.path.toLowerCase(), entry.path);
+    sizeMap.set(entry.path, entry.size);
   }
 
-  const candidates = TARGET_FILES.filter((path) => treePathSet.has(path));
+  // Build the expanded target list. Every TARGET_FILES entry contributes
+  // its canonical name + every alias that the classifier recognises.
+  // Without this, fetchImportantFiles would dutifully look up
+  // `CHANGELOG.md` while the repo ships `History.md`, leave content
+  // null, and the changelog parser would silently skip a perfectly
+  // fine release log.
+  const expanded = new Set<string>();
+  for (const target of TARGET_FILES) {
+    expanded.add(target);
+    const aliases = IMPORTANT_FILE_ALIASES[target];
+    if (aliases) for (const a of aliases) expanded.add(a);
+  }
+
+  // Resolve every desired filename to its actual cased path in the
+  // tree. De-dupe by original path so we never fetch the same blob
+  // twice when two TARGET_FILES entries resolve to the same alias.
+  const candidateSet = new Set<string>();
+  for (const want of expanded) {
+    const actual = treeLowerToPath.get(want.toLowerCase());
+    if (actual) candidateSet.add(actual);
+  }
+  const candidates = Array.from(candidateSet);
 
   const results: ImportantFile[] = [];
   const fetchOne = async (path: string): Promise<void> => {

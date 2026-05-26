@@ -227,6 +227,17 @@ export interface AnalyzeReadmeOptions {
    * behaviour for callers that don't yet plumb metadata through.
    */
   hasWiki?: boolean;
+  /**
+   * The README's path as it appears in the repo tree, even when the
+   * `/repos/{owner}/{repo}/readme` API could not be reached (rate
+   * limit, network blip, gateway flake). The classifier's
+   * case-insensitive match always sees `Readme.md`, `readme.markdown`,
+   * `README.rst`, etc.; passing it in keeps the documentation score
+   * honest when the content-only API is unavailable — a "README
+   * present but unreadable" repo is much better than the legacy
+   * "missing README" finding it used to get.
+   */
+  treeReadmePath?: string | null;
 }
 
 export function analyzeReadme(
@@ -234,8 +245,14 @@ export function analyzeReadme(
   options: AnalyzeReadmeOptions = {},
 ): ReadmeSignals {
   if (!readme || !readme.content) {
+    // Tree-based presence fallback. When the `/repos/{o}/{r}/readme`
+    // call failed (rate-limited browser session, transient 502) but
+    // the classifier saw a README-shaped blob in the tree, we still
+    // credit "README is present" so the documentation score reflects
+    // reality rather than the audit's fetch luck.
+    const presentInTree = !!options.treeReadmePath;
     return {
-      exists: !!readme,
+      exists: !!readme || presentInTree,
       length: readme?.size ?? 0,
       mentionsInstall: false,
       mentionsUsage: false,
