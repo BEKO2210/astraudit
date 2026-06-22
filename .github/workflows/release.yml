@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Fetch full history so the changelog generator can walk
           # back to the previous tag.
