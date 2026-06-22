@@ -80,7 +80,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.2",
     "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.28.0",
