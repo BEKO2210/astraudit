@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Need the base ref locally too so we can build it without
           # re-fetching the full git history.

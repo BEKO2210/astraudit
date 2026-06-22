@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Roadmap M1.4 — pre-cache npm so CodeQL's autobuild step
       # (which runs `npm install` to materialise transitive types)
